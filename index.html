@@ -573,6 +573,7 @@ async function loadVolunteerContacts() {
     const data = await res.json();
     contacts = data.contacts || [];
     window.messageTemplate = data.template || null;
+    
     currentIdx = 0;
     updateMyStats();
     renderContact();
