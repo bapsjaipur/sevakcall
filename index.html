@@ -888,8 +888,15 @@ function closeEditModal(){document.getElementById('editVolModal').classList.remo
 
 // ═══════════════════ ADMIN TABS ═══════════════════
 function switchTab(tab){
-  ['overview','volunteers','areas','activity'].forEach(t=>{document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}`).style.display=t===tab?'':'none';});
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['overview','volunteers','areas','activity'][i]===tab));
+  // 1. Show/Hide the correct content panels
+  ['overview','volunteers','areas','activity'].forEach(t => {
+    document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}`).style.display = (t === tab) ? '' : 'none';
+  });
+  
+  // 2. Highlight only the buttons inside the Admin section
+  document.querySelectorAll('.admin-wrap .tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['overview','volunteers','areas','activity'][i] === tab);
+  });
 }
 
 // ═══════════════════ HELPERS ═══════════════════
