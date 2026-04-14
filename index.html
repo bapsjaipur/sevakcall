@@ -571,7 +571,8 @@ async function loadVolunteerContacts() {
   try {
     const res  = await fetch(`${URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`);
     const data = await res.json();
-    contacts   = data;
+    contacts = data.contacts || [];
+    window.messageTemplate = data.template || null;
     currentIdx = 0;
     updateMyStats();
     renderContact();
@@ -650,7 +651,24 @@ function renderContact() {
 
   const phone = String(c.Phone).replace(/\D/g, '');
   document.getElementById('callBtn').href = `tel:+91${phone}`;
-  document.getElementById('waBtn').href   = `https://wa.me/91${phone}?text=${encodeURIComponent(WA_MSG(c.Name, c.Mandal, c.Area))}`;
+  
+  // --- NEW: DYNAMIC WHATSAPP LOGIC ---
+  // 1. Get the template from the sheet, or use your fallback WA_MSG if the sheet is empty
+  let baseMessage = window.messageTemplate?.text || WA_MSG(c.Name, c.Mandal, c.Area);
+
+  // 2. Swap out placeholders you might type in the Google Sheet
+  let personalizedMessage = baseMessage
+    .replace(/{{Name}}/gi, c.Name || '')
+    .replace(/{{Mandal}}/gi, c.Mandal || '')
+    .replace(/{{Area}}/gi, c.Area || '');
+
+  // 3. Attach the image link if one exists in the sheet
+  if (window.messageTemplate?.image) {
+      personalizedMessage += `\n\n${window.messageTemplate.image}`;
+  }
+
+  // 4. Set the final button link
+  document.getElementById('waBtn').href = `https://wa.me/91${phone}?text=${encodeURIComponent(personalizedMessage)}`;
 
   document.getElementById('statusSelect').value   = prevStatus || '';
   document.getElementById('referenceInput').value = c.Reference || '';
