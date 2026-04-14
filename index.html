@@ -504,7 +504,8 @@ document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key===
 // ══════════════════════════════════════════════════════════════════
 async function loadVolunteerContacts() {
   try {
-    const res  = await fetch(`${URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`);
+    // FIX: Changed ${URL} to ${SCRIPT_URL} right here 👇
+    const res  = await fetch(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`);
     const data = await res.json();
     
     // NEW: The backend now sends an object with 'contacts' and 'template'
