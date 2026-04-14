@@ -9,139 +9,107 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --saffron: #FF6B1A; --saffron-deep: #E05000;
-      --ink: #0D0D0D; --surface: #F7F4EF; --card: #FFFFFF;
-      --muted: #8A8580; --green: #1F9E5B; --wa: #25D366;
-      --accent-line: #FFD9C2; --area-bg: #EAF2FF; --area-fg: #1A5CB8;
-      --red: #C0392B;
+      --saffron:#FF6B1A; --saffron-deep:#E05000;
+      --ink:#0D0D0D; --surface:#F7F4EF; --card:#FFFFFF;
+      --muted:#8A8580; --green:#1F9E5B; --wa:#25D366;
+      --accent-line:#FFD9C2; --area-bg:#EAF2FF; --area-fg:#1A5CB8;
+      --red:#C0392B; --yellow:#F5A623; --prog:#FF6B1A;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--surface); color: var(--ink);
-      min-height: 100dvh; display: flex; flex-direction: column; align-items: center;
+    body.dark {
+      --surface:#111318; --card:#1C2028; --ink:#F0EDE8;
+      --muted:#6B6760; --accent-line:#3D2010; --area-bg:#0D1F35; --area-fg:#6AADFF;
     }
-    .syne { font-family: 'Syne', sans-serif; }
+    body.dark .header { background:#0A0C10; }
+    body.dark .styled-input,.dark .styled-select { background:#13161C; border-color:#2A2D35; color:#F0EDE8; }
+    body.dark .login-card,.dark .contact-card,.dark .my-stats-card,.dark .vol-card,.dark .summary-card,.dark .filter-panel { background:var(--card); }
+    body.dark .tab-bar { background:#1A1D24; }
+    body.dark .tab-btn.active { background:#2A2D35; }
+    body.dark .divider,.dark .vol-progress-wrap,.dark .progress-wrap { background:#2A2D35; }
+    body.dark .chip-btn { background:#1C2028; border-color:#2A2D35; color:#ccc; }
+    body.dark .search-bar { background:#13161C; border-color:#2A2D35; color:#F0EDE8; }
+    body.dark .search-results { background:#1C2028; }
+    body.dark .search-result-item { border-color:#2A2D35; }
+    body.dark .search-result-item:hover { background:#252930; }
+    body.dark .skeleton { background:linear-gradient(90deg,#1C2028 25%,#252930 50%,#1C2028 75%); background-size:200% 100%; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'DM Sans',sans-serif; background:var(--surface); color:var(--ink); min-height:100dvh; display:flex; flex-direction:column; align-items:center; transition:background 0.3s,color 0.3s; }
+    .syne { font-family:'Syne',sans-serif; }
+    .screen { display:none; width:100%; flex-direction:column; align-items:center; }
+    .screen.active { display:flex; }
 
-    /* ── SCREENS ── */
-    .screen { display: none; width: 100%; flex-direction: column; align-items: center; }
-    .screen.active { display: flex; }
-
-    /* ── HEADER ── */
-    .header {
-      width: 100%; background: var(--ink);
-      padding: 13px 18px; display: flex;
-      align-items: center; justify-content: space-between; gap: 10px;
-    }
-    .header-title { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:800; color:#fff; letter-spacing:-0.02em; }
-    .header-title span { color: var(--saffron); }
-    .header-right { display:flex; align-items:center; gap:8px; }
-    .user-chip {
-      font-size:0.72rem; font-weight:600;
-      background:rgba(255,255,255,0.12); color:#ddd;
-      padding:3px 10px; border-radius:99px;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;
-    }
+    /* HEADER */
+    .header { width:100%; background:var(--ink); padding:13px 18px; display:flex; align-items:center; justify-content:space-between; gap:8px; position:sticky; top:0; z-index:100; }
+    .header-title { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:800; color:#fff; letter-spacing:-0.02em; flex-shrink:0; }
+    .header-title span { color:var(--saffron); }
+    .header-right { display:flex; align-items:center; gap:6px; }
+    .user-chip { font-size:0.7rem; font-weight:600; background:rgba(255,255,255,0.12); color:#ddd; padding:3px 9px; border-radius:99px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px; }
     .user-chip span { color:#fff; }
-    .counter-badge {
-      font-family:'Syne',sans-serif; font-size:0.78rem; font-weight:700;
-      background:var(--saffron); color:#fff; padding:3px 10px; border-radius:99px; flex-shrink:0;
-    }
-    .logout-btn {
-      background:rgba(255,255,255,0.1); border:none; color:#aaa;
-      font-size:0.72rem; font-weight:600; padding:3px 10px; border-radius:99px;
-      cursor:pointer; letter-spacing:0.04em; transition:background 0.2s;
-    }
-    .logout-btn:hover { background:rgba(255,255,255,0.2); color:#fff; }
+    .counter-badge { font-family:'Syne',sans-serif; font-size:0.75rem; font-weight:700; background:var(--saffron); color:#fff; padding:3px 9px; border-radius:99px; flex-shrink:0; }
+    .icon-btn { background:rgba(255,255,255,0.1); border:none; color:#aaa; width:30px; height:30px; border-radius:99px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s; flex-shrink:0; }
+    .icon-btn:hover { background:rgba(255,255,255,0.22); color:#fff; }
+    .logout-btn { background:rgba(255,255,255,0.1); border:none; color:#aaa; font-size:0.7rem; font-weight:600; padding:3px 9px; border-radius:99px; cursor:pointer; transition:background 0.2s; }
+    .logout-btn:hover { background:rgba(255,255,255,0.22); color:#fff; }
 
-    /* ── PROGRESS ── */
-    .progress-wrap { width:100%; height:4px; background:#E8E4DD; }
-    .progress-bar  { height:4px; background:var(--saffron); transition:width 0.4s ease; }
+    /* PROGRESS */
+    .progress-wrap { width:100%; height:4px; background:#E8E4DD; position:sticky; top:48px; z-index:99; }
+    .progress-bar { height:4px; background:var(--prog); transition:width 0.4s ease,background 0.5s ease; }
 
-    /* ── LOGIN SCREEN ──  */
-    .login-wrap {
-      width:100%; max-width:400px; padding:40px 24px;
-      display:flex; flex-direction:column; gap:24px;
-    }
-    .login-logo {
-      font-family:'Syne',sans-serif; font-size:2rem; font-weight:800;
-      letter-spacing:-0.04em; color:var(--ink);
-    }
+    /* LOGIN */
+    .login-wrap { width:100%; max-width:400px; padding:40px 24px; display:flex; flex-direction:column; gap:24px; }
+    .login-logo { font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; letter-spacing:-0.04em; }
     .login-logo span { color:var(--saffron); }
     .login-sub { font-size:0.88rem; color:var(--muted); margin-top:-16px; }
-    .login-card {
-      background:var(--card); border-radius:20px;
-      box-shadow:0 4px 30px rgba(0,0,0,0.08); padding:28px 22px;
-      display:flex; flex-direction:column; gap:16px;
-    }
+    .login-card { background:var(--card); border-radius:20px; box-shadow:0 4px 30px rgba(0,0,0,0.08); padding:28px 22px; display:flex; flex-direction:column; gap:16px; }
     .login-card h2 { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:800; }
 
-    /* ── INPUTS ── */
+    /* INPUTS */
     .input-group { display:flex; flex-direction:column; gap:5px; }
-    .input-group-label {
-      font-size:0.7rem; font-weight:600;
-      letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);
-    }
-    .styled-input, .styled-select {
-      width:100%; padding:13px 16px; border-radius:14px;
-      border:2px solid #E8E4DD; background:var(--surface);
-      font-family:'DM Sans',sans-serif; font-size:0.95rem; font-weight:500; color:var(--ink);
-      transition:border-color 0.2s;
-    }
-    .styled-input:focus, .styled-select:focus { outline:none; border-color:var(--saffron); }
+    .input-group-label { font-size:0.7rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+    .styled-input,.styled-select { width:100%; padding:13px 16px; border-radius:14px; border:2px solid #E8E4DD; background:var(--surface); font-family:'DM Sans',sans-serif; font-size:0.95rem; font-weight:500; color:var(--ink); transition:border-color 0.2s,background 0.3s; }
+    .styled-input:focus,.styled-select:focus { outline:none; border-color:var(--saffron); }
     .styled-input::placeholder { color:var(--muted); }
-    .styled-select {
-      appearance:none; -webkit-appearance:none;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%238A8580' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-      background-repeat:no-repeat; background-position:right 14px center;
-      padding-right:40px; cursor:pointer;
-    }
+    .styled-select { appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%238A8580' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:40px; cursor:pointer; }
 
-    /* ── BUTTONS ── */
-    .btn {
-      display:flex; align-items:center; justify-content:center; gap:8px;
-      width:100%; border:none; border-radius:14px; padding:14px 18px;
-      font-family:'DM Sans',sans-serif; font-size:0.97rem; font-weight:600;
-      cursor:pointer; text-decoration:none;
-      transition:transform 0.12s, filter 0.12s;
-      -webkit-tap-highlight-color:transparent;
-    }
+    /* SEARCH */
+    .search-wrap { position:relative; }
+    .search-bar { width:100%; padding:11px 16px 11px 42px; border-radius:14px; border:2px solid #E8E4DD; background:var(--surface); font-family:'DM Sans',sans-serif; font-size:0.92rem; font-weight:500; color:var(--ink); transition:border-color 0.2s; }
+    .search-bar:focus { outline:none; border-color:var(--saffron); }
+    .search-bar::placeholder { color:var(--muted); }
+    .search-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
+    .search-results { position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:200; background:var(--card); border-radius:14px; box-shadow:0 8px 30px rgba(0,0,0,0.14); max-height:220px; overflow-y:auto; display:none; }
+    .search-results.open { display:block; }
+    .search-result-item { padding:11px 16px; cursor:pointer; border-bottom:1px solid #F0EDE8; font-size:0.88rem; transition:background 0.15s; }
+    .search-result-item:last-child { border-bottom:none; }
+    .search-result-item:hover { background:var(--surface); }
+    .search-result-name { font-weight:600; }
+    .search-result-meta { font-size:0.72rem; color:var(--muted); margin-top:1px; }
+
+    /* BUTTONS */
+    .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; border:none; border-radius:14px; padding:14px 18px; font-family:'DM Sans',sans-serif; font-size:0.97rem; font-weight:600; cursor:pointer; text-decoration:none; transition:transform 0.12s,filter 0.12s; -webkit-tap-highlight-color:transparent; }
     .btn:active { transform:scale(0.97); filter:brightness(0.93); }
-    .btn-primary {
-      background:linear-gradient(135deg,var(--saffron),var(--saffron-deep));
-      color:#fff; box-shadow:0 6px 20px rgba(255,107,26,0.32);
-      font-family:'Syne',sans-serif; font-weight:700;
-    }
+    .btn-primary { background:linear-gradient(135deg,var(--saffron),var(--saffron-deep)); color:#fff; box-shadow:0 6px 20px rgba(255,107,26,0.32); font-family:'Syne',sans-serif; font-weight:700; }
     .btn-primary:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
     .btn-call { background:var(--ink); color:#fff; box-shadow:0 4px 14px rgba(13,13,13,0.2); }
     .btn-wa   { background:var(--wa);  color:#fff; box-shadow:0 4px 14px rgba(37,211,102,0.25); }
-    .btn-outline {
-      background:transparent; border:2px solid #E8E4DD; color:var(--muted);
-      font-size:0.88rem;
-    }
+    .btn-outline { background:transparent; border:2px solid #E8E4DD; color:var(--muted); font-size:0.88rem; }
 
-    /* ── CONTACT CARD ── */
-    .contact-card {
-      background:var(--card); border-radius:20px;
-      box-shadow:0 4px 30px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
-      padding:26px 22px 22px; width:100%; position:relative; overflow:hidden;
-    }
-    .contact-card::before {
-      content:''; position:absolute; top:0; left:0; right:0; height:5px;
-      background:linear-gradient(90deg,var(--saffron),#FFB347);
-    }
-    .field-label {
-      font-size:0.65rem; font-weight:600; letter-spacing:0.12em;
-      text-transform:uppercase; color:var(--muted); margin-bottom:1px;
-    }
-    .contact-name {
-      font-family:'Syne',sans-serif; font-size:1.55rem; font-weight:800;
-      letter-spacing:-0.03em; line-height:1.1;
-    }
-    .tag {
-      display:inline-flex; align-items:center; gap:4px;
-      font-size:0.78rem; font-weight:600; padding:4px 11px; border-radius:99px;
-    }
+    /* QUICK CHIPS */
+    .chips-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .chip-btn { display:flex; align-items:center; gap:7px; padding:11px 14px; border-radius:14px; border:2px solid #E8E4DD; background:var(--card); font-family:'DM Sans',sans-serif; font-size:0.85rem; font-weight:600; cursor:pointer; transition:all 0.15s; color:var(--ink); -webkit-tap-highlight-color:transparent; }
+    .chip-btn:active { transform:scale(0.97); }
+    .chip-btn.sel-green  { border-color:var(--green);  background:#D4EDDA; color:#156D3E; }
+    .chip-btn.sel-red    { border-color:var(--red);    background:#FDECEA; color:var(--red); }
+    .chip-btn.sel-yellow { border-color:var(--yellow); background:#FFF3CD; color:#856404; }
+    .chip-btn.sel-blue   { border-color:#1A5CB8;       background:#EAF2FF; color:#1A5CB8; }
+    .chip-btn.sel-gray   { border-color:var(--muted);  background:#F0F0F0; color:var(--ink); }
+    .chip-emoji { font-size:1.1rem; flex-shrink:0; }
+
+    /* CONTACT CARD */
+    .contact-card { background:var(--card); border-radius:20px; box-shadow:0 4px 30px rgba(0,0,0,0.08),0 1px 4px rgba(0,0,0,0.04); padding:26px 22px 22px; width:100%; position:relative; overflow:hidden; transition:background 0.3s; }
+    .contact-card::before { content:''; position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg,var(--saffron),#FFB347); }
+    .field-label { font-size:0.65rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:1px; }
+    .contact-name { font-family:'Syne',sans-serif; font-size:1.55rem; font-weight:800; letter-spacing:-0.03em; line-height:1.1; }
+    .tag { display:inline-flex; align-items:center; gap:4px; font-size:0.78rem; font-weight:600; padding:4px 11px; border-radius:99px; }
     .tag-mandal { background:var(--accent-line); color:var(--saffron-deep); }
     .tag-area   { background:var(--area-bg); color:var(--area-fg); }
     .meta-row   { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -149,151 +117,121 @@
     .meta-item strong { color:var(--ink); font-weight:600; }
     .status-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
     .status-dot.done    { background:var(--green); }
-    .status-dot.pending { background:#F5A623; }
+    .status-dot.pending { background:var(--yellow); }
     .status-dot.none    { background:#ccc; }
     .divider { height:1px; background:#EDE9E2; }
 
-    /* ── ADMIN DASHBOARD ── */
+    /* CALL TIME */
+    .call-time-badge { display:inline-flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:600; padding:4px 10px; border-radius:99px; }
+    .call-time-badge.ok   { background:#D4EDDA; color:#156D3E; }
+    .call-time-badge.warn { background:#FFF3CD; color:#856404; }
+    .call-time-badge.no   { background:#FDECEA; color:var(--red); }
+
+    /* MY STATS */
+    .my-stats-card { background:var(--card); border-radius:20px; box-shadow:0 4px 20px rgba(0,0,0,0.07); padding:18px 20px; display:flex; flex-direction:column; gap:12px; transition:background 0.3s; }
+    .vol-progress-wrap { width:100%; height:7px; background:#EDE9E2; border-radius:99px; overflow:hidden; }
+    .vol-progress-bar  { height:100%; border-radius:99px; transition:width 0.6s ease,background 0.5s ease; }
+
+    /* ADMIN */
     .admin-wrap { width:100%; max-width:680px; padding:20px 16px; display:flex; flex-direction:column; gap:16px; }
-    .admin-section-title {
-      font-family:'Syne',sans-serif; font-size:1rem; font-weight:800;
-      letter-spacing:-0.01em; color:var(--ink);
-    }
-
-    /* Summary row */
+    .admin-section-title { font-family:'Syne',sans-serif; font-size:1rem; font-weight:800; }
     .summary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-    .summary-card {
-      background:var(--card); border-radius:16px;
-      padding:16px 14px; box-shadow:0 2px 12px rgba(0,0,0,0.06);
-      display:flex; flex-direction:column; gap:2px;
-    }
-    .summary-val {
-      font-family:'Syne',sans-serif; font-size:1.6rem; font-weight:800; line-height:1;
-    }
+    .summary-card { background:var(--card); border-radius:16px; padding:16px 14px; box-shadow:0 2px 12px rgba(0,0,0,0.06); display:flex; flex-direction:column; gap:2px; cursor:pointer; transition:box-shadow 0.2s; }
+    .summary-card:hover { box-shadow:0 4px 18px rgba(0,0,0,0.1); }
+    .summary-val { font-family:'Syne',sans-serif; font-size:1.6rem; font-weight:800; line-height:1; }
     .summary-lbl { font-size:0.7rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
-
-    /* Volunteer cards */
-    .vol-card {
-      background:var(--card); border-radius:18px;
-      box-shadow:0 2px 14px rgba(0,0,0,0.06); padding:18px 18px 16px;
-      display:flex; flex-direction:column; gap:12px;
-    }
+    .vol-card { background:var(--card); border-radius:18px; box-shadow:0 2px 14px rgba(0,0,0,0.06); padding:18px 18px 16px; display:flex; flex-direction:column; gap:12px; }
     .vol-header { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
-    .vol-name { font-family:'Syne',sans-serif; font-size:1rem; font-weight:800; }
+    .vol-name  { font-family:'Syne',sans-serif; font-size:1rem; font-weight:800; }
     .vol-email { font-size:0.75rem; color:var(--muted); }
-    .vol-badge {
-      font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:99px; flex-shrink:0;
-    }
+    .vol-badge { font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:99px; flex-shrink:0; }
     .vol-badge.done    { background:#D4EDDA; color:#1F9E5B; }
     .vol-badge.partial { background:#FFF3CD; color:#856404; }
     .vol-badge.idle    { background:#F0F0F0; color:#888; }
-
-    /* Progress bar in vol card */
-    .vol-progress-wrap { width:100%; height:7px; background:#EDE9E2; border-radius:99px; overflow:hidden; }
-    .vol-progress-bar  { height:100%; border-radius:99px; transition:width 0.5s ease; background:var(--saffron); }
-
-    /* Status breakdown pills */
     .status-pills { display:flex; flex-wrap:wrap; gap:6px; }
-    .pill {
-      font-size:0.72rem; font-weight:600; padding:3px 10px;
-      border-radius:99px; background:#F0F0F0; color:var(--ink);
-    }
+    .pill { font-size:0.72rem; font-weight:600; padding:3px 10px; border-radius:99px; background:#F0F0F0; color:var(--ink); }
     .pill.green  { background:#D4EDDA; color:#1F9E5B; }
     .pill.red    { background:#FDECEA; color:#C0392B; }
     .pill.yellow { background:#FFF3CD; color:#856404; }
     .pill.blue   { background:#EAF2FF; color:#1A5CB8; }
     .pill.gray   { background:#F0F0F0; color:#666; }
-
-    /* Area breakdown */
-    .area-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid #F0EDE8; }
+    .area-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid #F0EDE8; }
     .area-row:last-child { border-bottom:none; }
     .area-name { font-size:0.82rem; font-weight:600; }
-    .area-stat { font-size:0.78rem; color:var(--muted); }
 
-    /* Volunteer progress screen (volunteer's own stats) */
-    .my-stats-card {
-      background:var(--card); border-radius:20px;
-      box-shadow:0 4px 20px rgba(0,0,0,0.07); padding:22px;
-      display:flex; flex-direction:column; gap:14px;
-    }
+    /* FILTER PANEL */
+    .filter-panel { background:var(--card); border-radius:18px; box-shadow:0 2px 14px rgba(0,0,0,0.07); overflow:hidden; }
+    .filter-panel-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #EDE9E2; }
+    .filter-panel-title { font-family:'Syne',sans-serif; font-size:0.9rem; font-weight:800; }
+    .filter-contact-row { padding:10px 18px; border-bottom:1px solid #F5F3EF; font-size:0.82rem; display:flex; justify-content:space-between; align-items:center; }
+    .filter-contact-row:last-child { border-bottom:none; }
 
-    /* ── ANIMATIONS ── */
-    @keyframes slideUp {
-      from { opacity:0; transform:translateY(20px) scale(0.98); }
-      to   { opacity:1; transform:translateY(0) scale(1); }
-    }
+    /* MODALS */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; display:none; align-items:flex-end; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal-sheet { background:var(--card); border-radius:24px 24px 0 0; padding:24px 20px 32px; width:100%; max-width:500px; animation:slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1) both; max-height:90dvh; overflow-y:auto; }
+    .modal-handle { width:40px; height:4px; background:#E0DDD8; border-radius:99px; margin:0 auto 20px; }
+    .modal-title { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:800; margin-bottom:16px; }
+
+    /* ACTIVITY */
+    .activity-item { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid #F0EDE8; }
+    .activity-item:last-child { border-bottom:none; }
+    .activity-dot { width:8px; height:8px; border-radius:50%; background:var(--saffron); flex-shrink:0; margin-top:5px; }
+    .activity-text { font-size:0.8rem; line-height:1.4; }
+    .activity-time { font-size:0.7rem; color:var(--muted); margin-top:2px; }
+
+    /* DONUT */
+    .donut-wrap { display:flex; align-items:center; gap:20px; }
+    .donut-legend { display:flex; flex-direction:column; gap:6px; flex:1; }
+    .legend-item { display:flex; align-items:center; gap:6px; font-size:0.78rem; font-weight:500; }
+    .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+    /* OFFLINE */
+    .offline-banner { position:fixed; top:0; left:0; right:0; z-index:1000; background:#856404; color:#fff; padding:8px 16px; font-size:0.8rem; font-weight:600; text-align:center; transform:translateY(-100%); transition:transform 0.3s; }
+    .offline-banner.show { transform:translateY(0); }
+
+    /* TABS */
+    .tab-bar { display:flex; gap:6px; background:#EDE9E2; border-radius:14px; padding:4px; width:100%; }
+    .tab-btn { flex:1; padding:9px 8px; border:none; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:0.78rem; font-weight:600; cursor:pointer; background:transparent; color:var(--muted); transition:all 0.2s; }
+    .tab-btn.active { background:var(--card); color:var(--ink); box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+    .error-box { background:#FDECEA; border:1.5px solid #F5C6CB; border-radius:14px; padding:12px 16px; font-size:0.85rem; color:var(--red); font-weight:500; display:none; }
+
+    /* ANIMATIONS */
+    @keyframes slideUp { from{opacity:0;transform:translateY(20px) scale(0.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+    @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+    @keyframes pop     { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
     .card-animate { animation:slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1) both; }
-    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-    .fade-in { animation:fadeIn 0.3s ease both; }
-    @keyframes pop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
-    .done-icon { font-size:3rem; animation:pop 0.5s cubic-bezier(0.34,1.6,0.64,1) both; }
+    .fade-in      { animation:fadeIn 0.3s ease both; }
+    .done-icon    { font-size:3rem; animation:pop 0.5s cubic-bezier(0.34,1.6,0.64,1) both; }
 
-    /* ── SKELETON ── */
-    .skeleton {
-      background:linear-gradient(90deg,#EDE9E2 25%,#F7F4EF 50%,#EDE9E2 75%);
-      background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:8px;
-    }
+    .skeleton { background:linear-gradient(90deg,#EDE9E2 25%,#F7F4EF 50%,#EDE9E2 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:8px; }
     @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-    /* ── TOAST ── */
-    .toast {
-      position:fixed; bottom:24px; left:50%;
-      transform:translateX(-50%) translateY(80px);
-      background:var(--ink); color:#fff; padding:11px 22px; border-radius:99px;
-      font-size:0.86rem; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,0.2);
-      transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s;
-      opacity:0; z-index:999; white-space:nowrap; pointer-events:none;
-    }
-    .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+    .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--ink); color:#fff; padding:11px 22px; border-radius:99px; font-size:0.86rem; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,0.2); transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s; opacity:0; z-index:999; white-space:nowrap; pointer-events:none; }
+    .toast.show    { transform:translateX(-50%) translateY(0); opacity:1; }
     .toast.success { background:var(--green); }
     .toast.error   { background:var(--red); }
+    .toast.warn    { background:var(--yellow); color:var(--ink); }
 
-    /* ── SPINNER ── */
-    .spinner {
-      width:17px; height:17px;
-      border:2.5px solid rgba(255,255,255,0.35); border-top-color:#fff;
-      border-radius:50%; animation:spin 0.7s linear infinite; display:inline-block;
-    }
+    .spinner { width:17px; height:17px; border:2.5px solid rgba(255,255,255,0.35); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; display:inline-block; }
     @keyframes spin { to{transform:rotate(360deg)} }
     .icon { width:19px; height:19px; flex-shrink:0; }
-
-    /* ── TABS (admin) ── */
-    .tab-bar {
-      display:flex; gap:6px; background:#EDE9E2;
-      border-radius:14px; padding:4px; width:100%;
-    }
-    .tab-btn {
-      flex:1; padding:9px 8px; border:none; border-radius:10px;
-      font-family:'DM Sans',sans-serif; font-size:0.82rem; font-weight:600;
-      cursor:pointer; background:transparent; color:var(--muted);
-      transition:all 0.2s;
-    }
-    .tab-btn.active { background:var(--card); color:var(--ink); box-shadow:0 2px 8px rgba(0,0,0,0.1); }
-
-    /* Error box */
-    .error-box {
-      background:#FDECEA; border:1.5px solid #F5C6CB; border-radius:14px;
-      padding:12px 16px; font-size:0.85rem; color:var(--red); font-weight:500;
-      display:none;
-    }
   </style>
 </head>
 <body>
 
-<!-- ════════════════════════════════════════════════════
-     SCREEN 1 — LOGIN
-════════════════════════════════════════════════════ -->
+<div id="offlineBanner" class="offline-banner">📶 Offline — changes saved locally, will sync on reconnect <span id="offlineCount"></span></div>
+
+<!-- ══════════ LOGIN ══════════ -->
 <div id="screenLogin" class="screen active">
   <div class="login-wrap">
     <div>
       <div class="login-logo">Sevak<span>Call</span></div>
       <div class="login-sub">Volunteer Calling Platform</div>
     </div>
-
     <div class="login-card card-animate">
       <h2>Sign In</h2>
-      <div id="loginError" class="error-box">❌ Invalid email or password.</div>
-
+      <div id="loginError" class="error-box"></div>
       <div class="input-group">
         <div class="input-group-label">Email</div>
         <input id="loginEmail" type="email" class="styled-input" placeholder="you@example.com" autocomplete="email"/>
@@ -302,51 +240,48 @@
         <div class="input-group-label">Password</div>
         <input id="loginPassword" type="password" class="styled-input" placeholder="••••••••" autocomplete="current-password"/>
       </div>
-
-      <button id="loginBtn" class="btn btn-primary" onclick="doLogin()">
-        <span id="loginBtnText">Sign In →</span>
-      </button>
+      <button id="loginBtn" class="btn btn-primary" onclick="doLogin()"><span id="loginBtnText">Sign In →</span></button>
     </div>
-
-    <div style="font-size:0.75rem;color:var(--muted);text-align:center;line-height:1.6">
-      Credentials are managed by your admin.<br>Contact them if you can't sign in.
-    </div>
+    <div style="font-size:0.75rem;color:var(--muted);text-align:center;line-height:1.6">Credentials managed by your admin.</div>
   </div>
 </div>
 
-<!-- ════════════════════════════════════════════════════
-     SCREEN 2 — VOLUNTEER CALLING VIEW
-════════════════════════════════════════════════════ -->
+<!-- ══════════ VOLUNTEER ══════════ -->
 <div id="screenCalling" class="screen">
-  <!-- Header -->
   <div class="header">
     <div class="header-title">Sevak<span>Call</span></div>
     <div class="header-right">
       <div id="volUserChip" class="user-chip"></div>
       <div id="volCounter" class="counter-badge">— / —</div>
+      <button class="icon-btn" onclick="toggleDark()" title="Dark mode">🌙</button>
       <button class="logout-btn" onclick="doLogout()">Out</button>
     </div>
   </div>
   <div class="progress-wrap"><div id="volProgressBar" class="progress-bar" style="width:0%"></div></div>
 
-  <div class="w-full max-w-md px-4 py-5 flex flex-col gap-4">
+  <div class="w-full max-w-md px-4 py-4 flex flex-col gap-4">
 
-    <!-- My Stats toggle -->
-    <button id="myStatsToggleBtn" onclick="toggleMyStats()"
-      style="background:none;border:none;cursor:pointer;text-align:left;padding:0">
-      <div class="my-stats-card fade-in" id="myStatsMini">
-        <div class="flex items-center justify-between">
-          <div style="font-size:0.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">My Progress</div>
-          <div id="myStatsChevron" style="color:var(--muted);font-size:0.8rem">▼ Details</div>
-        </div>
-        <div style="display:flex;gap:16px">
-          <div><div id="msDone" class="syne" style="font-size:1.4rem;font-weight:800">—</div><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:600">Called</div></div>
-          <div><div id="msInterested" class="syne" style="font-size:1.4rem;font-weight:800;color:var(--green)">—</div><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:600">Interested</div></div>
-          <div><div id="msTotal" class="syne" style="font-size:1.4rem;font-weight:800">—</div><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:600">Assigned</div></div>
-        </div>
-        <div class="vol-progress-wrap"><div id="msBar" class="vol-progress-bar" style="width:0%"></div></div>
+    <!-- Stats -->
+    <div class="my-stats-card fade-in">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:0.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">My Progress</div>
+        <div id="callTimeBadge" class="call-time-badge ok">● Good time to call</div>
       </div>
-    </button>
+      <div style="display:flex;gap:20px;align-items:flex-end">
+        <div><div id="msDone" class="syne" style="font-size:1.5rem;font-weight:800">—</div><div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:600">Called</div></div>
+        <div><div id="msInterested" class="syne" style="font-size:1.5rem;font-weight:800;color:var(--green)">—</div><div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:600">Interested</div></div>
+        <div><div id="msTotal" class="syne" style="font-size:1.5rem;font-weight:800">—</div><div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:600">Assigned</div></div>
+        <div style="flex:1;text-align:right"><div id="msPct" class="syne" style="font-size:1.1rem;font-weight:800;color:var(--muted)">0%</div><div style="font-size:0.65rem;color:var(--muted);font-weight:600">Done</div></div>
+      </div>
+      <div class="vol-progress-wrap"><div id="msBar" class="vol-progress-bar" style="width:0%"></div></div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" class="search-bar" type="text" placeholder="Search by name or phone…" autocomplete="off" oninput="onSearch(this.value)" onblur="setTimeout(closeSearch,200)"/>
+      <div id="searchResults" class="search-results"></div>
+    </div>
 
     <!-- Contact Card -->
     <div id="contactCard" class="contact-card card-animate">
@@ -354,569 +289,528 @@
         <div class="skeleton h-4 w-20 rounded"></div>
         <div class="skeleton h-9 w-3/4 rounded-lg"></div>
         <div class="skeleton h-5 w-1/2 rounded"></div>
-        <div class="flex gap-2">
-          <div class="skeleton h-6 w-28 rounded-full"></div>
-          <div class="skeleton h-6 w-24 rounded-full"></div>
-        </div>
+        <div class="flex gap-2"><div class="skeleton h-6 w-28 rounded-full"></div><div class="skeleton h-6 w-24 rounded-full"></div></div>
       </div>
     </div>
 
-    <!-- Call + WhatsApp -->
+    <!-- Call + WA -->
     <div class="flex gap-3" id="actionBtns">
       <a id="callBtn" href="#" class="btn btn-call flex-1">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.04 2.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
-        </svg>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.04 2.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
         Call
       </a>
       <a id="waBtn" href="#" target="_blank" class="btn btn-wa flex-1">
-        <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-          <path d="M12 2C6.477 2 2 6.477 2 12c0 1.989.58 3.842 1.58 5.402L2 22l4.744-1.546A9.958 9.958 0 0012 22c5.523 0 10-4.477 10-10S17.522 2 12 2zm0 18c-1.74 0-3.358-.504-4.72-1.37l-.338-.201-3.509 1.144 1.175-3.421-.219-.351A7.946 7.946 0 014 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8z"/>
-        </svg>
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.989.58 3.842 1.58 5.402L2 22l4.744-1.546A9.958 9.958 0 0012 22c5.523 0 10-4.477 10-10S17.522 2 12 2zm0 18c-1.74 0-3.358-.504-4.72-1.37l-.338-.201-3.509 1.144 1.175-3.421-.219-.351A7.946 7.946 0 014 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8z"/></svg>
         WhatsApp
       </a>
     </div>
 
-    <!-- Update Record section -->
-    <div class="flex items-center gap-3" id="remarkDivider">
+    <!-- Quick Status Chips -->
+    <div id="remarkDivider" class="flex items-center gap-3">
       <div class="divider flex-1"></div>
-      <span style="font-size:0.67rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)">Update Record</span>
+      <span style="font-size:0.67rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)">Quick Status</span>
       <div class="divider flex-1"></div>
     </div>
 
-    <div class="input-group" id="statusGroup">
-      <div class="input-group-label">Status</div>
-      <select id="statusSelect" class="styled-select">
-        <option value="" disabled selected>Select status…</option>
-        <option value="Interested">✅  Interested</option>
-        <option value="Not Interested">❌  Not Interested</option>
-        <option value="Call Back Later">🔁  Call Back Later</option>
-        <option value="No Answer">📵  No Answer</option>
-        <option value="Wrong Number">⚠️  Wrong Number</option>
-        <option value="Already Volunteer">🙌  Already Volunteer</option>
-      </select>
+    <div id="statusGroup" class="chips-grid">
+      <button class="chip-btn" data-val="Interested"        data-sel="sel-green"  onclick="selectChip(this)"><span class="chip-emoji">✅</span> Interested</button>
+      <button class="chip-btn" data-val="Not Interested"    data-sel="sel-red"    onclick="selectChip(this)"><span class="chip-emoji">❌</span> Not Interested</button>
+      <button class="chip-btn" data-val="Call Back Later"   data-sel="sel-yellow" onclick="selectChip(this)"><span class="chip-emoji">🔁</span> Call Back</button>
+      <button class="chip-btn" data-val="No Answer"         data-sel="sel-blue"   onclick="selectChip(this)"><span class="chip-emoji">📵</span> No Answer</button>
+      <button class="chip-btn" data-val="Wrong Number"      data-sel="sel-gray"   onclick="selectChip(this)"><span class="chip-emoji">⚠️</span> Wrong No.</button>
+      <button class="chip-btn" data-val="Already Volunteer" data-sel="sel-green"  onclick="selectChip(this)"><span class="chip-emoji">🙌</span> Already Vol.</button>
     </div>
+    <select id="statusSelect" style="display:none">
+      <option value="" disabled selected></option>
+      <option>Interested</option><option>Not Interested</option><option>Call Back Later</option>
+      <option>No Answer</option><option>Wrong Number</option><option>Already Volunteer</option>
+    </select>
 
     <div class="input-group" id="referenceGroup">
       <div class="input-group-label">Reference <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:0.68rem">(optional)</span></div>
       <input id="referenceInput" type="text" class="styled-input" placeholder="e.g. Referred by Ramesh ji…" maxlength="200"/>
     </div>
 
-    <button id="saveBtn" class="btn btn-primary" disabled>
-      <span id="saveBtnText">Save &amp; Next →</span>
-    </button>
-
-    <button id="skipBtn" onclick="loadNext()"
-      style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.85rem;font-weight:500;padding:4px;text-decoration:underline;text-underline-offset:3px">
-      Skip without saving
-    </button>
-
+    <button id="saveBtn" class="btn btn-primary" disabled><span id="saveBtnText">Save &amp; Next →</span></button>
+    <button id="skipBtn" onclick="loadNext()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.85rem;font-weight:500;padding:4px;text-decoration:underline;text-underline-offset:3px">Skip without saving</button>
   </div>
 </div>
 
-<!-- ════════════════════════════════════════════════════
-     SCREEN 3 — ADMIN DASHBOARD
-════════════════════════════════════════════════════ -->
+<!-- ══════════ ADMIN ══════════ -->
 <div id="screenAdmin" class="screen">
   <div class="header">
-    <div class="header-title">Sevak<span>Call</span> <span style="color:#aaa;font-size:0.75rem;font-weight:600;letter-spacing:0.06em"> ADMIN</span></div>
+    <div class="header-title">Sevak<span>Call</span> <span style="color:#aaa;font-size:0.7rem;font-weight:600;letter-spacing:0.06em">ADMIN</span></div>
     <div class="header-right">
+      <button class="icon-btn" onclick="toggleDark()" title="Dark mode">🌙</button>
       <button class="logout-btn" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
 
   <div class="admin-wrap">
-
-    <!-- Tabs -->
     <div class="tab-bar">
       <button class="tab-btn active" onclick="switchTab('overview')">📊 Overview</button>
       <button class="tab-btn" onclick="switchTab('volunteers')">👥 Volunteers</button>
       <button class="tab-btn" onclick="switchTab('areas')">🏘️ Areas</button>
+      <button class="tab-btn" onclick="switchTab('activity')">⚡ Activity</button>
     </div>
 
-    <!-- OVERVIEW TAB -->
+    <!-- OVERVIEW -->
     <div id="tabOverview" class="flex flex-col gap-4 fade-in">
       <div class="summary-grid" id="summaryGrid">
         <div class="summary-card"><div class="skeleton h-8 w-12 rounded mb-1"></div><div class="skeleton h-3 w-16 rounded"></div></div>
         <div class="summary-card"><div class="skeleton h-8 w-12 rounded mb-1"></div><div class="skeleton h-3 w-16 rounded"></div></div>
         <div class="summary-card"><div class="skeleton h-8 w-12 rounded mb-1"></div><div class="skeleton h-3 w-16 rounded"></div></div>
       </div>
+      <div class="contact-card" id="overviewChart"><div class="skeleton h-32 w-full rounded-xl"></div></div>
       <div>
-        <div class="admin-section-title" style="margin-bottom:10px">Status Breakdown</div>
-        <div class="contact-card" id="overviewBreakdown">
-          <div class="flex flex-col gap-2">
-            <div class="skeleton h-5 w-full rounded"></div>
-            <div class="skeleton h-5 w-3/4 rounded"></div>
-            <div class="skeleton h-5 w-1/2 rounded"></div>
-          </div>
-        </div>
+        <div class="admin-section-title" style="margin-bottom:8px">Status Breakdown <span style="font-size:0.7rem;color:var(--muted);font-family:'DM Sans';font-weight:500">(tap to filter)</span></div>
+        <div class="contact-card" id="overviewBreakdown"><div class="skeleton h-5 w-full rounded mb-2"></div><div class="skeleton h-5 w-3/4 rounded mb-2"></div><div class="skeleton h-5 w-1/2 rounded"></div></div>
       </div>
-      <div style="display:flex;justify-content:flex-end">
-        <button onclick="loadAdminData()" class="btn btn-outline" style="width:auto;padding:8px 18px;font-size:0.82rem">
-          🔄 Refresh
-        </button>
+      <div id="filteredPanel" style="display:none"><div class="filter-panel" id="filteredContactsList"></div></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+        <button onclick="exportCSV('contacts')" class="btn btn-outline" style="width:auto;padding:8px 16px;font-size:0.82rem">📥 Export CSV</button>
+        <button onclick="loadAdminData()" class="btn btn-outline" style="width:auto;padding:8px 16px;font-size:0.82rem">🔄 Refresh</button>
       </div>
     </div>
 
-    <!-- VOLUNTEERS TAB -->
+    <!-- VOLUNTEERS -->
     <div id="tabVolunteers" class="flex flex-col gap-4 fade-in" style="display:none!important">
-      <div id="volCards">
-        <div class="vol-card"><div class="skeleton h-6 w-40 rounded mb-2"></div><div class="skeleton h-3 w-24 rounded"></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="admin-section-title">Volunteer Progress</div>
+        <button onclick="openAddVolModal()" class="btn btn-primary" style="width:auto;padding:8px 16px;font-size:0.82rem">+ Add</button>
       </div>
+      <div id="volCards"><div class="vol-card"><div class="skeleton h-6 w-40 rounded mb-2"></div><div class="skeleton h-3 w-24 rounded"></div></div></div>
     </div>
 
-    <!-- AREAS TAB -->
+    <!-- AREAS -->
     <div id="tabAreas" class="flex flex-col gap-4 fade-in" style="display:none!important">
-      <div class="contact-card" id="areaBreakdown">
-        <div class="flex flex-col gap-2">
-          <div class="skeleton h-5 w-full rounded"></div>
-          <div class="skeleton h-5 w-3/4 rounded"></div>
-        </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button onclick="exportCSV('areas')" class="btn btn-outline" style="width:auto;padding:8px 16px;font-size:0.82rem">📥 Export Areas CSV</button>
       </div>
+      <div class="contact-card" id="areaBreakdown"><div class="skeleton h-5 w-full rounded mb-2"></div><div class="skeleton h-5 w-3/4 rounded"></div></div>
     </div>
 
+    <!-- ACTIVITY -->
+    <div id="tabActivity" class="flex flex-col gap-4 fade-in" style="display:none!important">
+      <div class="admin-section-title">Recent Activity</div>
+      <div class="contact-card" id="activityFeed"><div class="skeleton h-5 w-full rounded mb-2"></div><div class="skeleton h-5 w-3/4 rounded mb-2"></div><div class="skeleton h-5 w-1/2 rounded"></div></div>
+      <button onclick="loadAdminData()" class="btn btn-outline" style="padding:10px">🔄 Refresh Feed</button>
+    </div>
   </div>
 </div>
 
-<!-- Toast -->
+<!-- REASSIGN MODAL -->
+<div id="reassignModal" class="modal-overlay" onclick="if(event.target===this)closeReassignModal()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Reassign Contacts</div>
+    <div id="reassignBody" class="flex flex-col gap-3"></div>
+  </div>
+</div>
+
+<!-- EDIT VOL MODAL -->
+<div id="editVolModal" class="modal-overlay" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="editVolTitle">Edit Volunteer</div>
+    <div id="editVolForm" class="flex flex-col gap-3"></div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script>
-// ══════════════════════════════════════════════════════════════════
-// CONFIG
-// ══════════════════════════════════════════════════════════════════
-const URL = 'https://script.google.com/macros/s/AKfycbwk_dVthpdqF19kM565NIytv5030a_nLhdiEk4vFCEX4gji9kmH48mmdpmVfuyQkVK7eQ/exec';
+// ═══════════════════ CONFIG ═══════════════════
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwk_dVthpdqF19kM565NIytv5030a_nLhdiEk4vFCEX4gji9kmH48mmdpmVfuyQkVK7eQ/exec';
+const WA_MSG = (n,m,a) => `Namaste ${n} ji 🙏\n\nWe are reaching out from *${m}* (${a}) regarding our upcoming volunteer program. We would love your support!\n\nKindly let us know a convenient time to connect. 🙂`;
 
-const WA_MSG = (name, mandal, area) =>
-  `Namaste ${name} ji 🙏\n\nWe are reaching out from *${mandal}* (${area}) regarding our upcoming volunteer program. We would love your support!\n\nKindly let us know a convenient time to connect. 🙂`;
+// ═══════════════════ STATE ═══════════════════
+let currentUser = null, contacts = [], currentIdx = 0, isSaving = false;
+let adminData = null, offlineQueue = [], isDark = false;
 
-// ══════════════════════════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════════════════════════
-let currentUser  = null;   // { name, email, role:'admin'|'volunteer' }
-let contacts     = [];     // volunteer's assigned contacts
-let currentIdx   = 0;
-let isSaving     = false;
-let statsExpanded = false;
-
-// ══════════════════════════════════════════════════════════════════
-// SCREEN ROUTING
-// ══════════════════════════════════════════════════════════════════
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+// ═══════════════════ DARK MODE ═══════════════════
+function toggleDark() {
+  isDark = !isDark;
+  document.body.classList.toggle('dark', isDark);
+  localStorage.setItem('sc_dark', isDark ? '1' : '');
 }
+if (localStorage.getItem('sc_dark')) { isDark=true; document.body.classList.add('dark'); }
 
-// ══════════════════════════════════════════════════════════════════
-// LOGIN
-// ══════════════════════════════════════════════════════════════════
-async function doLogin() {
-  const email    = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value.trim();
-  const errBox   = document.getElementById('loginError');
-  const btn      = document.getElementById('loginBtn');
-  const txt      = document.getElementById('loginBtnText');
-
-  errBox.style.display = 'none';
-  if (!email || !password) { errBox.textContent = '❌ Please enter email and password.'; errBox.style.display = 'block'; return; }
-
-  btn.disabled = true;
-  txt.innerHTML = '<span class="spinner"></span> Signing in…';
-
-  try {
-    const res  = await fetch(`${URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
-    const data = await res.json();
-
-    if (data.success) {
-      currentUser = data.user; // { name, email, role }
-      if (currentUser.role === 'admin') {
-        showScreen('screenAdmin');
-        loadAdminData();
-      } else {
-        showScreen('screenCalling');
-        document.getElementById('volUserChip').innerHTML = `<span>${esc(currentUser.name)}</span>`;
-        loadVolunteerContacts();
-      }
-    } else {
-      errBox.textContent = '❌ Invalid email or password.';
-      errBox.style.display = 'block';
-    }
-  } catch (err) {
-    errBox.textContent = '❌ Connection error. Check internet.';
-    errBox.style.display = 'block';
-    console.error(err);
-  } finally {
-    btn.disabled = false;
-    txt.innerHTML = 'Sign In →';
+// ═══════════════════ OFFLINE ═══════════════════
+function refreshOfflineBanner() {
+  const b = document.getElementById('offlineBanner');
+  const c = document.getElementById('offlineCount');
+  if (!navigator.onLine) {
+    b.classList.add('show');
+    c.textContent = offlineQueue.length ? `(${offlineQueue.length} pending)` : '';
+  } else {
+    b.classList.remove('show');
+    if (offlineQueue.length) syncQueue();
   }
 }
+window.addEventListener('online',  refreshOfflineBanner);
+window.addEventListener('offline', refreshOfflineBanner);
 
-function doLogout() {
-  currentUser = null; contacts = []; currentIdx = 0;
-  document.getElementById('loginEmail').value = '';
-  document.getElementById('loginPassword').value = '';
-  document.getElementById('loginError').style.display = 'none';
-  showScreen('screenLogin');
+async function syncQueue() {
+  const q = [...offlineQueue]; offlineQueue = []; refreshOfflineBanner();
+  for (const item of q) {
+    try {
+      await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(item) });
+    } catch(e) { offlineQueue.push(item); }
+  }
+  if (!offlineQueue.length) showToast('✅ Offline saves synced!','success');
+  else refreshOfflineBanner();
 }
 
-// Enter key on login
-document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-document.getElementById('loginEmail').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+// ═══════════════════ CALL TIME ═══════════════════
+function updateCallTime() {
+  const el = document.getElementById('callTimeBadge'); if(!el) return;
+  const h = (new Date().getUTCHours() + 5 + Math.floor((new Date().getUTCMinutes()+30)/60)) % 24;
+  if (h>=22||h<8)       { el.className='call-time-badge no';   el.textContent='🌙 Avoid calling'; }
+  else if (h>=20||h<9)  { el.className='call-time-badge warn'; el.textContent='⚠️ Late hour'; }
+  else                   { el.className='call-time-badge ok';   el.textContent='● Good time to call'; }
+}
+setInterval(updateCallTime, 60000);
 
-// ══════════════════════════════════════════════════════════════════
-// VOLUNTEER — LOAD CONTACTS
-// ══════════════════════════════════════════════════════════════════
+// ═══════════════════ ROUTING ═══════════════════
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+// ═══════════════════ LOGIN ═══════════════════
+async function doLogin() {
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPassword').value.trim();
+  const err=document.getElementById('loginError');
+  const btn=document.getElementById('loginBtn'), txt=document.getElementById('loginBtnText');
+  err.style.display='none';
+  if(!email||!pass){err.textContent='❌ Enter email and password.';err.style.display='block';return;}
+  btn.disabled=true; txt.innerHTML='<span class="spinner"></span> Signing in…';
+  try {
+    const res=await fetch(`${SCRIPT_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`);
+    const d=await res.json();
+    if(d.success){
+      currentUser=d.user;
+      if(currentUser.role==='admin'){showScreen('screenAdmin');loadAdminData();}
+      else{showScreen('screenCalling');document.getElementById('volUserChip').innerHTML=`<span>${esc(currentUser.name)}</span>`;loadVolunteerContacts();updateCallTime();}
+    } else {err.textContent='❌ Invalid email or password.';err.style.display='block';}
+  } catch(e){err.textContent='❌ Connection error.';err.style.display='block';}
+  finally{btn.disabled=false;txt.innerHTML='Sign In →';}
+}
+function doLogout(){currentUser=null;contacts=[];currentIdx=0;offlineQueue=[];['loginEmail','loginPassword'].forEach(id=>document.getElementById(id).value='');document.getElementById('loginError').style.display='none';showScreen('screenLogin');}
+document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+// ═══════════════════ LOAD CONTACTS ═══════════════════
 async function loadVolunteerContacts() {
   try {
-    const res  = await fetch(`${URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`);
-    const data = await res.json();
-    contacts = data.contacts || [];
-    window.messageTemplate = data.template || null;
-    
-    currentIdx = 0;
-    updateMyStats();
-    renderContact();
-  } catch (err) {
-    showToast('Failed to load contacts', 'error');
-    console.error(err);
-  }
+    const res=await fetch(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`);
+    const d=await res.json();
+    contacts=d.contacts||[]; window.messageTemplate=d.template||null;
+    currentIdx=0; updateMyStats(); renderContact();
+  } catch(e){showToast('Failed to load contacts','error');}
 }
 
-// ══════════════════════════════════════════════════════════════════
-// VOLUNTEER — MY STATS
-// ══════════════════════════════════════════════════════════════════
+// ═══════════════════ MY STATS ═══════════════════
 function updateMyStats() {
-  const total      = contacts.length;
-  const called     = contacts.filter(c => c.Status && c.Status.trim()).length;
-  const interested = contacts.filter(c => ['Interested','Already Volunteer'].includes((c.Status||'').trim())).length;
-  const pct        = total ? Math.round((called / total) * 100) : 0;
-
-  document.getElementById('msDone').textContent       = called;
-  document.getElementById('msInterested').textContent = interested;
-  document.getElementById('msTotal').textContent      = total;
-  document.getElementById('msBar').style.width        = pct + '%';
+  const total=contacts.length;
+  const called=contacts.filter(c=>c.Status&&c.Status.trim()).length;
+  const interested=contacts.filter(c=>['Interested','Already Volunteer'].includes((c.Status||'').trim())).length;
+  const pct=total?Math.round((called/total)*100):0;
+  document.getElementById('msDone').textContent=called;
+  document.getElementById('msInterested').textContent=interested;
+  document.getElementById('msTotal').textContent=total;
+  document.getElementById('msPct').textContent=pct+'%';
+  const bar=document.getElementById('msBar');
+  bar.style.width=pct+'%';
+  bar.style.background=pct>=100?'var(--green)':pct>=50?'var(--saffron)':'#F5A623';
+  document.documentElement.style.setProperty('--prog',pct>=100?'var(--green)':pct>=50?'var(--saffron)':'#F5A623');
 }
 
-function toggleMyStats() {
-  // future: expand to full breakdown panel
+// ═══════════════════ SEARCH ═══════════════════
+function onSearch(q) {
+  const res=document.getElementById('searchResults');
+  q=q.trim().toLowerCase();
+  if(!q||!contacts.length){res.classList.remove('open');return;}
+  const hits=contacts.filter(c=>c.Name.toLowerCase().includes(q)||String(c.Phone).includes(q)).slice(0,8);
+  if(!hits.length){res.classList.remove('open');return;}
+  res.innerHTML=hits.map(c=>`<div class="search-result-item" onclick="jumpToContact(${contacts.indexOf(c)})"><div class="search-result-name">${esc(c.Name)}</div><div class="search-result-meta">${esc(c.Phone)} · ${esc(c.Mandal)} · ${c.Status?'● '+esc(c.Status):'Uncalled'}</div></div>`).join('');
+  res.classList.add('open');
 }
+function jumpToContact(i){currentIdx=i;document.getElementById('searchInput').value='';closeSearch();renderContact();}
+function closeSearch(){document.getElementById('searchResults').classList.remove('open');}
 
-// ══════════════════════════════════════════════════════════════════
-// VOLUNTEER — RENDER CONTACT
-// ══════════════════════════════════════════════════════════════════
+// ═══════════════════ CHIPS ═══════════════════
+function selectChip(el) {
+  document.querySelectorAll('.chip-btn').forEach(b=>{b.className='chip-btn';});
+  el.classList.add(el.dataset.sel||'sel-gray');
+  document.getElementById('statusSelect').value=el.dataset.val;
+  updateSaveState();
+}
+function clearChips(){document.querySelectorAll('.chip-btn').forEach(b=>{b.className='chip-btn';});document.getElementById('statusSelect').value='';updateSaveState();}
+function setChipFromValue(val){clearChips();if(!val)return;const c=[...document.querySelectorAll('.chip-btn')].find(b=>b.dataset.val===val);if(c)selectChip(c);}
+
+// ═══════════════════ RENDER CONTACT ═══════════════════
 function renderContact() {
-  // Update progress
-  const pct = contacts.length ? Math.round((currentIdx / contacts.length) * 100) : 0;
-  document.getElementById('volProgressBar').style.width = pct + '%';
-  document.getElementById('volCounter').textContent = contacts.length
-    ? `${currentIdx + 1} / ${contacts.length}` : '— / —';
-
-  if (currentIdx >= contacts.length) { renderDone(); return; }
-
+  const pct=contacts.length?Math.round((currentIdx/contacts.length)*100):0;
+  document.getElementById('volProgressBar').style.width=pct+'%';
+  document.getElementById('volCounter').textContent=contacts.length?`${currentIdx+1} / ${contacts.length}`:'— / —';
+  if(currentIdx>=contacts.length){renderDone();return;}
   restoreCallingUI();
-
-  const c = contacts[currentIdx];
-  const prevStatus = (c.Status || '').trim();
-  const dotClass = prevStatus
-    ? (['Interested','Already Volunteer'].includes(prevStatus) ? 'done' : 'pending')
-    : 'none';
-
-  const card = document.getElementById('contactCard');
-  card.className = 'contact-card card-animate';
-  void card.offsetWidth;
-
-  card.innerHTML = `
+  const c=contacts[currentIdx];
+  const ps=(c.Status||'').trim();
+  const dc=ps?(['Interested','Already Volunteer'].includes(ps)?'done':'pending'):'none';
+  const card=document.getElementById('contactCard');
+  card.className='contact-card card-animate'; void card.offsetWidth;
+  card.innerHTML=`
     <div class="flex flex-col gap-4">
-      <div>
-        <div class="field-label">Contact · ${esc(c.ID)}</div>
-        <div class="contact-name">${esc(c.Name)}</div>
-      </div>
+      <div><div class="field-label">Contact · ${esc(c.ID)}</div><div class="contact-name">${esc(c.Name)}</div></div>
       <div class="flex items-center gap-2">
-        <svg class="icon" style="color:var(--muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.04 2.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
-        </svg>
+        <svg class="icon" style="color:var(--muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.04 2.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
         <div style="font-size:1.15rem;font-weight:600">${esc(c.Phone)}</div>
       </div>
-      <div class="flex flex-wrap gap-2">
-        <span class="tag tag-mandal">📍 ${esc(c.Mandal)}</span>
-        <span class="tag tag-area">🏘️ ${esc(c.Area)}</span>
-      </div>
-      ${prevStatus || c.Reference ? `
-      <div class="meta-row" style="padding-top:6px;border-top:1px solid #EDE9E2">
-        ${prevStatus ? `<div class="meta-item"><div class="status-dot ${dotClass}"></div> Last: <strong>${esc(prevStatus)}</strong></div>` : ''}
-        ${c.Reference ? `<div class="meta-item" style="width:100%;margin-top:2px">📝 ${esc(c.Reference)}</div>` : ''}
-      </div>` : ''}
-    </div>
-  `;
-
-  const phone = String(c.Phone).replace(/\D/g, '');
-  document.getElementById('callBtn').href = `tel:+91${phone}`;
-  
-  // --- NEW: DYNAMIC WHATSAPP LOGIC ---
-  // 1. Get the template from the sheet, or use your fallback WA_MSG if the sheet is empty
-  let baseMessage = window.messageTemplate?.text || WA_MSG(c.Name, c.Mandal, c.Area);
-
-  // 2. Swap out placeholders you might type in the Google Sheet
-  let personalizedMessage = baseMessage
-    .replace(/{{Name}}/gi, c.Name || '')
-    .replace(/{{Mandal}}/gi, c.Mandal || '')
-    .replace(/{{Area}}/gi, c.Area || '');
-
-  // 3. Attach the image link if one exists in the sheet
-  if (window.messageTemplate?.image) {
-      personalizedMessage += `\n\n${window.messageTemplate.image}`;
-  }
-
-  // 4. Set the final button link
-  document.getElementById('waBtn').href = `https://wa.me/91${phone}?text=${encodeURIComponent(personalizedMessage)}`;
-
-  document.getElementById('statusSelect').value   = prevStatus || '';
-  document.getElementById('referenceInput').value = c.Reference || '';
+      <div class="flex flex-wrap gap-2"><span class="tag tag-mandal">📍 ${esc(c.Mandal)}</span><span class="tag tag-area">🏘️ ${esc(c.Area)}</span></div>
+      ${ps||c.Reference?`<div class="meta-row" style="padding-top:6px;border-top:1px solid #EDE9E2">${ps?`<div class="meta-item"><div class="status-dot ${dc}"></div> Last: <strong>${esc(ps)}</strong></div>`:''} ${c.Reference?`<div class="meta-item" style="width:100%;margin-top:2px">📝 ${esc(c.Reference)}</div>`:''}</div>`:''}
+    </div>`;
+  const phone=String(c.Phone).replace(/\D/g,'');
+  document.getElementById('callBtn').href=`tel:+91${phone}`;
+  let msg=(window.messageTemplate?.text||WA_MSG(c.Name,c.Mandal,c.Area)).replace(/{{Name}}/gi,c.Name||'').replace(/{{Mandal}}/gi,c.Mandal||'').replace(/{{Area}}/gi,c.Area||'');
+  if(window.messageTemplate?.image) msg+=`\n\n${window.messageTemplate.image}`;
+  document.getElementById('waBtn').href=`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`;
+  setChipFromValue(ps);
+  document.getElementById('referenceInput').value=c.Reference||'';
   updateSaveState();
 }
 
 function renderDone() {
-  const card = document.getElementById('contactCard');
-  card.className = 'contact-card card-animate';
-  card.innerHTML = `
-    <div class="flex flex-col items-center gap-3 py-8 text-center">
-      <div class="done-icon">🎉</div>
-      <div class="syne" style="font-size:1.6rem;font-weight:800">All Done!</div>
-      <div style="color:var(--muted);font-size:0.88rem;line-height:1.6">
-        You've gone through all <strong style="color:var(--ink)">${contacts.length}</strong> assigned contacts.<br>Great work, Sevak!
-      </div>
-      <button onclick="loadVolunteerContacts()" class="btn btn-primary mt-2" style="max-width:200px">Refresh List</button>
-    </div>
-  `;
-  ['actionBtns','remarkDivider','statusGroup','referenceGroup','saveBtn','skipBtn']
-    .forEach(id => { const el = document.getElementById(id); if(el) el.style.display='none'; });
+  const card=document.getElementById('contactCard');
+  card.className='contact-card card-animate';
+  card.innerHTML=`<div class="flex flex-col items-center gap-3 py-8 text-center"><div class="done-icon">🎉</div><div class="syne" style="font-size:1.6rem;font-weight:800">All Done!</div><div style="color:var(--muted);font-size:0.88rem;line-height:1.6">You've gone through all <strong style="color:var(--ink)">${contacts.length}</strong> assigned contacts.<br>Great work, Sevak!</div><button onclick="loadVolunteerContacts()" class="btn btn-primary mt-2" style="max-width:200px">Refresh List</button></div>`;
+  ['actionBtns','remarkDivider','statusGroup','referenceGroup','saveBtn','skipBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
 }
+function restoreCallingUI(){['actionBtns','remarkDivider','statusGroup','referenceGroup','saveBtn','skipBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='';});}
 
-function restoreCallingUI() {
-  ['actionBtns','remarkDivider','statusGroup','referenceGroup','saveBtn','skipBtn']
-    .forEach(id => { const el = document.getElementById(id); if(el) el.style.display=''; });
-}
-
-// ══════════════════════════════════════════════════════════════════
-// VOLUNTEER — SAVE & NEXT
-// ══════════════════════════════════════════════════════════════════
+// ═══════════════════ SAVE & NEXT ═══════════════════
 async function saveAndNext() {
-  if (isSaving) return;
-  const status    = document.getElementById('statusSelect').value;
-  const reference = document.getElementById('referenceInput').value.trim();
-  if (!status) { showToast('Please select a status first', 'error'); return; }
-
-  const c   = contacts[currentIdx];
-  isSaving  = true;
-  const btn = document.getElementById('saveBtn');
-  const txt = document.getElementById('saveBtnText');
-  btn.disabled  = true;
-  txt.innerHTML = '<span class="spinner"></span> Saving…';
-
+  if(isSaving)return;
+  const status=document.getElementById('statusSelect').value;
+  const reference=document.getElementById('referenceInput').value.trim();
+  if(!status){showToast('Please select a status first','error');return;}
+  const c=contacts[currentIdx]; isSaving=true;
+  const btn=document.getElementById('saveBtn'),txt=document.getElementById('saveBtnText');
+  btn.disabled=true; txt.innerHTML='<span class="spinner"></span> Saving…';
+  const payload={action:'updateContact',ID:c.ID,Status:status,Reference:reference};
   try {
-    await fetch(URL, {
-      method: 'POST', mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action:'updateContact', ID:c.ID, Status:status, Reference:reference })
-    });
-    contacts[currentIdx].Status    = status;
-    contacts[currentIdx].Reference = reference;
-    updateMyStats();
-    showToast(`Saved: ${status}`, 'success');
+    if(navigator.onLine){
+      await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    } else {
+      offlineQueue.push({...payload,ts:Date.now()}); refreshOfflineBanner(); showToast('💾 Saved offline','warn');
+    }
+    contacts[currentIdx].Status=status; contacts[currentIdx].Reference=reference;
+    updateMyStats(); if(navigator.onLine) showToast(`Saved: ${status}`,'success');
     loadNext();
-  } catch (err) {
-    showToast('Save failed. Check connection.', 'error');
-    btn.disabled  = false;
-    txt.innerHTML = 'Save &amp; Next →';
-  } finally {
-    isSaving = false;
-  }
+  } catch(e) {
+    offlineQueue.push({...payload,ts:Date.now()}); refreshOfflineBanner();
+    contacts[currentIdx].Status=status; contacts[currentIdx].Reference=reference;
+    updateMyStats(); showToast('💾 Saved offline','warn'); loadNext();
+  } finally{isSaving=false;btn.disabled=false;txt.innerHTML='Save &amp; Next →';}
 }
+function loadNext(){currentIdx++;clearChips();document.getElementById('saveBtnText').innerHTML='Save &amp; Next →';renderContact();}
+function updateSaveState(){document.getElementById('saveBtn').disabled=!document.getElementById('statusSelect').value;}
+document.getElementById('saveBtn').addEventListener('click',saveAndNext);
 
-function loadNext() {
-  currentIdx++;
-  document.getElementById('saveBtnText').innerHTML = 'Save &amp; Next →';
-  renderContact();
-}
-
-function updateSaveState() {
-  document.getElementById('saveBtn').disabled = !document.getElementById('statusSelect').value;
-}
-
-document.getElementById('statusSelect').addEventListener('change', updateSaveState);
-document.getElementById('saveBtn').addEventListener('click', saveAndNext);
-
-// ══════════════════════════════════════════════════════════════════
-// ADMIN — LOAD DATA
-// ══════════════════════════════════════════════════════════════════
+// ═══════════════════ ADMIN ═══════════════════
 async function loadAdminData() {
   try {
-    const res  = await fetch(`${URL}?action=getAdminStats`);
-    const data = await res.json();
-    renderAdminOverview(data);
-    renderVolunteerCards(data);
-    renderAreaBreakdown(data);
-  } catch (err) {
-    showToast('Failed to load dashboard', 'error');
-    console.error(err);
-  }
+    const res=await fetch(`${SCRIPT_URL}?action=getAdminStats`);
+    adminData=await res.json();
+    renderAdminOverview(adminData); renderVolunteerCards(adminData);
+    renderAreaBreakdown(adminData); renderActivityFeed(adminData);
+  } catch(e){showToast('Failed to load dashboard','error');}
 }
 
 function renderAdminOverview(data) {
-  const { totalContacts, totalCalled, statusBreakdown } = data;
-  const pct = totalContacts ? Math.round((totalCalled / totalContacts) * 100) : 0;
+  const {totalContacts:T=0,totalCalled:C=0,statusBreakdown:S={}} = data;
+  const interested=(S['Interested']||0)+(S['Already Volunteer']||0);
+  const pct=T?Math.round((C/T)*100):0;
+  document.getElementById('summaryGrid').innerHTML=`
+    <div class="summary-card" onclick="filterByStatus('all')"><div class="summary-val">${T}</div><div class="summary-lbl">Total</div></div>
+    <div class="summary-card" onclick="filterByStatus('called')"><div class="summary-val" style="color:var(--saffron)">${C}</div><div class="summary-lbl">Called</div></div>
+    <div class="summary-card" onclick="filterByStatus('Interested')"><div class="summary-val" style="color:var(--green)">${interested}</div><div class="summary-lbl">Interested</div></div>`;
+  drawDonut(S,T,pct);
+  const rows=Object.entries(S).sort((a,b)=>b[1]-a[1]).map(([s,n])=>{
+    const bp=T?Math.round((n/T)*100):0;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F0EDE8;cursor:pointer" onclick="filterByStatus('${s.replace(/'/g,"\\'")}')">
+      <span class="pill ${spc(s)}" style="min-width:130px;text-align:center">${esc(s)}</span>
+      <div style="flex:1;height:6px;background:#EDE9E2;border-radius:99px;overflow:hidden"><div style="height:100%;width:${bp}%;background:var(--saffron);border-radius:99px;transition:width 0.5s"></div></div>
+      <span style="font-weight:700;font-size:0.82rem;min-width:32px;text-align:right">${n}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('overviewBreakdown').innerHTML=`
+    <div style="margin-bottom:12px">
+      <div class="field-label" style="margin-bottom:6px">Overall Progress · ${pct}%</div>
+      <div class="vol-progress-wrap"><div class="vol-progress-bar" style="width:${pct}%;background:${pct>=100?'var(--green)':pct>=50?'var(--saffron)':'#F5A623'}"></div></div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:4px">${C} called · ${T-C} remaining</div>
+    </div><div>${rows||'<div style="color:var(--muted);font-size:0.85rem">No data yet.</div>'}</div>`;
+}
 
-  document.getElementById('summaryGrid').innerHTML = `
-    <div class="summary-card">
-      <div class="summary-val">${totalContacts}</div>
-      <div class="summary-lbl">Total</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-val" style="color:var(--saffron)">${totalCalled}</div>
-      <div class="summary-lbl">Called</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-val" style="color:var(--green)">${pct}%</div>
-      <div class="summary-lbl">Done</div>
-    </div>
-  `;
+function drawDonut(S,T,pct) {
+  const COLORS={'Interested':'#1F9E5B','Already Volunteer':'#1F9E5B','Not Interested':'#C0392B','Call Back Later':'#F5A623','No Answer':'#1A5CB8','Wrong Number':'#8A8580'};
+  const entries=Object.entries(S).filter(([,v])=>v>0);
+  const uncalled=T-entries.reduce((s,[,v])=>s+v,0);
+  if(uncalled>0)entries.push(['Uncalled',uncalled]);
+  const R=52,CX=65,CY=65,sw=22,circ=2*Math.PI*R;
+  let off=0,arcs='',leg='';
+  entries.forEach(([lbl,val])=>{
+    const dash=(val/T)*circ,color=COLORS[lbl]||'#E0DDD8';
+    arcs+=`<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${circ/4-off}" style="transform-origin:${CX}px ${CY}px"/>`;
+    off+=dash;
+    leg+=`<div class="legend-item"><div class="legend-dot" style="background:${color}"></div>${esc(lbl)}: <strong>${val}</strong></div>`;
+  });
+  document.getElementById('overviewChart').innerHTML=`<div class="donut-wrap"><svg width="130" height="130" viewBox="0 0 130 130">${arcs}<text x="${CX}" y="${CY-6}" text-anchor="middle" font-family="Syne,sans-serif" font-weight="800" font-size="18" fill="var(--ink)">${pct}%</text><text x="${CX}" y="${CY+12}" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="var(--muted)">Done</text></svg><div class="donut-legend">${leg}</div></div>`;
+}
 
-  // Overall progress bar
-  const breakdownHTML = Object.entries(statusBreakdown)
-    .sort((a,b) => b[1]-a[1])
-    .map(([status, count]) => {
-      const cls = statusPillClass(status);
-      const barpct = totalContacts ? Math.round((count/totalContacts)*100) : 0;
-      return `
-        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #F0EDE8">
-          <span class="pill ${cls}" style="min-width:130px;text-align:center">${esc(status)}</span>
-          <div style="flex:1;height:6px;background:#EDE9E2;border-radius:99px;overflow:hidden">
-            <div style="height:100%;width:${barpct}%;background:var(--saffron);border-radius:99px;transition:width 0.5s"></div>
-          </div>
-          <span style="font-weight:700;font-size:0.82rem;min-width:28px;text-align:right">${count}</span>
-        </div>
-      `;
-    }).join('');
-
-  document.getElementById('overviewBreakdown').innerHTML = `
-    <div style="margin-bottom:10px">
-      <div class="field-label" style="margin-bottom:6px">Overall Progress</div>
-      <div class="vol-progress-wrap"><div class="vol-progress-bar" style="width:${pct}%"></div></div>
-      <div style="font-size:0.75rem;color:var(--muted);margin-top:4px">${totalCalled} of ${totalContacts} contacts called</div>
-    </div>
-    <div>${breakdownHTML || '<div style="color:var(--muted);font-size:0.85rem">No data yet.</div>'}</div>
-  `;
+function filterByStatus(status) {
+  const panel=document.getElementById('filteredPanel'),list=document.getElementById('filteredContactsList');
+  if(!adminData?.allContacts){showToast('Full data not loaded','error');return;}
+  let f=status==='all'?adminData.allContacts:status==='called'?adminData.allContacts.filter(c=>(c.Status||'').trim()):adminData.allContacts.filter(c=>(c.Status||'').trim()===status);
+  if(!f.length){panel.style.display='none';return;}
+  panel.style.display='';
+  list.innerHTML=`<div class="filter-panel-header"><div class="filter-panel-title">${esc(status==='all'?'All':status==='called'?'Called':status)} (${f.length})</div><button onclick="document.getElementById('filteredPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:1.1rem">✕</button></div>`
+    +f.slice(0,50).map(c=>`<div class="filter-contact-row"><div><div style="font-weight:600">${esc(c.Name)}</div><div style="font-size:0.72rem;color:var(--muted)">${esc(c.Phone)} · ${esc(c.Area)}</div></div><span class="pill ${spc(c.Status||'')}">${esc(c.Status||'Uncalled')}</span></div>`).join('')
+    +(f.length>50?`<div style="padding:10px 18px;font-size:0.75rem;color:var(--muted)">Showing first 50 of ${f.length}</div>`:'');
+  list.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 function renderVolunteerCards(data) {
-  const { volunteers } = data;
-  if (!volunteers || !volunteers.length) {
-    document.getElementById('volCards').innerHTML = '<div style="color:var(--muted);font-size:0.88rem">No volunteers found.</div>';
-    return;
-  }
-
-  document.getElementById('volCards').innerHTML = volunteers.map(v => {
-    const pct      = v.total ? Math.round((v.called / v.total) * 100) : 0;
-    const badgeCls = pct === 100 ? 'done' : pct > 0 ? 'partial' : 'idle';
-    const badgeTxt = pct === 100 ? '✅ Complete' : pct > 0 ? `${pct}% done` : 'Not started';
-
-    const pills = Object.entries(v.statusBreakdown || {})
-      .filter(([,n]) => n > 0)
-      .sort((a,b) => b[1]-a[1])
-      .map(([s,n]) => `<span class="pill ${statusPillClass(s)}">${esc(s)}: ${n}</span>`)
-      .join('');
-
-    return `
-      <div class="vol-card">
-        <div class="vol-header">
-          <div>
-            <div class="vol-name">${esc(v.name)}</div>
-            <div class="vol-email">${esc(v.email)}</div>
+  const {volunteers:v=[]}=data;
+  if(!v.length){document.getElementById('volCards').innerHTML='<div style="color:var(--muted);font-size:0.88rem">No volunteers found.</div>';return;}
+  document.getElementById('volCards').innerHTML=v.map(v=>{
+    const pct=v.total?Math.round((v.called/v.total)*100):0;
+    const bc=pct===100?'done':pct>0?'partial':'idle';
+    const bt=pct===100?'✅ Complete':pct>0?`${pct}% done`:'Not started';
+    const pills=Object.entries(v.statusBreakdown||{}).filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]).map(([s,n])=>`<span class="pill ${spc(s)}">${esc(s)}: ${n}</span>`).join('');
+    return `<div class="vol-card">
+      <div class="vol-header">
+        <div><div class="vol-name">${esc(v.name)}</div><div class="vol-email">${esc(v.email)}</div>${v.areas?.length?`<div style="font-size:0.72rem;color:var(--muted);margin-top:3px">🏘️ ${v.areas.map(a=>esc(a)).join(' · ')}</div>`:''}  </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <span class="vol-badge ${bc}">${bt}</span>
+          <div style="display:flex;gap:5px">
+            <button onclick="openReassignModal('${esc(v.name)}')" style="background:var(--area-bg);border:none;border-radius:99px;padding:3px 9px;font-size:0.7rem;font-weight:600;color:var(--area-fg);cursor:pointer">⇄ Reassign</button>
+            <button onclick="openEditModal('${esc(v.name)}','${esc(v.email)}')" style="background:#F0F0F0;border:none;border-radius:99px;padding:3px 9px;font-size:0.7rem;font-weight:600;color:var(--muted);cursor:pointer">✏️ Edit</button>
           </div>
-          <span class="vol-badge ${badgeCls}">${badgeTxt}</span>
         </div>
-        <div>
-          <div class="vol-progress-wrap"><div class="vol-progress-bar" style="width:${pct}%"></div></div>
-          <div style="font-size:0.73rem;color:var(--muted);margin-top:4px">${v.called} / ${v.total} contacts called</div>
-        </div>
-        ${pills ? `<div class="status-pills">${pills}</div>` : ''}
-        ${v.areas && v.areas.length ? `
-        <div style="font-size:0.75rem;color:var(--muted)">
-          🏘️ ${v.areas.map(a => esc(a)).join(' · ')}
-        </div>` : ''}
       </div>
-    `;
+      <div><div class="vol-progress-wrap"><div class="vol-progress-bar" style="width:${pct}%;background:${pct>=100?'var(--green)':pct>=50?'var(--saffron)':'#F5A623'}"></div></div><div style="font-size:0.73rem;color:var(--muted);margin-top:4px">${v.called} / ${v.total} contacts called</div></div>
+      ${pills?`<div class="status-pills">${pills}</div>`:''}
+    </div>`;
   }).join('');
 }
 
 function renderAreaBreakdown(data) {
-  const { areaStats } = data;
-  if (!areaStats || !Object.keys(areaStats).length) {
-    document.getElementById('areaBreakdown').innerHTML = '<div style="color:var(--muted);font-size:0.85rem">No area data.</div>';
-    return;
+  const {areaStats:a={}}=data;
+  if(!Object.keys(a).length){document.getElementById('areaBreakdown').innerHTML='<div style="color:var(--muted)">No area data.</div>';return;}
+  document.getElementById('areaBreakdown').innerHTML=Object.entries(a).sort((x,y)=>y[1].total-x[1].total).map(([area,s])=>{
+    const pct=s.total?Math.round((s.called/s.total)*100):0;
+    return `<div class="area-row"><div><div class="area-name">🏘️ ${esc(area)}</div><div style="font-size:0.7rem;color:var(--muted);margin-top:2px">${s.called}/${s.total} called · ${s.interested||0} interested</div></div><div style="text-align:right;min-width:80px"><div class="syne" style="font-size:1rem;font-weight:800">${pct}%</div><div class="vol-progress-wrap" style="width:70px;margin-top:4px"><div class="vol-progress-bar" style="width:${pct}%;background:${pct>=100?'var(--green)':pct>=50?'var(--saffron)':'#F5A623'}"></div></div></div></div>`;
+  }).join('');
+}
+
+function renderActivityFeed(data) {
+  const log=data.activityLog||[];
+  const feed=document.getElementById('activityFeed');
+  if(!log.length){feed.innerHTML='<div style="color:var(--muted);font-size:0.85rem">No recent activity.</div>';return;}
+  feed.innerHTML=log.slice(0,30).map(i=>`<div class="activity-item"><div class="activity-dot" style="background:${statusColor(i.status)}"></div><div><div class="activity-text"><strong>${esc(i.volunteer)}</strong> marked <strong>${esc(i.contactName)}</strong> as <span style="color:${statusColor(i.status)};font-weight:600">${esc(i.status)}</span></div><div class="activity-time">${esc(i.time||'')}</div></div></div>`).join('');
+}
+
+// ═══════════════════ EXPORT ═══════════════════
+function exportCSV(mode='contacts') {
+  if(!adminData){showToast('No data to export','error');return;}
+  let rows,fn;
+  if(mode==='areas'){
+    rows=[['Area','Total','Called','Interested','% Done']];
+    Object.entries(adminData.areaStats||{}).forEach(([a,s])=>rows.push([a,s.total,s.called,s.interested||0,s.total?Math.round((s.called/s.total)*100)+'%':'0%']));
+    fn='sevakcall-areas.csv';
+  } else if(adminData.allContacts){
+    rows=[['ID','Name','Phone','Mandal','Area','Assigned_To','Status','Reference']];
+    adminData.allContacts.forEach(c=>rows.push([c.ID,c.Name,c.Phone,c.Mandal,c.Area,c.Assigned_To,c.Status,c.Reference]));
+    fn='sevakcall-contacts.csv';
+  } else {
+    rows=[['Volunteer','Email','Total','Called','Interested']];
+    (adminData.volunteers||[]).forEach(v=>rows.push([v.name,v.email,v.total,v.called,v.interested||0]));
+    fn='sevakcall-volunteers.csv';
   }
-
-  const rows = Object.entries(areaStats)
-    .sort((a,b) => b[1].total - a[1].total)
-    .map(([area, s]) => {
-      const pct = s.total ? Math.round((s.called/s.total)*100) : 0;
-      return `
-        <div class="area-row">
-          <div>
-            <div class="area-name">🏘️ ${esc(area)}</div>
-            <div style="font-size:0.7rem;color:var(--muted);margin-top:2px">${s.called} / ${s.total} called · ${s.interested || 0} interested</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800">${pct}%</div>
-            <div class="vol-progress-wrap" style="width:70px;margin-top:4px">
-              <div class="vol-progress-bar" style="width:${pct}%"></div>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-  document.getElementById('areaBreakdown').innerHTML = `<div>${rows}</div>`;
+  const csv=rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download=fn; a.click(); showToast('CSV downloaded!','success');
 }
 
-// ══════════════════════════════════════════════════════════════════
-// ADMIN TABS
-// ══════════════════════════════════════════════════════════════════
-function switchTab(tab) {
-  ['overview','volunteers','areas'].forEach(t => {
-    document.getElementById(`tab${cap(t)}`).style.display = t === tab ? '' : 'none';
-  });
-  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', ['overview','volunteers','areas'][i] === tab);
-  });
+// ═══════════════════ REASSIGN MODAL ═══════════════════
+function openReassignModal(fromName) {
+  const vols=(adminData?.volunteers||[]).filter(v=>v.name!==fromName);
+  document.getElementById('reassignBody').innerHTML=`
+    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:4px">Move uncalled contacts from <strong style="color:var(--ink)">${esc(fromName)}</strong> to:</div>
+    ${vols.map(v=>`<button onclick="doReassign('${esc(fromName)}','${esc(v.name)}')" class="btn btn-outline" style="justify-content:space-between;padding:12px 16px"><span style="font-weight:600">${esc(v.name)}</span><span style="font-size:0.75rem;color:var(--muted)">${v.total} total · ${v.called} called</span></button>`).join('')}
+    <button onclick="closeReassignModal()" class="btn btn-outline" style="margin-top:4px;color:var(--red);border-color:var(--red)">Cancel</button>`;
+  document.getElementById('reassignModal').classList.add('open');
 }
-function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+async function doReassign(from,to){
+  closeReassignModal(); showToast(`Reassigning…`);
+  try{await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'reassignContacts',from,to})});showToast('Reassigned! Refreshing…','success');setTimeout(loadAdminData,800);}
+  catch(e){showToast('Reassign failed','error');}
+}
+function closeReassignModal(){document.getElementById('reassignModal').classList.remove('open');}
 
-// ══════════════════════════════════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════════════════════════════════
-function statusPillClass(s) {
-  if (['Interested','Already Volunteer'].includes(s)) return 'green';
-  if (s === 'Not Interested') return 'red';
-  if (s === 'Call Back Later') return 'yellow';
-  if (['No Answer','Wrong Number'].includes(s)) return 'blue';
-  return 'gray';
+// ═══════════════════ EDIT VOL MODAL ═══════════════════
+function openAddVolModal(){
+  document.getElementById('editVolTitle').textContent='Add Volunteer';
+  document.getElementById('editVolForm').innerHTML=`
+    <div class="input-group"><div class="input-group-label">Name</div><input id="evName" class="styled-input" placeholder="Full name"/></div>
+    <div class="input-group"><div class="input-group-label">Email</div><input id="evEmail" type="email" class="styled-input" placeholder="email@example.com"/></div>
+    <div class="input-group"><div class="input-group-label">Password</div><input id="evPass" type="text" class="styled-input" placeholder="Set a password"/></div>
+    <div class="input-group"><div class="input-group-label">Assign to Area</div><select id="evArea" class="styled-select"><option value="">— Unassigned —</option>${Object.keys(adminData?.areaStats||{}).map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('')}</select></div>
+    <button onclick="saveVol('add')" class="btn btn-primary">Add Volunteer</button>
+    <button onclick="closeEditModal()" class="btn btn-outline">Cancel</button>`;
+  document.getElementById('editVolModal').classList.add('open');
+}
+function openEditModal(name,email){
+  document.getElementById('editVolTitle').textContent='Edit Volunteer';
+  document.getElementById('editVolForm').innerHTML=`
+    <div class="input-group"><div class="input-group-label">Name</div><input id="evName" class="styled-input" value="${esc(name)}"/></div>
+    <div class="input-group"><div class="input-group-label">Email</div><input id="evEmail" type="email" class="styled-input" value="${esc(email)}"/></div>
+    <div class="input-group"><div class="input-group-label">New Password <span style="color:var(--muted);font-size:0.68rem">(blank = keep)</span></div><input id="evPass" type="text" class="styled-input" placeholder="Optional"/></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="saveVol('edit','${esc(name)}')" class="btn btn-primary" style="flex:1">Save Changes</button>
+      <button onclick="saveVol('deactivate','${esc(name)}')" class="btn btn-outline" style="flex:none;padding:14px;color:var(--red);border-color:var(--red)">🗑</button>
+    </div>
+    <button onclick="closeEditModal()" class="btn btn-outline">Cancel</button>`;
+  document.getElementById('editVolModal').classList.add('open');
+}
+async function saveVol(mode,orig=''){
+  const name=document.getElementById('evName')?.value.trim();
+  const email=document.getElementById('evEmail')?.value.trim();
+  const pass=document.getElementById('evPass')?.value.trim();
+  const area=document.getElementById('evArea')?.value;
+  if(mode!=='deactivate'&&(!name||!email)){showToast('Name and email required','error');return;}
+  closeEditModal();
+  try{await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'manageVolunteer',mode,originalName:orig,name,email,password:pass,area})});
+  showToast(mode==='add'?'Volunteer added!':mode==='deactivate'?'Deactivated!':'Changes saved!','success');setTimeout(loadAdminData,800);}
+  catch(e){showToast('Operation failed','error');}
+}
+function closeEditModal(){document.getElementById('editVolModal').classList.remove('open');}
+
+// ═══════════════════ ADMIN TABS ═══════════════════
+function switchTab(tab){
+  ['overview','volunteers','areas','activity'].forEach(t=>{document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}`).style.display=t===tab?'':'none';});
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['overview','volunteers','areas','activity'][i]===tab));
 }
 
-function esc(v) {
-  return String(v ?? '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+// ═══════════════════ HELPERS ═══════════════════
+function spc(s){if(['Interested','Already Volunteer'].includes(s))return 'green';if(s==='Not Interested')return 'red';if(s==='Call Back Later')return 'yellow';if(['No Answer','Wrong Number'].includes(s))return 'blue';return 'gray';}
+function statusColor(s){if(['Interested','Already Volunteer'].includes(s))return 'var(--green)';if(s==='Not Interested')return 'var(--red)';if(s==='Call Back Later')return 'var(--yellow)';return 'var(--muted)';}
+function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(type?' '+type:'');void t.offsetWidth;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
-function showToast(msg, type='') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast' + (type ? ' '+type : '');
-  void t.offsetWidth;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
-}
+refreshOfflineBanner();
 </script>
 </body>
 </html>
