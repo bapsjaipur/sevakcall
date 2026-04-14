@@ -499,14 +499,25 @@ function doLogout(){currentUser=null;contacts=[];currentIdx=0;offlineQueue=[];['
 document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 
-// ═══════════════════ LOAD CONTACTS ═══════════════════
+// ══════════════════════════════════════════════════════════════════
+// VOLUNTEER — LOAD CONTACTS
+// ══════════════════════════════════════════════════════════════════
 async function loadVolunteerContacts() {
   try {
-    const res=await fetch(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`);
-    const d=await res.json();
-    contacts=d.contacts||[]; window.messageTemplate=d.template||null;
-    currentIdx=0; updateMyStats(); renderContact();
-  } catch(e){showToast('Failed to load contacts','error');}
+    const res  = await fetch(`${URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`);
+    const data = await res.json();
+    
+    // NEW: The backend now sends an object with 'contacts' and 'template'
+    contacts = data.contacts || [];
+    window.messageTemplate = data.template || null; 
+    
+    currentIdx = 0;
+    updateMyStats();
+    renderContact();
+  } catch (err) {
+    showToast('Failed to load contacts', 'error');
+    console.error(err);
+  }
 }
 
 // ═══════════════════ MY STATS ═══════════════════
@@ -570,13 +581,26 @@ function renderContact() {
       <div class="flex flex-wrap gap-2"><span class="tag tag-mandal">📍 ${esc(c.Mandal)}</span><span class="tag tag-area">🏘️ ${esc(c.Area)}</span></div>
       ${ps||c.Reference?`<div class="meta-row" style="padding-top:6px;border-top:1px solid #EDE9E2">${ps?`<div class="meta-item"><div class="status-dot ${dc}"></div> Last: <strong>${esc(ps)}</strong></div>`:''} ${c.Reference?`<div class="meta-item" style="width:100%;margin-top:2px">📝 ${esc(c.Reference)}</div>`:''}</div>`:''}
     </div>`;
-  const phone=String(c.Phone).replace(/\D/g,'');
-  document.getElementById('callBtn').href=`tel:+91${phone}`;
-  let msg=(window.messageTemplate?.text||WA_MSG(c.Name,c.Mandal,c.Area)).replace(/{{Name}}/gi,c.Name||'').replace(/{{Mandal}}/gi,c.Mandal||'').replace(/{{Area}}/gi,c.Area||'');
-  if(window.messageTemplate?.image) msg+=`\n\n${window.messageTemplate.image}`;
-  document.getElementById('waBtn').href=`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`;
-  setChipFromValue(ps);
-  document.getElementById('referenceInput').value=c.Reference||'';
+  const phone = String(c.Phone).replace(/\D/g, '');
+  document.getElementById('callBtn').href = `tel:+91${phone}`;
+  
+  // --- NEW: DYNAMIC WHATSAPP LOGIC ---
+  // 1. Get the template from the sheet, or use your fallback WA_MSG if the sheet is empty
+  let baseMessage = window.messageTemplate?.text || WA_MSG(c.Name, c.Mandal, c.Area);
+
+  // 2. Swap out placeholders you might type in the Google Sheet
+  let personalizedMessage = baseMessage
+    .replace(/{{Name}}/gi, c.Name || '')
+    .replace(/{{Mandal}}/gi, c.Mandal || '')
+    .replace(/{{Area}}/gi, c.Area || '');
+
+  // 3. Attach the image link if one exists in the sheet
+  if (window.messageTemplate?.image) {
+      personalizedMessage += `\n\n${window.messageTemplate.image}`;
+  }
+
+  // 4. Set the final button link
+  document.getElementById('waBtn').href = `https://wa.me/91${phone}?text=${encodeURIComponent(personalizedMessage)}`;
   updateSaveState();
 }
 
