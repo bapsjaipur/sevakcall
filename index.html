@@ -222,7 +222,6 @@
 
 <div id="offlineBanner" class="offline-banner">📶 Offline — changes saved locally, will sync on reconnect <span id="offlineCount"></span></div>
 
-<!-- ══════════ LOGIN ══════════ -->
 <div id="screenLogin" class="screen active">
   <div class="login-wrap">
     <div>
@@ -246,7 +245,6 @@
   </div>
 </div>
 
-<!-- ══════════ VOLUNTEER ══════════ -->
 <div id="screenCalling" class="screen">
   <div class="header">
     <div class="header-title">Sevak<span>Call</span></div>
@@ -257,11 +255,18 @@
       <button class="logout-btn" onclick="doLogout()">Out</button>
     </div>
   </div>
+  
   <div class="progress-wrap"><div id="volProgressBar" class="progress-bar" style="width:0%"></div></div>
 
-  <div class="w-full max-w-md px-4 py-4 flex flex-col gap-4">
+  <div class="w-full max-w-md px-4 pt-4">
+    <div class="tab-bar">
+      <button id="tabCallBtn" class="tab-btn active" onclick="switchVolTab('call')">📞 Calling</button>
+      <button id="tabListBtn" class="tab-btn" onclick="switchVolTab('list')">📋 My List</button>
+    </div>
+  </div>
 
-    <!-- Stats -->
+  <div id="volCallTab" class="w-full max-w-md px-4 py-4 flex flex-col gap-4">
+
     <div class="my-stats-card fade-in">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="font-size:0.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">My Progress</div>
@@ -276,14 +281,12 @@
       <div class="vol-progress-wrap"><div id="msBar" class="vol-progress-bar" style="width:0%"></div></div>
     </div>
 
-    <!-- Search -->
     <div class="search-wrap">
       <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="searchInput" class="search-bar" type="text" placeholder="Search by name or phone…" autocomplete="off" oninput="onSearch(this.value)" onblur="setTimeout(closeSearch,200)"/>
       <div id="searchResults" class="search-results"></div>
     </div>
 
-    <!-- Contact Card -->
     <div id="contactCard" class="contact-card card-animate">
       <div class="flex flex-col gap-4">
         <div class="skeleton h-4 w-20 rounded"></div>
@@ -293,7 +296,6 @@
       </div>
     </div>
 
-    <!-- Call + WA -->
     <div class="flex gap-3" id="actionBtns">
       <a id="callBtn" href="#" class="btn btn-call flex-1">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.04 2.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
@@ -305,7 +307,6 @@
       </a>
     </div>
 
-    <!-- Quick Status Chips -->
     <div id="remarkDivider" class="flex items-center gap-3">
       <div class="divider flex-1"></div>
       <span style="font-size:0.67rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)">Quick Status</span>
@@ -334,9 +335,27 @@
     <button id="saveBtn" class="btn btn-primary" disabled><span id="saveBtnText">Save &amp; Next →</span></button>
     <button id="skipBtn" onclick="loadNext()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.85rem;font-weight:500;padding:4px;text-decoration:underline;text-underline-offset:3px">Skip without saving</button>
   </div>
+
+  <div id="volListTab" class="w-full max-w-md px-4 py-4 flex-col gap-4" style="display:none;">
+    
+    <div class="input-group">
+      <select id="volListFilter" class="styled-select" onchange="renderVolList()">
+        <option value="All">All Assigned Contacts</option>
+        <option value="Pending">⏳ Pending (Uncalled)</option>
+        <option value="Interested">✅ Interested / Already Vol.</option>
+        <option value="Call Back Later">🔁 Call Back Later</option>
+        <option value="Not Interested">❌ Not Interested</option>
+        <option value="No Answer">📵 No Answer / Wrong Number</option>
+      </select>
+    </div>
+
+    <div id="volListContainer" class="flex flex-col gap-2 mt-2 pb-8">
+      </div>
+
+  </div>
+
 </div>
 
-<!-- ══════════ ADMIN ══════════ -->
 <div id="screenAdmin" class="screen">
   <div class="header">
     <div class="header-title">Sevak<span>Call</span> <span style="color:#aaa;font-size:0.7rem;font-weight:600;letter-spacing:0.06em">ADMIN</span></div>
@@ -354,7 +373,6 @@
       <button class="tab-btn" onclick="switchTab('activity')">⚡ Activity</button>
     </div>
 
-    <!-- OVERVIEW -->
     <div id="tabOverview" class="flex flex-col gap-4 fade-in">
       <div class="summary-grid" id="summaryGrid">
         <div class="summary-card"><div class="skeleton h-8 w-12 rounded mb-1"></div><div class="skeleton h-3 w-16 rounded"></div></div>
@@ -373,7 +391,6 @@
       </div>
     </div>
 
-    <!-- VOLUNTEERS -->
     <div id="tabVolunteers" class="flex flex-col gap-4 fade-in" style="display:none!important">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div class="admin-section-title">Volunteer Progress</div>
@@ -382,7 +399,6 @@
       <div id="volCards"><div class="vol-card"><div class="skeleton h-6 w-40 rounded mb-2"></div><div class="skeleton h-3 w-24 rounded"></div></div></div>
     </div>
 
-    <!-- AREAS -->
     <div id="tabAreas" class="flex flex-col gap-4 fade-in" style="display:none!important">
       <div style="display:flex;justify-content:flex-end">
         <button onclick="exportCSV('areas')" class="btn btn-outline" style="width:auto;padding:8px 16px;font-size:0.82rem">📥 Export Areas CSV</button>
@@ -390,7 +406,6 @@
       <div class="contact-card" id="areaBreakdown"><div class="skeleton h-5 w-full rounded mb-2"></div><div class="skeleton h-5 w-3/4 rounded"></div></div>
     </div>
 
-    <!-- ACTIVITY -->
     <div id="tabActivity" class="flex flex-col gap-4 fade-in" style="display:none!important">
       <div class="admin-section-title">Recent Activity</div>
       <div class="contact-card" id="activityFeed"><div class="skeleton h-5 w-full rounded mb-2"></div><div class="skeleton h-5 w-3/4 rounded mb-2"></div><div class="skeleton h-5 w-1/2 rounded"></div></div>
@@ -399,7 +414,6 @@
   </div>
 </div>
 
-<!-- REASSIGN MODAL -->
 <div id="reassignModal" class="modal-overlay" onclick="if(event.target===this)closeReassignModal()">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -408,7 +422,6 @@
   </div>
 </div>
 
-<!-- EDIT VOL MODAL -->
 <div id="editVolModal" class="modal-overlay" onclick="if(event.target===this)closeEditModal()">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -504,11 +517,9 @@ document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key===
 // ══════════════════════════════════════════════════════════════════
 async function loadVolunteerContacts() {
   try {
-    // FIX: Changed ${URL} to ${SCRIPT_URL} right here 👇
     const res  = await fetch(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`);
     const data = await res.json();
     
-    // NEW: The backend now sends an object with 'contacts' and 'template'
     contacts = data.contacts || [];
     window.messageTemplate = data.template || null; 
     
@@ -585,22 +596,16 @@ function renderContact() {
   const phone = String(c.Phone).replace(/\D/g, '');
   document.getElementById('callBtn').href = `tel:+91${phone}`;
   
-  // --- NEW: DYNAMIC WHATSAPP LOGIC ---
-  // 1. Get the template from the sheet, or use your fallback WA_MSG if the sheet is empty
   let baseMessage = window.messageTemplate?.text || WA_MSG(c.Name, c.Mandal, c.Area);
-
-  // 2. Swap out placeholders you might type in the Google Sheet
   let personalizedMessage = baseMessage
     .replace(/{{Name}}/gi, c.Name || '')
     .replace(/{{Mandal}}/gi, c.Mandal || '')
     .replace(/{{Area}}/gi, c.Area || '');
 
-  // 3. Attach the image link if one exists in the sheet
   if (window.messageTemplate?.image) {
       personalizedMessage += `\n\n${window.messageTemplate.image}`;
   }
 
-  // 4. Set the final button link
   document.getElementById('waBtn').href = `https://wa.me/91${phone}?text=${encodeURIComponent(personalizedMessage)}`;
   updateSaveState();
 }
@@ -641,6 +646,64 @@ async function saveAndNext() {
 function loadNext(){currentIdx++;clearChips();document.getElementById('saveBtnText').innerHTML='Save &amp; Next →';renderContact();}
 function updateSaveState(){document.getElementById('saveBtn').disabled=!document.getElementById('statusSelect').value;}
 document.getElementById('saveBtn').addEventListener('click',saveAndNext);
+
+// ═══════════════════ VOLUNTEER LIST VIEW ═══════════════════
+function switchVolTab(tab) {
+  document.getElementById('volCallTab').style.display = tab === 'call' ? 'flex' : 'none';
+  document.getElementById('volListTab').style.display = tab === 'list' ? 'flex' : 'none';
+  document.getElementById('tabCallBtn').classList.toggle('active', tab === 'call');
+  document.getElementById('tabListBtn').classList.toggle('active', tab === 'list');
+  if (tab === 'list') {
+    renderVolList();
+  }
+}
+
+function renderVolList() {
+  const filter = document.getElementById('volListFilter').value;
+  const container = document.getElementById('volListContainer');
+  
+  if (!contacts || contacts.length === 0) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px;">No contacts assigned to you yet.</div>';
+    return;
+  }
+
+  let filtered = contacts.map((c, idx) => ({ ...c, originalIdx: idx }));
+  
+  if (filter === 'Pending') {
+    filtered = filtered.filter(c => !(c.Status || '').trim());
+  } else if (filter === 'Interested') {
+    filtered = filtered.filter(c => ['Interested', 'Already Volunteer'].includes((c.Status || '').trim()));
+  } else if (filter === 'No Answer') {
+    filtered = filtered.filter(c => ['No Answer', 'Wrong Number'].includes((c.Status || '').trim()));
+  } else if (filter !== 'All') {
+    filtered = filtered.filter(c => (c.Status || '').trim() === filter);
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px;">No contacts match this filter.</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(c => {
+    const status = (c.Status || '').trim() || 'Pending';
+    const statusClass = status === 'Pending' ? 'gray' : spc(status); 
+    
+    return `
+      <div class="contact-card" style="padding:14px 16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; margin-bottom:2px;" onclick="jumpFromList(${c.originalIdx})">
+        <div>
+          <div style="font-weight:700; font-family:'Syne', sans-serif; font-size:0.95rem;">${esc(c.Name)}</div>
+          <div style="font-size:0.72rem; color:var(--muted); margin-top:2px;">${esc(c.Phone)} · ${esc(c.Area)}</div>
+        </div>
+        <span class="pill ${statusClass}" style="flex-shrink:0;">${esc(status)}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function jumpFromList(idx) {
+  jumpToContact(idx);
+  switchVolTab('call');
+}
 
 // ═══════════════════ ADMIN ═══════════════════
 async function loadAdminData() {
