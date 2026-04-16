@@ -271,6 +271,121 @@
     .spinner.dark-spin { border-color:rgba(0,0,0,0.2); border-top-color:var(--ink); }
     @keyframes spin { to{transform:rotate(360deg)} }
     .icon { width:19px; height:19px; flex-shrink:0; }
+
+    /* ── SABHA ATTENDANCE WIDGET (inside contact card) ── */
+    .sabha-widget {
+      border-top: 1px solid #EDE9E2;
+      padding-top: 10px;
+      margin-top: 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sabha-widget-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .sabha-widget-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    /* Summary row: last Sabha + total count */
+    .sabha-summary-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    /* "Present" badge — green pill */
+    .sabha-present-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #D4EDDA;
+      color: #156D3E;
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+    /* "Absent / Not recorded" badge — grey */
+    .sabha-absent-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #F0EDE8;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+    /* Total attended count */
+    .sabha-count-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--purple-bg);
+      color: var(--purple-fg);
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+    /* "See all" toggle button */
+    .sabha-toggle-btn {
+      background: none;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--purple-fg);
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      flex-shrink: 0;
+    }
+    /* Expanded list of all Sabhas */
+    .sabha-history-list {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      animation: fadeIn 0.2s ease;
+    }
+    .sabha-history-list.open { display: flex; }
+    .sabha-history-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: var(--surface);
+      font-size: 0.78rem;
+    }
+    .sabha-history-row.present-row { background: #F0FAF4; }
+    body.dark .sabha-history-row { background: #13161C; }
+    body.dark .sabha-history-row.present-row { background: #0D2118; }
+    .sabha-history-name { font-weight: 600; color: var(--ink); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sabha-history-date { font-size: 0.7rem; color: var(--muted); flex-shrink: 0; }
+    .sabha-history-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+    .sabha-history-badge.p { background: #D4EDDA; color: #156D3E; }
+    .sabha-history-badge.a { background: #F0EDE8; color: var(--muted); }
+    body.dark .sabha-widget { border-color: #2A2D35; }
   </style>
 </head>
 <body>
@@ -758,6 +873,96 @@ function clearChips(){document.querySelectorAll('.chip-btn').forEach(b=>{b.class
 function setChipFromValue(val){clearChips();if(!val)return;const c=[...document.querySelectorAll('.chip-btn')].find(b=>b.dataset.val===val);if(c)selectChip(c);}
 
 // ══════════════════════════════════════════════════════════════════
+// SABHA ATTENDANCE WIDGET — builds HTML for the contact card
+// ══════════════════════════════════════════════════════════════════
+
+// Extract Sabha attendance data from a contact object using the events cache.
+// Returns: { sabhaList, totalPresent, lastPresent }
+//   sabhaList    → array of { columnName, title, date, present:bool } sorted newest first
+//   totalPresent → int
+//   lastPresent  → { title, date } | null
+function getSabhaAttendance(contact) {
+  if (!eventsCache || !eventsCache.length) return { sabhaList:[], totalPresent:0, lastPresent:null };
+
+  // Build list sorted newest→oldest
+  const sorted = [...eventsCache].sort((a,b) => b.date.localeCompare(a.date));
+  const sabhaList = sorted.map(ev => ({
+    columnName: ev.columnName,
+    title:      ev.title,
+    date:       ev.date,
+    present:    String(contact[ev.columnName]||'').trim().toLowerCase() === 'present'
+  }));
+
+  const totalPresent = sabhaList.filter(s => s.present).length;
+  const lastPresent  = sabhaList.find(s => s.present) || null;
+
+  return { sabhaList, totalPresent, lastPresent };
+}
+
+// Format a date string "2026-04-18" → "18 Apr 2026"
+function formatSabhaDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+  } catch(_) { return dateStr; }
+}
+
+// Build the Sabha widget HTML block — injected at bottom of contact card
+function buildSabhaWidgetHTML(contact, widgetId) {
+  const { sabhaList, totalPresent, lastPresent } = getSabhaAttendance(contact);
+
+  // Don't render anything if no Sabhas exist yet
+  if (!sabhaList.length) return '';
+
+  // ── Last Sabha status (most recent Sabha) ──
+  const newest = sabhaList[0];
+  const lastSabhaStatus = newest.present
+    ? `<span class="sabha-present-tag">✅ Present · ${formatSabhaDate(newest.date)}</span>`
+    : `<span class="sabha-absent-tag">⬜ ${esc(newest.title)} — Not recorded</span>`;
+
+  // ── Total attended count ──
+  const countTag = totalPresent > 0
+    ? `<span class="sabha-count-tag">🙏 ${totalPresent} Sabha${totalPresent>1?'s':''} attended</span>`
+    : `<span class="sabha-absent-tag">0 Sabhas attended</span>`;
+
+  // ── Toggle button (only show if >1 Sabha) ──
+  const toggleBtn = sabhaList.length > 1
+    ? `<button class="sabha-toggle-btn" onclick="toggleSabhaHistory('${widgetId}')" id="btn_${widgetId}">▼ All Sabhas</button>`
+    : '';
+
+  // ── Expanded history rows ──
+  const historyRows = sabhaList.map(s => `
+    <div class="sabha-history-row ${s.present?'present-row':''}">
+      <span class="sabha-history-name" title="${esc(s.title)}">${esc(s.title)}</span>
+      <span class="sabha-history-date">${formatSabhaDate(s.date)}</span>
+      <span class="sabha-history-badge ${s.present?'p':'a'}">${s.present?'✅ Present':'—'}</span>
+    </div>`).join('');
+
+  return `
+    <div class="sabha-widget">
+      <div class="sabha-widget-header">
+        <span class="sabha-widget-title">🙏 Sabha Attendance</span>
+        ${toggleBtn}
+      </div>
+      <div class="sabha-summary-row">
+        ${lastSabhaStatus}
+        ${countTag}
+      </div>
+      ${sabhaList.length > 1 ? `<div class="sabha-history-list" id="${widgetId}">${historyRows}</div>` : ''}
+    </div>`;
+}
+
+// Toggle expanded Sabha history
+function toggleSabhaHistory(widgetId) {
+  const el  = document.getElementById(widgetId);
+  const btn = document.getElementById('btn_' + widgetId);
+  if (!el) return;
+  const isOpen = el.classList.toggle('open');
+  if (btn) btn.textContent = isOpen ? '▲ Hide' : '▼ All Sabhas';
+}
+
+// ══════════════════════════════════════════════════════════════════
 // RENDER CONTACT
 // ══════════════════════════════════════════════════════════════════
 function renderContact() {
@@ -771,6 +976,11 @@ function renderContact() {
   const dc=ps?(['Interested','Already Volunteer'].includes(ps)?'done':'pending'):'none';
   const card=document.getElementById('contactCard');
   card.className='contact-card card-animate'; void card.offsetWidth;
+
+  // Build Sabha widget — unique ID per contact to avoid DOM collisions
+  const sabhaWidgetId = 'sw_' + String(c.ID).replace(/[^a-zA-Z0-9]/g,'_');
+  const sabhaHTML = buildSabhaWidgetHTML(c, sabhaWidgetId);
+
   card.innerHTML=`
     <div class="flex flex-col gap-4">
       <div><div class="field-label">Contact · ${esc(c.ID)}</div><div class="contact-name">${esc(c.Name)}</div></div>
@@ -780,10 +990,12 @@ function renderContact() {
       </div>
       <div class="flex flex-wrap gap-2"><span class="tag tag-mandal">📍 ${esc(c.Mandal)}</span><span class="tag tag-area">🏘️ ${esc(c.Area)}</span></div>
       ${ps||c.Reference?`<div class="meta-row" style="padding-top:6px;border-top:1px solid #EDE9E2">
-        ${ps?`<div class="meta-item"><div class="status-dot ${dc}"></div> Last: <strong>${esc(ps)}</strong></div>`:''}
+        ${ps?`<div class="meta-item"><div class="status-dot ${dc}"></div> Last status: <strong>${esc(ps)}</strong></div>`:''}
         ${c.Reference?`<div class="meta-item" style="width:100%;margin-top:2px">📝 ${esc(c.Reference)}</div>`:''}
       </div>`:''}
+      ${sabhaHTML}
     </div>`;
+
   const phone=String(c.Phone).replace(/\D/g,'');
   document.getElementById('callBtn').href=`tel:+91${phone}`;
   let baseMsg=window.messageTemplate?.text||WA_MSG(c.Name,c.Mandal,c.Area);
@@ -1051,6 +1263,9 @@ async function doMarkAttendance(contactId, btnEl){
     // Update local state
     const c=allContacts.find(x=>String(x.ID)===String(contactId));
     if(c) c[selectedSabhaCol]='Present';
+    // Also update in the assigned contacts array (for the Calling tab widget)
+    const cLocal=contacts.find(x=>String(x.ID)===String(contactId));
+    if(cLocal) cLocal[selectedSabhaCol]='Present';
     // Replace button with badge
     const card=btnEl.closest('.attn-contact-card');
     if(card){card.classList.add('present');btnEl.outerHTML='<div class="attn-present-badge">✅ Present</div>';}
