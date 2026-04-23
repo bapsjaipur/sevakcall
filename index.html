@@ -1890,7 +1890,7 @@
         <button id="addContactHeaderBtn" class="icon-btn" onclick="openAddContactModal()" title="Add Contact"
           style="display:none">➕</button>
         <button class="icon-btn" onclick="toggleDark()" title="Dark mode">🌙</button>
-        <button class="logout-btn" onclick="doLogout()">Out</button>
+        <button class="logout-btn" onclick="doLogout()">Sign Out</button>
       </div>
     </div>
     <div class="progress-wrap">
@@ -2102,6 +2102,8 @@
         <button class="tab-btn" onclick="switchTab('volunteers')">👥 Volunteers</button>
         <button class="tab-btn" onclick="switchTab('areas')">🏘️ Areas</button>
         <button class="tab-btn" onclick="switchTab('sabhas')">🙏 Sabhas</button>
+        <button class="tab-btn" onclick="switchTab('contacts')">👤 Contacts</button>
+        <button class="tab-btn" onclick="switchTab('message')">💬 Message</button>
         <button class="tab-btn" onclick="switchTab('activity')">⚡ Activity</button>
       </div>
 
@@ -2244,6 +2246,73 @@
         </div>
       </div>
 
+      <!-- ══════════════ CONTACTS TAB ══════════════ -->
+      <div id="tabContacts" class="flex flex-col gap-4 fade-in" style="display:none!important">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div class="admin-section-title" style="margin:0">All Contacts</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="adminContactSearch" class="styled-input" placeholder="🔍 Search name, phone, area…"
+              style="font-size:0.85rem;padding:9px 13px;max-width:220px"
+              oninput="filterAdminContacts(this.value)" />
+            <button onclick="openAddContactModal(null)" class="btn btn-primary"
+              style="width:auto;padding:9px 16px;font-size:0.85rem">➕ Add Contact</button>
+          </div>
+        </div>
+        <div id="adminContactsTable" class="contact-card" style="padding:0;overflow:hidden">
+          <div style="padding:18px;color:var(--muted);font-size:0.85rem">Loading contacts…</div>
+        </div>
+        <div id="adminContactsPager" style="display:none;justify-content:center;align-items:center;gap:10px;padding:8px 0">
+          <button id="acPrevBtn" class="page-btn" onclick="adminContactsPage(-1)" disabled>← Prev</button>
+          <span id="acPageInfo" class="page-info" style="font-size:0.8rem"></span>
+          <button id="acNextBtn" class="page-btn" onclick="adminContactsPage(1)" disabled>Next →</button>
+        </div>
+      </div>
+
+      <!-- ══════════════ MESSAGE TEMPLATE TAB ══════════════ -->
+      <div id="tabMessage" class="flex flex-col gap-4 fade-in" style="display:none!important">
+        <div class="admin-section-title">💬 WhatsApp Message Template</div>
+        <div class="contact-card" style="padding:22px;display:flex;flex-direction:column;gap:16px">
+          <div style="font-size:0.82rem;color:var(--muted);line-height:1.5">
+            This template is sent by volunteers when reaching out via WhatsApp.
+            Use <code style="background:var(--surface);padding:2px 5px;border-radius:4px;font-size:0.8rem">{name}</code>,
+            <code style="background:var(--surface);padding:2px 5px;border-radius:4px;font-size:0.8rem">{mandal}</code>,
+            <code style="background:var(--surface);padding:2px 5px;border-radius:4px;font-size:0.8rem">{area}</code> as placeholders.
+          </div>
+          <div class="input-group">
+            <div class="input-group-label">Message Text</div>
+            <textarea id="msgTemplateText" class="styled-input" rows="7"
+              style="resize:vertical;min-height:140px;font-size:0.88rem;line-height:1.6"
+              placeholder="Namaste {name} ji 🙏&#10;&#10;We are reaching out from *{mandal}* ({area})…"></textarea>
+          </div>
+          <div class="input-group">
+            <div class="input-group-label">Image URL <span style="font-weight:400;color:var(--muted);font-size:0.7rem">(optional — shared alongside message)</span></div>
+            <input id="msgTemplateImage" class="styled-input" type="url"
+              placeholder="https://example.com/image.jpg" style="font-size:0.88rem" />
+          </div>
+          <div id="msgTemplatePreview" style="display:none;background:var(--surface);border-radius:12px;padding:14px;font-size:0.82rem;white-space:pre-wrap;line-height:1.6;color:var(--ink)"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="previewTemplate()" class="btn btn-outline" style="width:auto;padding:10px 18px;font-size:0.85rem">👁 Preview</button>
+            <button id="saveMsgTemplateBtn" onclick="saveMessageTemplate()" class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:0.85rem">
+              <span id="saveMsgTemplateTxt">💾 Save Template</span>
+            </button>
+          </div>
+          <div id="msgTemplateStatus" style="font-size:0.8rem;color:var(--green);display:none"></div>
+        </div>
+
+        <!-- Permissions section nested here for admin convenience -->
+        <div class="admin-section-title" style="margin-top:4px">⚙️ Role Permissions</div>
+        <div class="contact-card" style="padding:20px">
+          <div style="font-size:0.82rem;color:var(--muted);margin-bottom:14px">Control what Moderators and Volunteers can do in the app.</div>
+          <div id="permissionsGrid" style="display:flex;flex-direction:column;gap:16px">
+            <div style="color:var(--muted);font-size:0.85rem">Loading permissions…</div>
+          </div>
+          <button id="savePermsBtn" onclick="savePermissions()" class="btn btn-primary" style="margin-top:16px;width:auto;padding:10px 20px;font-size:0.85rem">
+            <span id="savePermsTxt">💾 Save Permissions</span>
+          </button>
+          <div id="permsStatus" style="font-size:0.8rem;color:var(--green);margin-top:8px;display:none"></div>
+        </div>
+      </div>
+
       <div id="tabActivity" class="flex flex-col gap-4 fade-in" style="display:none!important">
         <div class="admin-section-title">Activity Log</div>
         <!-- Date filters -->
@@ -2383,10 +2452,10 @@
           <select id="acMandal" class="styled-select">
             <option value="">— Select Mandal —</option>
             <option>Yuvak Mandal</option>
-            <option>Yuvati Mandal</option>
-            <!-- <option>Bal Mandal</option>
-            <option>Balika Mandal</option>
-            <option>Vadil Mandal</option> -->
+            <option>Bal Mandal</option>
+            <option>Yuvati</option>
+            <option>Balika</option>
+            <option>Vadil</option>
           </select>
         </div>
 
@@ -2440,6 +2509,8 @@
     let adminData = null;
     let offlineQueue = [];
     let isDark = false;
+    let appPermissions = {};   // role-based permissions from server
+    let sabhaAttendanceCounts = {};  // columnName → present count (admin Sabha tab)
 
     // Attendance state
     let allContacts = [];   // ALL contacts (for global search)
@@ -2761,11 +2832,22 @@
       ${sabhaHTML}
     </div>`;
 
+      // Moderator/Admin edit button
+      if (currentUser?.role === 'moderator' || currentUser?.role === 'admin') {
+        const editBtnWrap = document.createElement('div');
+        editBtnWrap.style.cssText = 'margin-top:10px;display:flex;justify-content:flex-end';
+        editBtnWrap.innerHTML = `<button onclick="openEditContactFromCard()" style="background:var(--area-bg);border:none;border-radius:99px;padding:7px 16px;font-size:0.78rem;font-weight:700;color:var(--area-fg);cursor:pointer;display:flex;align-items:center;gap:5px">✏️ Edit Contact</button>`;
+        card.querySelector('.flex.flex-col.gap-4').appendChild(editBtnWrap);
+      }
+
       // WhatsApp and Call logic remains the same
       const phone = String(c.Phone).replace(/\D/g, '');
       document.getElementById('callBtn').href = `tel:+91${phone}`;
       let baseMsg = window.messageTemplate?.text || WA_MSG(c.Name, c.Mandal, c.Area);
-      let msg = baseMsg.replace(/{{Name}}/gi, c.Name || '').replace(/{{Mandal}}/gi, c.Mandal || '').replace(/{{Area}}/gi, c.Area || '');
+      let msg = baseMsg
+        .replace(/\{name\}/gi, c.Name || '').replace(/{{Name}}/gi, c.Name || '')
+        .replace(/\{mandal\}/gi, c.Mandal || '').replace(/{{Mandal}}/gi, c.Mandal || '')
+        .replace(/\{area\}/gi, c.Area || '').replace(/{{Area}}/gi, c.Area || '');
       document.getElementById('waBtn').href = `https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`;
       setChipFromValue(ps);
       document.getElementById('referenceInput').value = c.Reference || '';
@@ -3228,16 +3310,44 @@
         // Sort newest first
         events.sort((a, b) => b.date.localeCompare(a.date));
 
-        // Render the list with the new time and speaker data
-        listEl.innerHTML = events.map(ev => `
-      <div class="sabha-event-row" style="align-items:flex-start">
-        <div>
-          <div class="sabha-event-title">${esc(ev.title)}</div>
-          <div class="sabha-event-date">📅 ${esc(ev.date)} at ${esc(ev.time)} · ⏱️ ${ev.duration}m</div>
-          ${ev.speaker ? `<div style="font-size:0.7rem; color:var(--purple-fg); font-weight:600; margin-top:2px;">🎤 ${esc(ev.speaker)}</div>` : ''}
-        </div>
-        <span class="sabha-event-col" style="margin-top:2px">${esc(ev.columnName)}</span>
-      </div>`).join('');
+        // Count Present per Sabha column from cached adminData
+        const allC = adminData?.allContacts || [];
+        const presentCounts = {};
+        events.forEach(ev => {
+          if (!ev.columnName) return;
+          presentCounts[ev.columnName] = allC.filter(c =>
+            String(c[ev.columnName] || '').trim() === 'Present'
+          ).length;
+        });
+
+        const today = new Date().toISOString().slice(0, 10);
+
+        listEl.innerHTML = events.map(ev => {
+          const isPast    = ev.date < today;
+          const isToday   = ev.date === today;
+          const cnt       = presentCounts[ev.columnName] || 0;
+          const statusTag = isToday
+            ? `<span style="background:#FFF3E0;color:#E65100;font-size:0.68rem;font-weight:700;padding:2px 7px;border-radius:99px">TODAY</span>`
+            : isPast
+            ? `<span style="background:#F3F4F6;color:var(--muted);font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px">PAST</span>`
+            : `<span style="background:#E8F5E9;color:#2E7D32;font-size:0.68rem;font-weight:700;padding:2px 7px;border-radius:99px">UPCOMING</span>`;
+          const presentBadge = `<div style="margin-top:6px">
+            <span style="font-size:1rem;font-weight:900;color:var(--green);font-family:'Syne',sans-serif">&#9679; ${cnt}</span>
+            <span style="font-size:0.75rem;font-weight:700;color:var(--green);letter-spacing:0.02em"> PRESENT</span>
+          </div>`;
+          return `
+          <div class="sabha-event-row" style="align-items:flex-start">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                <div class="sabha-event-title">${esc(ev.title)}</div>${statusTag}
+              </div>
+              <div class="sabha-event-date">📅 ${esc(ev.date)} at ${esc(ev.time)} · ⏱️ ${ev.duration}m</div>
+              ${ev.speaker ? `<div style="font-size:0.7rem;color:var(--purple-fg);font-weight:600;margin-top:2px">🎤 ${esc(ev.speaker)}</div>` : ''}
+              ${presentBadge}
+            </div>
+            <span class="sabha-event-col" style="margin-top:2px">${esc(ev.columnName)}</span>
+          </div>`;
+        }).join('');
 
       } catch (e) {
         listEl.innerHTML = '<div style="color:var(--muted)">Failed to load.</div>';
@@ -3263,8 +3373,7 @@
         const res = await fetch(SCRIPT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          // Add callerEmail below
-          body: JSON.stringify({ action: 'createEvent', title, date, time, duration, speaker, callerEmail: currentUser.email })
+          body: JSON.stringify({ action: 'createEvent', title, date, time, duration, speaker })
         });
 
         const d = await res.json();
@@ -3401,6 +3510,9 @@
     function handleLoginSuccess(user) {
       currentUser = user;
       const role = user.role;
+      // Load permissions in background for all roles
+      fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(user.email)}`)
+        .then(r => r.json()).then(d => { if (d.permissions) appPermissions = d.permissions; }).catch(() => {});
       if (role === 'admin') {
         showScreen('screenAdmin');
         loadAdminData();
@@ -3622,7 +3734,6 @@
     // PAGINATED ACTIVITY LOG
     // ══════════════════════════════════════════════════════════════════
     let actCurrentPage = 1;
-    const ACT_COLORS = { LOGIN: '#1A5CB8', ADD_CONTACT: '#1F9E5B', EDIT_CONTACT: '#F5A623', UPDATE_STATUS: '#FF6B1A', MARK_ATTN: '#7C3AED', ADD_WALKIN: '#25D366', CREATE_SABHA: '#7C3AED', ASSIGN_POOL: '#1A5CB8', REASSIGN: '#F5A623', ADD_VOL: '#1F9E5B', EDIT_VOL: '#F5A623', DEACTIVATE_VOL: '#C0392B', ERROR: '#C0392B', SYNC_CAL: '#1A5CB8' };
 
     async function loadActivityPage(page) {
       actCurrentPage = Math.max(1, page);
@@ -3643,18 +3754,8 @@
         if (prevBtn) prevBtn.disabled = actCurrentPage <= 1;
         if (nextBtn) nextBtn.disabled = actCurrentPage >= tp;
         if (!log.length) { feed.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">No activity in this range.</div>'; return; }
-        feed.innerHTML = log.map(item => {
-          const color = ACT_COLORS[item.action] || 'var(--muted)';
-          const label = (item.action || 'update').replace(/_/g, ' ');
-          return `<div class="activity-item-upgraded" style="padding:9px 0;border-bottom:1px solid #F0EDE8;display:flex;align-items:flex-start;gap:10px">
-        <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;margin-top:5px"></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:0.78rem;font-weight:700;color:var(--ink)">${esc(label)}</div>
-          <div style="font-size:0.76rem;color:var(--muted);margin-top:1px"><strong>${esc(item.user || '')} </strong>${item.details ? '— ' + esc(item.details) : ''}</div>
-          <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">${esc(item.time || '')} </div>
-        </div>
-      </div>`;
-        }).join('');
+        const dark = document.body.classList.contains('dark');
+        feed.innerHTML = log.map(item => buildActivityHTML(item, dark)).join('');
       } catch (e) { if (feed) feed.innerHTML = '<div style="color:var(--muted)">Failed to load log.</div>'; }
     }
 
@@ -3673,25 +3774,70 @@
       } catch (e) { showToast('Failed to load dashboard', 'error'); }
     }
 
-    // Quick feed (overview tab shows last 20 entries inline)
+    // ── Shared activity item renderer ──────────────────────────────
+    const ACT_META = {
+      UPDATE_STATUS:  { icon: '📞', label: 'Status Update',    color: '#FF6B1A' },
+      LOGIN:          { icon: '🔑', label: 'Login',            color: '#1A5CB8' },
+      ADD_CONTACT:    { icon: '➕', label: 'Contact Added',    color: '#1F9E5B' },
+      EDIT_CONTACT:   { icon: '✏️', label: 'Contact Edited',   color: '#F5A623' },
+      MARK_ATTN:      { icon: '🙏', label: 'Sabha Attendance', color: '#7C3AED' },
+      ADD_WALKIN:     { icon: '🚶', label: 'Walk-in Added',    color: '#25D366' },
+      CREATE_SABHA:   { icon: '📅', label: 'Sabha Created',    color: '#7C3AED' },
+      ASSIGN_POOL:    { icon: '📦', label: 'Contacts Assigned',color: '#1A5CB8' },
+      REASSIGN:       { icon: '⇄',  label: 'Reassigned',       color: '#F5A623' },
+      ADD_VOL:        { icon: '👤', label: 'Volunteer Added',  color: '#1F9E5B' },
+      EDIT_VOL:       { icon: '✏️', label: 'Volunteer Edited', color: '#F5A623' },
+      DEACTIVATE_VOL: { icon: '🚫', label: 'Deactivated',      color: '#C0392B' },
+      SAVE_TEMPLATE:  { icon: '💬', label: 'Template Saved',   color: '#1A5CB8' },
+      SAVE_PERMISSIONS:{ icon: '⚙️',label: 'Permissions Set',  color: '#8A8580' },
+      SYNC_CAL:       { icon: '📆', label: 'Calendar Synced',  color: '#1A5CB8' },
+      DAILY_EMAIL:    { icon: '📧', label: 'Daily Email Sent', color: '#1F9E5B' },
+      ERROR:          { icon: '❌', label: 'Error',            color: '#C0392B' },
+    };
+
+    function buildActivityHTML(item, dark) {
+      const meta  = ACT_META[item.action] || { icon: '•', label: (item.action||'').replace(/_/g,' '), color: 'var(--muted)' };
+      const border = dark ? '#2A2D35' : '#F0EDE8';
+
+      // For UPDATE_STATUS, parse "ContactName → Status" from details
+      let mainLine = '';
+      if (item.action === 'UPDATE_STATUS' && item.details) {
+        const parts = item.details.split('→');
+        const contactPart = parts[0]?.trim() || '';
+        const statusPart  = parts[1]?.trim().split('·')[0]?.trim() || '';
+        const refPart     = item.details.includes('Ref:') ? item.details.split('Ref:')[1]?.trim() : '';
+        const sColor = ['Interested','Already Volunteer'].includes(statusPart) ? 'var(--green)'
+                     : statusPart === 'Not Interested' ? 'var(--red)'
+                     : statusPart === 'Call Back Later' ? 'var(--yellow)' : 'var(--muted)';
+        mainLine = `<span style="font-weight:700;color:var(--ink)">${esc(contactPart)}</span>
+          <span style="color:var(--muted);margin:0 4px">→</span>
+          <span style="font-weight:700;color:${sColor}">${esc(statusPart)}</span>
+          ${refPart ? `<span style="font-size:0.7rem;color:var(--muted);margin-left:6px">· Ref: ${esc(refPart)}</span>` : ''}`;
+      } else {
+        mainLine = item.details ? `<span style="color:var(--muted)">${esc(item.details)}</span>` : '';
+      }
+
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid ${border}">
+        <div style="width:28px;height:28px;border-radius:8px;background:${meta.color}18;display:flex;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0">${meta.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="font-size:0.78rem;font-weight:800;color:${meta.color}">${meta.label}</span>
+            <span style="font-size:0.75rem;font-weight:600;color:var(--ink)">${esc(item.user||'')}</span>
+          </div>
+          ${mainLine ? `<div style="font-size:0.78rem;margin-top:3px;line-height:1.4">${mainLine}</div>` : ''}
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:3px">${esc(item.time||'')}</div>
+        </div>
+      </div>`;
+    }
+
+    // Quick feed on overview tab — shows last 100 entries inline
     function renderActivityFeedQuick(data) {
-      const log = (data.activityLog || []).slice(0, 20);
+      const log  = (data.activityLog || []).slice(0, 100);
       const feed = document.getElementById('activityFeed');
       if (!feed) return;
+      const dark = document.body.classList.contains('dark');
       if (!log.length) { feed.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">No recent activity.</div>'; return; }
-      feed.innerHTML = log.map(item => {
-        const s = item.status || item.action || 'update';
-        const color = ACT_COLORS[item.action] || statusColor(item.status || s) || 'var(--muted)';
-        const label = (item.action || s).replace(/_/g, ' ');
-        return `<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #F0EDE8">
-      <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;margin-top:5px"></div>
-      <div>
-        <div style="font-size:0.78rem;font-weight:700">${esc(label)}</div>
-        <div style="font-size:0.76rem;color:var(--muted)"><strong>${esc(item.user || item.volunteer || '')} </strong>${item.details || item.contactName ? '— ' + esc(item.details || item.contactName) : ''}</div>
-        <div style="font-size:0.68rem;color:var(--muted)">${esc(item.time || '')} </div>
-      </div>
-    </div>`;
-      }).join('');
+      feed.innerHTML = log.map(item => buildActivityHTML(item, dark)).join('');
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -3822,14 +3968,16 @@
     // UPGRADED SWITCH TAB (loads activity page on activity tab)
     // ══════════════════════════════════════════════════════════════════
     function switchTab(tab) {
-      ['overview', 'volunteers', 'areas', 'sabhas', 'activity'].forEach(t => {
+      ['overview', 'volunteers', 'areas', 'sabhas', 'contacts', 'message', 'activity'].forEach(t => {
         document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`).style.display = t === tab ? '' : 'none';
       });
       document.querySelectorAll('.admin-wrap .tab-btn').forEach((b, i) => {
-        b.classList.toggle('active', ['overview', 'volunteers', 'areas', 'sabhas', 'activity'][i] === tab);
+        b.classList.toggle('active', ['overview', 'volunteers', 'areas', 'sabhas', 'contacts', 'message', 'activity'][i] === tab);
       });
-      if (tab === 'sabhas') loadAdminSabhas();
+      if (tab === 'sabhas')   loadAdminSabhas();
       if (tab === 'activity') loadActivityPage(1);
+      if (tab === 'contacts') renderAdminContactsTable();
+      if (tab === 'message')  loadMessageTemplate();
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -3860,6 +4008,226 @@
     }
 
     refreshOfflineBanner();
+
+    // ══════════════════════════════════════════════════════════════════
+    // FEATURE 1 — MESSAGE TEMPLATE  (Admin)
+    // ══════════════════════════════════════════════════════════════════
+    async function loadMessageTemplate() {
+      try {
+        const d = await (await fetch(`${SCRIPT_URL}?action=getTemplate`)).json();
+        document.getElementById('msgTemplateText').value  = d.text  || '';
+        document.getElementById('msgTemplateImage').value = d.image || '';
+        document.getElementById('msgTemplatePreview').style.display = 'none';
+      } catch(e) { showToast('Failed to load template', 'error'); }
+      // Also load permissions
+      try {
+        const d = await (await fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(currentUser.email)}`)).json();
+        if (d.permissions) { appPermissions = d.permissions; renderPermissionsGrid(d.permissions); }
+      } catch(e) {}
+    }
+
+    function previewTemplate() {
+      const text = document.getElementById('msgTemplateText').value;
+      const prev = document.getElementById('msgTemplatePreview');
+      const sample = text
+        .replace(/\{name\}/gi, 'Manish Kumawat')
+        .replace(/\{mandal\}/gi, 'Yuvak Mandal')
+        .replace(/\{area\}/gi, 'Amer');
+      prev.textContent = sample;
+      prev.style.display = sample ? '' : 'none';
+    }
+
+    async function saveMessageTemplate() {
+      const text  = document.getElementById('msgTemplateText').value.trim();
+      const image = document.getElementById('msgTemplateImage').value.trim();
+      const btn   = document.getElementById('saveMsgTemplateBtn');
+      const txt   = document.getElementById('saveMsgTemplateTxt');
+      const status= document.getElementById('msgTemplateStatus');
+      btn.disabled = true; txt.textContent = 'Saving…';
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action:'saveTemplate', text, image, callerEmail: currentUser.email })
+        });
+        // no-cors means we can't read the response — assume success if no throw
+        window.messageTemplate = { text, image };
+        status.textContent = '✅ Template saved!'; status.style.display = '';
+        setTimeout(() => { status.style.display = 'none'; }, 3000);
+        showToast('Template saved!', 'success');
+      } catch(e) { showToast('Network error — check connection', 'error'); }
+      btn.disabled = false; txt.textContent = '💾 Save Template';
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // FEATURE 4 — ADMIN ALL CONTACTS PANEL
+    // ══════════════════════════════════════════════════════════════════
+    let _acFiltered = [];
+    let _acPage     = 1;
+    const AC_PAGE   = 30;
+
+    function renderAdminContactsTable(filter) {
+      const all = adminData?.allContacts || [];
+      const q   = (filter ?? document.getElementById('adminContactSearch')?.value ?? '').toLowerCase().trim();
+      _acFiltered = q
+        ? all.filter(c =>
+            String(c.Name   ||'').toLowerCase().includes(q) ||
+            String(c.Phone  ||'').includes(q)               ||
+            String(c.Area   ||'').toLowerCase().includes(q) ||
+            String(c.ID     ||'').toLowerCase().includes(q))
+        : all;
+      _acPage = 1;
+      renderAdminContactsPage();
+    }
+
+    function filterAdminContacts(q) {
+      clearTimeout(window._acSearchTimer);
+      window._acSearchTimer = setTimeout(() => renderAdminContactsTable(q), 250);
+    }
+
+    function adminContactsPage(dir) {
+      const maxPage = Math.ceil(_acFiltered.length / AC_PAGE) || 1;
+      _acPage = Math.max(1, Math.min(maxPage, _acPage + dir));
+      renderAdminContactsPage();
+    }
+
+    function renderAdminContactsPage() {
+      const tbl     = document.getElementById('adminContactsTable');
+      const pager   = document.getElementById('adminContactsPager');
+      const pageInfo= document.getElementById('acPageInfo');
+      const prevBtn = document.getElementById('acPrevBtn');
+      const nextBtn = document.getElementById('acNextBtn');
+      if (!tbl) return;
+
+      const start    = (_acPage - 1) * AC_PAGE;
+      const slice    = _acFiltered.slice(start, start + AC_PAGE);
+      const maxPage  = Math.ceil(_acFiltered.length / AC_PAGE) || 1;
+
+      if (!slice.length) {
+        tbl.innerHTML = '<div style="padding:18px;color:var(--muted);font-size:0.85rem">No contacts found.</div>';
+        if (pager) pager.style.display = 'none';
+        return;
+      }
+
+      tbl.innerHTML = `
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+            <thead><tr style="background:var(--surface);border-bottom:2px solid #EDE9E2">
+              <th style="padding:10px 12px;text-align:left;font-weight:700;white-space:nowrap">Name</th>
+              <th style="padding:10px 8px;text-align:left;font-weight:700">Phone</th>
+              <th style="padding:10px 8px;text-align:left;font-weight:700">Area</th>
+              <th style="padding:10px 8px;text-align:left;font-weight:700">Assigned</th>
+              <th style="padding:10px 8px;text-align:left;font-weight:700">Status</th>
+              <th style="padding:10px 8px;text-align:center;font-weight:700">Edit</th>
+            </tr></thead>
+            <tbody>
+              ${slice.map((c, i) => `
+              <tr style="border-bottom:1px solid #F0EDE8;${i % 2 === 0 ? '' : 'background:var(--surface)'}">
+                <td style="padding:9px 12px;font-weight:600">${esc(c.Name)}<div style="font-size:0.68rem;color:var(--muted)">${esc(c.ID)}</div></td>
+                <td style="padding:9px 8px">${esc(c.Phone)}</td>
+                <td style="padding:9px 8px">${esc(c.Area)}</td>
+                <td style="padding:9px 8px;font-size:0.75rem;color:var(--muted)">${esc(c.Assigned_To || '—')}</td>
+                <td style="padding:9px 8px"><span class="pill ${spc(c.Status||'')}" style="font-size:0.7rem">${esc(c.Status||'Uncalled')}</span></td>
+                <td style="padding:9px 8px;text-align:center">
+                  <button onclick='openAdminEditContact(${JSON.stringify(c)})'
+                    style="background:var(--area-bg);border:none;border-radius:99px;padding:4px 12px;font-size:0.72rem;font-weight:700;color:var(--area-fg);cursor:pointer">✏️</button>
+                </td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+
+      if (pager) {
+        pager.style.display = 'flex';
+        if (pageInfo) pageInfo.textContent = `Page ${_acPage}/${maxPage} · ${_acFiltered.length} contacts`;
+        if (prevBtn) prevBtn.disabled = _acPage <= 1;
+        if (nextBtn) nextBtn.disabled = _acPage >= maxPage;
+      }
+    }
+
+    function openAdminEditContact(c) {
+      openAddContactModal(c);  // reuse existing modal in edit mode
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // FEATURE 5 — MODERATOR EDIT ASSIGNED CONTACT
+    // ══════════════════════════════════════════════════════════════════
+    function openEditContactFromCard() {
+      if (currentIdx >= contacts.length) return;
+      openAddContactModal(contacts[currentIdx]);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // FEATURE 6 — PERMISSIONS UI  (Admin)
+    // ══════════════════════════════════════════════════════════════════
+    const PERM_LABELS = {
+      canAddContact:        'Can add new contacts',
+      canEditContact:       'Can edit contact details',
+      canReassign:          'Can reassign contacts',
+      canViewAllContacts:   'Can view all contacts',
+      canMarkAttendance:    'Can mark Sabha attendance',
+    };
+
+    function renderPermissionsGrid(permissions) {
+      const grid = document.getElementById('permissionsGrid');
+      if (!grid) return;
+      const roles = ['moderator', 'volunteer'];
+      grid.innerHTML = roles.map(role => {
+        const perms = permissions[role] || {};
+        const rows  = Object.entries(PERM_LABELS).map(([key, label]) => {
+          const checked = perms[key] !== false;
+          return `<label style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F0EDE8;cursor:pointer">
+            <input type="checkbox" id="perm_${role}_${key}" ${checked ? 'checked' : ''}
+              style="width:16px;height:16px;accent-color:var(--saffron);cursor:pointer" />
+            <span style="font-size:0.83rem">${label}</span>
+          </label>`;
+        }).join('');
+        const rLabel = role === 'moderator' ? '🛡️ Moderator' : '👤 Volunteer';
+        return `<div>
+          <div style="font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:800;color:var(--muted);margin-bottom:8px">${rLabel}</div>
+          <div>${rows}</div>
+        </div>`;
+      }).join('<div style="height:1px;background:#EDE9E2;margin:4px 0"></div>');
+    }
+
+    async function savePermissions() {
+      const roles  = ['moderator', 'volunteer'];
+      const perms  = {};
+      roles.forEach(role => {
+        perms[role] = {};
+        Object.keys(PERM_LABELS).forEach(key => {
+          const el = document.getElementById(`perm_${role}_${key}`);
+          perms[role][key] = el ? el.checked : true;
+        });
+      });
+      const btn    = document.getElementById('savePermsBtn');
+      const txt    = document.getElementById('savePermsTxt');
+      const status = document.getElementById('permsStatus');
+      btn.disabled = true; txt.textContent = 'Saving…';
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action:'savePermissions', permissions: perms, callerEmail: currentUser.email })
+        });
+        appPermissions = perms;
+        status.textContent = '✅ Permissions saved!'; status.style.display = '';
+        setTimeout(() => { status.style.display = 'none'; }, 3000);
+        showToast('Permissions saved!', 'success');
+      } catch(e) { showToast('Network error — check connection', 'error'); }
+      btn.disabled = false; txt.textContent = '💾 Save Permissions';
+    }
+
+    // Helper: check if current user has a given permission
+    function hasPerm(permKey) {
+      if (!currentUser) return false;
+      if (currentUser.role === 'admin') return true;
+      const rolePerms = appPermissions[currentUser.role];
+      if (!rolePerms) return true; // default allow if not loaded
+      return rolePerms[permKey] !== false;
+    }
   </script>
 </body>
 
