@@ -1890,7 +1890,7 @@
         <button id="addContactHeaderBtn" class="icon-btn" onclick="openAddContactModal()" title="Add Contact"
           style="display:none">➕</button>
         <button class="icon-btn" onclick="toggleDark()" title="Dark mode">🌙</button>
-        <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+        <button class="logout-btn" onclick="doLogout()">Out</button>
       </div>
     </div>
     <div class="progress-wrap">
@@ -1902,6 +1902,7 @@
         <button id="tabCallBtn" class="tab-btn active" onclick="switchVolTab('call')">📞 Calling</button>
         <button id="tabListBtn" class="tab-btn" onclick="switchVolTab('list')">📋 My List</button>
         <button id="tabAttnBtn" class="tab-btn" onclick="switchVolTab('attn')">🙏 Sabha</button>
+        <button id="tabDashBtn" class="tab-btn" onclick="switchVolTab('dash')" style="display:none">📊 Dashboard</button>
       </div>
     </div>
 
@@ -2080,6 +2081,55 @@
       </button>
 
       <div id="attnPresentList" class="flex flex-col gap-2 pb-8"></div>
+
+    </div>
+
+    <!-- ── DASHBOARD TAB (Moderator / canViewAllContacts) ── -->
+    <div id="volDashTab" class="w-full max-w-md px-4 py-4 flex-col gap-4" style="display:none;">
+
+      <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:4px">📊 Team Dashboard</div>
+
+      <!-- Summary cards -->
+      <div class="summary-grid" id="dashSummaryGrid">
+        <div class="summary-card"><div class="skeleton h-8 w-12 rounded mb-1"></div><div class="skeleton h-3 w-16 rounded"></div></div>
+        <div class="summary-card"><div class="skeleton h-8 w-12 rounded mb-1"></div><div class="skeleton h-3 w-16 rounded"></div></div>
+        <div class="summary-card"><div class="skeleton h-8 w-12 rounded mb-1"></div><div class="skeleton h-3 w-16 rounded"></div></div>
+      </div>
+
+      <!-- Volunteer progress cards -->
+      <div style="font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:800;color:var(--muted);margin-top:4px">VOLUNTEER PROGRESS</div>
+      <div id="dashVolCards" class="flex flex-col gap-3"></div>
+
+      <!-- Reassign section (only if canReassign) -->
+      <div id="dashReassignSection" style="display:none">
+        <div style="font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:800;color:var(--muted);margin-top:4px">📦 ASSIGN CONTACT POOL</div>
+        <div class="pool-card">
+          <div style="font-size:0.82rem;color:var(--muted)">Search unassigned contacts and bulk-assign to a volunteer.</div>
+          <div class="pool-search-wrap">
+            <input id="dashPoolSearch" class="styled-input" placeholder="Search by name, phone, or area…"
+              style="font-size:0.88rem;padding:10px 14px" oninput="onPoolSearch(this.value,'dashPoolResults','dashPoolStatus')" />
+          </div>
+          <div id="dashPoolResults" class="pool-results" style="display:none"></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="dashPoolTargetVol" class="styled-select" style="flex:1;font-size:0.88rem;padding:10px 14px">
+              <option value="">— Select Volunteer —</option>
+            </select>
+            <button onclick="doPoolAssign('dashPoolResults','dashPoolTargetVol','dashPoolStatus')"
+              class="btn btn-primary" style="width:auto;padding:10px 18px;font-size:0.88rem">Assign →</button>
+          </div>
+          <div id="dashPoolStatus" style="font-size:0.8rem;color:var(--muted)"></div>
+        </div>
+      </div>
+
+      <!-- Area breakdown -->
+      <div style="font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:800;color:var(--muted);margin-top:4px">🏘️ AREA BREAKDOWN</div>
+      <div class="contact-card" id="dashAreaBreakdown" style="padding:16px">
+        <div style="color:var(--muted);font-size:0.85rem">Loading…</div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end">
+        <button onclick="loadDashboard()" class="btn btn-outline" style="width:auto;padding:8px 16px;font-size:0.82rem">🔄 Refresh</button>
+      </div>
 
     </div>
   </div>
@@ -2833,7 +2883,7 @@
     </div>`;
 
       // Moderator/Admin edit button
-      if (currentUser?.role === 'moderator' || currentUser?.role === 'admin') {
+      if (hasPerm('canEditContact')) {
         const editBtnWrap = document.createElement('div');
         editBtnWrap.style.cssText = 'margin-top:10px;display:flex;justify-content:flex-end';
         editBtnWrap.innerHTML = `<button onclick="openEditContactFromCard()" style="background:var(--area-bg);border:none;border-radius:99px;padding:7px 16px;font-size:0.78rem;font-weight:700;color:var(--area-fg);cursor:pointer;display:flex;align-items:center;gap:5px">✏️ Edit Contact</button>`;
@@ -2897,10 +2947,14 @@
       document.getElementById('volCallTab').style.display = tab === 'call' ? 'flex' : 'none';
       document.getElementById('volListTab').style.display = tab === 'list' ? 'flex' : 'none';
       document.getElementById('volAttnTab').style.display = tab === 'attn' ? 'flex' : 'none';
+      document.getElementById('volDashTab').style.display = tab === 'dash' ? 'flex' : 'none';
       document.getElementById('tabCallBtn').classList.toggle('active', tab === 'call');
       document.getElementById('tabListBtn').classList.toggle('active', tab === 'list');
       document.getElementById('tabAttnBtn').classList.toggle('active', tab === 'attn');
+      const dashBtn = document.getElementById('tabDashBtn');
+      if (dashBtn) dashBtn.classList.toggle('active', tab === 'dash');
       if (tab === 'list') renderVolList();
+      if (tab === 'dash') loadDashboard();
     }
 
     function renderVolList() {
@@ -3505,33 +3559,97 @@
     function showToast(msg, type = '') { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast' + (type ? ' ' + type : ''); void t.offsetWidth; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2800); }
 
     // ══════════════════════════════════════════════════════════════════
+    // PERMISSIONS — fetch, enforce, re-apply
+    // ══════════════════════════════════════════════════════════════════
+
+    /** Check if current user has a permission. Admin always has all. */
+    function hasPerm(key) {
+      if (!currentUser) return false;
+      if (currentUser.role === 'admin') return true;
+      const rp = appPermissions[currentUser.role];
+      if (!rp || Object.keys(rp).length === 0) return false; // deny until loaded
+      return rp[key] !== false;
+    }
+
+    /** Apply current appPermissions to the live UI — show/hide buttons & tabs */
+    function applyPermissions() {
+      const role = currentUser?.role;
+      if (!role || role === 'admin') return;
+
+      // canAddContact — header ➕ button
+      const addBtn = document.getElementById('addContactHeaderBtn');
+      if (addBtn) addBtn.style.display = hasPerm('canAddContact') ? '' : 'none';
+
+      // canMarkAttendance — Sabha tab
+      const attnTab = document.getElementById('tabAttnBtn');
+      if (attnTab) attnTab.style.display = hasPerm('canMarkAttendance') ? '' : 'none';
+
+      // canViewAllContacts — Dashboard tab
+      const dashBtn = document.getElementById('tabDashBtn');
+      if (dashBtn) dashBtn.style.display = hasPerm('canViewAllContacts') ? '' : 'none';
+
+      // canReassign — reassign section inside dashboard + any pool-cards
+      const reassignSec = document.getElementById('dashReassignSection');
+      if (reassignSec) reassignSec.style.display = hasPerm('canReassign') ? '' : 'none';
+      document.querySelectorAll('.pool-card').forEach(el => el.style.display = hasPerm('canReassign') ? '' : 'none');
+
+      // canEditContact / canAddContact — handled inline by hasPerm() in renderContact() and openAddContactModal()
+    }
+
+    /** Fetch permissions from server, store, then run applyPermissions + optional callback */
+    async function loadAndApplyPermissions(callback) {
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(currentUser.email)}`);
+        const d   = await res.json();
+        if (d.permissions && Object.keys(d.permissions).length) {
+          appPermissions = d.permissions;
+        }
+      } catch(e) { console.warn('Permissions load failed', e); }
+      applyPermissions();
+      if (callback) callback();
+    }
+
+    // ══════════════════════════════════════════════════════════════════
     // ROLE-AWARE LOGIN ROUTING
     // ══════════════════════════════════════════════════════════════════
     function handleLoginSuccess(user) {
       currentUser = user;
-      const role = user.role;
-      // Load permissions in background for all roles
-      fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(user.email)}`)
-        .then(r => r.json()).then(d => { if (d.permissions) appPermissions = d.permissions; }).catch(() => {});
+      const role  = user.role;
+
       if (role === 'admin') {
+        // Admin sees everything — load screen immediately, fetch perms for the panel
         showScreen('screenAdmin');
         loadAdminData();
+        fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(user.email)}`)
+          .then(r => r.json())
+          .then(d => { if (d.permissions) appPermissions = d.permissions; })
+          .catch(() => {});
       } else {
-        showScreen('screenCalling');
-        const chip = document.getElementById('volUserChip');
-        const roleLabel = role === 'moderator'
-          ? '<span class="role-badge moderator" style="margin-left:4px">MOD</span>'
-          : '';
-        chip.innerHTML = `<span>${esc(user.name)}</span>${roleLabel}`;
-        if (role === 'moderator') {
-          const addBtn = document.getElementById('addContactHeaderBtn');
-          if (addBtn) addBtn.style.display = '';
-        }
-        loadVolunteerContacts();
-        updateCallTime();
-        loadEventsForVolunteer();
-        loadAllContactsForAttendance();
-        loadAreasForForms();
+        // Non-admin: WAIT for permissions before showing screen
+        // Show a brief loading state so user knows it's working
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn) { loginBtn.disabled = true; loginBtn.innerHTML = '<span class="spinner"></span> Loading…'; }
+
+        loadAndApplyPermissions(() => {
+          if (loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = 'Sign In →'; }
+          showScreen('screenCalling');
+
+          // Role chip
+          const chip = document.getElementById('volUserChip');
+          if (chip) {
+            const badge = role === 'moderator'
+              ? '<span class="role-badge moderator" style="margin-left:4px">MOD</span>'
+              : '';
+            chip.innerHTML = `<span>${esc(user.name)}</span>${badge}`;
+          }
+
+          // applyPermissions() already ran inside loadAndApplyPermissions
+          loadVolunteerContacts();
+          updateCallTime();
+          loadEventsForVolunteer();
+          loadAllContactsForAttendance();
+          loadAreasForForms();
+        });
       }
     }
 
@@ -3575,28 +3693,60 @@
       } catch (e) { console.warn('Areas load failed', e); }
     }
 
+    /** Convert any date value (Date object, string, serial) → "YYYY-MM-DD" for <input type="date"> */
+    function toDateInputValue(v) {
+      if (!v) return '';
+      try {
+        let d;
+        if (v instanceof Date) {
+          d = v;
+        } else if (typeof v === 'number') {
+          // Google Sheets serial date (days since 1899-12-30)
+          d = new Date(Math.round((v - 25569) * 86400 * 1000));
+        } else {
+          d = new Date(v);
+        }
+        if (isNaN(d.getTime())) return '';
+        // Format as YYYY-MM-DD in local time to avoid UTC off-by-one
+        const yyyy = d.getFullYear();
+        const mm   = String(d.getMonth() + 1).padStart(2, '0');
+        const dd   = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      } catch(_) { return ''; }
+    }
+
     // ══════════════════════════════════════════════════════════════════
     // ADD / EDIT CONTACT MODAL
     // ══════════════════════════════════════════════════════════════════
     let editingContactId = null;
+    let _pendingEditArea = null;  // area to select after options load
 
     function openAddContactModal(contactData) {
+      // Permission gate
+      const isEdit = !!(contactData && contactData.ID);
+      if (isEdit  && !hasPerm('canEditContact'))  { showToast('You don\'t have permission to edit contacts', 'error'); return; }
+      if (!isEdit && !hasPerm('canAddContact'))   { showToast('You don\'t have permission to add contacts', 'error'); return; }
+
       editingContactId = contactData ? contactData.ID : null;
+      _pendingEditArea = null;
       const title = document.getElementById('addContactTitle');
       const errEl = document.getElementById('addContactError');
       errEl.style.display = 'none';
+
       if (editingContactId) {
         title.textContent = '✏️ Edit Contact';
-        document.getElementById('acName').value = contactData.Name || '';
-        document.getElementById('acPhone').value = contactData.Phone || '';
-        document.getElementById('acDOB').value = contactData.DOB || '';
-        document.getElementById('acDOA').value = contactData.DOA || '';
-        document.getElementById('acProfession').value = contactData.Profession || '';
-        document.getElementById('acSkill').value = contactData.Skill || '';
-        document.getElementById('acMandal').value = contactData.Mandal || '';
-        document.getElementById('acNote').value = contactData.Note || '';
-        document.getElementById('acAddress').value = contactData.Complete_Address || '';
+        document.getElementById('acName').value       = contactData.Name             || '';
+        document.getElementById('acPhone').value      = String(contactData.Phone || '').replace(/\D/g,'');
+        document.getElementById('acDOB').value        = toDateInputValue(contactData.DOB);
+        document.getElementById('acDOA').value        = toDateInputValue(contactData.DOA);
+        document.getElementById('acProfession').value = contactData.Profession        || '';
+        document.getElementById('acSkill').value      = contactData.Skill             || '';
+        document.getElementById('acMandal').value     = contactData.Mandal            || '';
+        document.getElementById('acNote').value       = contactData.Note              || '';
+        document.getElementById('acAddress').value    = contactData.Complete_Address  || '';
         document.getElementById('acSubmitText').textContent = 'Save Changes →';
+        // Store area to apply after dropdown options load
+        _pendingEditArea = String(contactData.Area || '').trim();
       } else {
         title.textContent = '➕ Add New Contact';
         document.getElementById('addContactForm').querySelectorAll('input,select,textarea').forEach(el => el.value = '');
@@ -3605,9 +3755,40 @@
         document.getElementById('acPhoneHint').className = 'phone-hint';
         document.getElementById('acPhone').className = 'styled-input';
       }
-      loadAreasForForms();
+
+      // Load areas, then apply pending area selection
+      _loadAreasAndSelect(_pendingEditArea);
       document.getElementById('addContactModal').classList.add('open');
     }
+
+    /** Load areas into dropdown, then select the given area name (case-insensitive) */
+    async function _loadAreasAndSelect(areaToSelect) {
+      try {
+        if (!areasCache.length) {
+          const res = await fetch(`${SCRIPT_URL}?action=getAreas`);
+          const d = await res.json();
+          areasCache = d.areas || [];
+        }
+        const sel = document.getElementById('acArea');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">— Select Area —</option>';
+        areasCache.forEach(a => {
+          const o = document.createElement('option');
+          o.value = a.name;
+          o.textContent = a.name + (a.code ? ` (${a.code})` : '');
+          sel.appendChild(o);
+        });
+        // Now select the saved area (try exact match first, then case-insensitive)
+        if (areaToSelect) {
+          const opts = Array.from(sel.options);
+          const exact = opts.find(o => o.value === areaToSelect);
+          const icase = opts.find(o => o.value.toLowerCase() === areaToSelect.toLowerCase());
+          if (exact)       sel.value = exact.value;
+          else if (icase)  sel.value = icase.value;
+        }
+      } catch (e) { console.warn('Areas load failed', e); }
+    }
+
     function closeAddContactModal() { document.getElementById('addContactModal').classList.remove('open'); }
 
     function validatePhone(input) {
@@ -4010,6 +4191,90 @@
     refreshOfflineBanner();
 
     // ══════════════════════════════════════════════════════════════════
+    // DASHBOARD TAB  (Moderator / canViewAllContacts)
+    // ══════════════════════════════════════════════════════════════════
+    let dashData = null;
+
+    async function loadDashboard() {
+      if (!hasPerm('canViewAllContacts')) return;
+      const summaryEl = document.getElementById('dashSummaryGrid');
+      const volEl     = document.getElementById('dashVolCards');
+      const areaEl    = document.getElementById('dashAreaBreakdown');
+      if (volEl) volEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Loading…</div>';
+
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=getAdminStats&email=${encodeURIComponent(currentUser.email)}`);
+        dashData = await res.json();
+        if (dashData.error) { if (volEl) volEl.innerHTML = `<div style="color:var(--muted)">${esc(dashData.error)}</div>`; return; }
+
+        // Summary cards
+        const T = dashData.totalContacts || 0;
+        const C = dashData.totalCalled   || 0;
+        const S = dashData.statusBreakdown || {};
+        const interested = (S['Interested']||0) + (S['Already Volunteer']||0);
+        const pct = T ? Math.round(C/T*100) : 0;
+        if (summaryEl) summaryEl.innerHTML = `
+          <div class="summary-card"><div class="summary-val">${T}</div><div class="summary-lbl">Total</div></div>
+          <div class="summary-card"><div class="summary-val" style="color:var(--saffron)">${C}</div><div class="summary-lbl">Called · ${pct}%</div></div>
+          <div class="summary-card"><div class="summary-val" style="color:var(--green)">${interested}</div><div class="summary-lbl">Interested</div></div>`;
+
+        // Volunteer cards
+        const vols = dashData.volunteers || [];
+        if (volEl) {
+          if (!vols.length) { volEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">No volunteers found.</div>'; }
+          else volEl.innerHTML = vols.map(v => {
+            const p = v.total ? Math.round(v.called/v.total*100) : 0;
+            const canReassign = hasPerm('canReassign');
+            return `<div class="vol-card">
+              <div class="vol-header">
+                <div>
+                  <div class="vol-name">${esc(v.name)}</div>
+                  <div class="vol-email">${esc(v.email)}</div>
+                  ${v.areas?.length ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">🏘️ ${v.areas.map(a=>esc(a)).join(' · ')}</div>` : ''}
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+                  <span class="vol-badge ${p===100?'done':p>0?'partial':'idle'}">${p===100?'✅ Done':`${p}%`}</span>
+                  ${canReassign ? `<button onclick="openReassignModal('${esc(v.name)}')" style="background:var(--area-bg);border:none;border-radius:99px;padding:3px 9px;font-size:0.7rem;font-weight:600;color:var(--area-fg);cursor:pointer">⇄ Reassign</button>` : ''}
+                </div>
+              </div>
+              <div class="vol-progress-wrap"><div class="vol-progress-bar" style="width:${p}%;background:${p>=100?'var(--green)':p>=50?'var(--saffron)':'#F5A623'}"></div></div>
+              <div style="font-size:0.73rem;color:var(--muted);margin-top:4px">${v.called} / ${v.total} called</div>
+            </div>`;
+          }).join('');
+        }
+
+        // Populate reassign vol select in dashboard
+        if (hasPerm('canReassign')) {
+          const sel = document.getElementById('dashPoolTargetVol');
+          if (sel) {
+            sel.innerHTML = '<option value="">— Select Volunteer —</option>';
+            vols.filter(v=>v.role!=='admin').forEach(v => {
+              const o = document.createElement('option'); o.value = v.name; o.textContent = v.name; sel.appendChild(o);
+            });
+          }
+        }
+
+        // Area breakdown
+        if (areaEl) {
+          const areas = dashData.areaStats || {};
+          if (!Object.keys(areas).length) { areaEl.innerHTML = '<div style="color:var(--muted)">No area data.</div>'; }
+          else areaEl.innerHTML = Object.entries(areas).sort((a,b)=>b[1].total-a[1].total).map(([area,s])=>{
+            const ap = s.total ? Math.round(s.called/s.total*100) : 0;
+            return `<div class="area-row">
+              <div><div class="area-name">🏘️ ${esc(area)}</div>
+              <div style="font-size:0.7rem;color:var(--muted);margin-top:2px">${s.called}/${s.total} called · ${s.interested||0} interested</div></div>
+              <div style="text-align:right;min-width:80px">
+                <div class="syne" style="font-size:1rem;font-weight:800">${ap}%</div>
+                <div class="vol-progress-wrap" style="width:70px;margin-top:4px"><div class="vol-progress-bar" style="width:${ap}%;background:${ap>=100?'var(--green)':ap>=50?'var(--saffron)':'#F5A623'}"></div></div>
+              </div></div>`;
+          }).join('');
+        }
+
+      } catch(e) { if (volEl) volEl.innerHTML = '<div style="color:var(--muted)">Failed to load dashboard.</div>'; }
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════
     // FEATURE 1 — MESSAGE TEMPLATE  (Admin)
     // ══════════════════════════════════════════════════════════════════
     async function loadMessageTemplate() {
@@ -4213,20 +4478,14 @@
           body: JSON.stringify({ action:'savePermissions', permissions: perms, callerEmail: currentUser.email })
         });
         appPermissions = perms;
-        status.textContent = '✅ Permissions saved!'; status.style.display = '';
-        setTimeout(() => { status.style.display = 'none'; }, 3000);
+        // Re-render grid so checkboxes reflect exactly what was saved
+        renderPermissionsGrid(perms);
+        status.style.display = '';
+        status.innerHTML = '✅ Saved! Moderators/Volunteers will see changes on their <strong>next login</strong>.';
+        setTimeout(() => { status.style.display = 'none'; }, 5000);
         showToast('Permissions saved!', 'success');
       } catch(e) { showToast('Network error — check connection', 'error'); }
       btn.disabled = false; txt.textContent = '💾 Save Permissions';
-    }
-
-    // Helper: check if current user has a given permission
-    function hasPerm(permKey) {
-      if (!currentUser) return false;
-      if (currentUser.role === 'admin') return true;
-      const rolePerms = appPermissions[currentUser.role];
-      if (!rolePerms) return true; // default allow if not loaded
-      return rolePerms[permKey] !== false;
     }
   </script>
 </body>
