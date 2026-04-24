@@ -4629,10 +4629,12 @@ function formatSabhaTime(timeStr) {
       btn.disabled = false; txt.textContent = '💾 Save Permissions';
     }
     // ══════════════════════════════════════════════════════════════════
-    // GEOFENCING
+    // GEOFENCING 
     // ══════════════════════════════════════════════════════════════════
-    const CAMPUS_LAT    = 26.9124;   // edit: campus latitude
-    const CAMPUS_LNG    = 75.7873;   // edit: campus longitude
+    // BAPS Jaipur : 26.90228632979165, 75.74040127966288
+    //Manish Home : 26.920101999057337, 75.71099514870978
+    const CAMPUS_LAT    = 26.90228632979165;   // edit: campus latitude
+    const CAMPUS_LNG    = 75.74040127966288;   // edit: campus longitude
     const CAMPUS_RADIUS = 200;       // edit: metres
 
     function haversineDistance(lat1, lng1, lat2, lng2) {
