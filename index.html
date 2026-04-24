@@ -589,7 +589,7 @@
       background: var(--card);
       border-radius: 20px;
       box-shadow: 0 4px 30px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
-      padding: 26px 22px 22px;
+      padding: 20px 16px 18px;
       width: 100%;
       position: relative;
       overflow: hidden;
@@ -617,7 +617,7 @@
 
     .contact-name {
       font-family: 'Syne', sans-serif;
-      font-size: 1.55rem;
+      font-size: 1.3rem;
       font-weight: 800;
       letter-spacing: -0.03em;
       line-height: 1.1;
@@ -1844,6 +1844,61 @@
     .activity-item-upgraded {
       animation: rowIn 0.2s ease both;
     }
+
+    /* ── MOBILE RESPONSIVE ── */
+@media (max-width: 480px) {
+  .header { padding: 10px 12px; }
+  .header-title { font-size: 0.95rem; }
+  .user-chip { max-width: 80px; font-size: 0.65rem; }
+  .counter-badge { font-size: 0.65rem; padding: 3px 7px; }
+  .icon-btn { font-size: 0.9rem; padding: 5px; }
+  .logout-btn { font-size: 0.7rem; padding: 5px 10px; }
+
+  .contact-card { padding: 16px 14px 14px; border-radius: 16px; }
+  .contact-name { font-size: 1.2rem !important; }
+  .tag { font-size: 0.72rem; padding: 3px 9px; }
+  .meta-item { font-size: 0.72rem; }
+
+  .my-stats-card { padding: 14px 14px 12px; border-radius: 16px; }
+  #msDone, #msInterested, #msTotal { font-size: 1.3rem !important; }
+  #msPct { font-size: 1rem !important; }
+
+  .btn { padding: 13px 16px; font-size: 0.88rem; border-radius: 14px; }
+  .tab-btn { font-size: 0.72rem; padding: 8px 10px; }
+
+  .notif-panel {
+  position: fixed;
+  top: 56px;
+  right: 16px;
+  width: 320px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  z-index: 999;
+  display: none;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+.notif-panel.open { display: block; }
+.notif-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #F0EDE8;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.notif-item.unread { background: #FFF8F4; border-left: 3px solid var(--saffron); }
+.notif-time { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+
+  .search-bar { font-size: 0.88rem; padding: 11px 14px 11px 38px; }
+
+  /* Quick status buttons — 2 per row on mobile */
+  .status-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+  .status-btn { font-size: 0.82rem !important; padding: 11px 8px !important; }
+
+  /* Reference input */
+  .styled-input { font-size: 0.88rem; padding: 12px 14px; }
+}
     
   </style>
 </head>
@@ -4715,12 +4770,19 @@ function formatSabhaTime(timeStr) {
     let notifCache = [];
 
     function toggleNotifPanel() {
-      const panel = document.getElementById('notifPanel');
-      panel.classList.toggle('open');
-      if (panel.classList.contains('open')) {
-        loadMyNotifications();
-      }
+  const panel = document.getElementById('notifPanel');
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open');
+  if (!isOpen) {
+    renderNotifPanel();
+    if (notifCache.some(n => !n.read)) {
+      notifCache.forEach(n => n.read = true);
+      updateNotifDot();
+      fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'markNotificationsRead', callerEmail: currentUser.email }) });
     }
+  }
+}
     document.addEventListener('click', e => {
       const panel = document.getElementById('notifPanel');
       const bell  = document.getElementById('notifBellWrap');
@@ -4730,17 +4792,13 @@ function formatSabhaTime(timeStr) {
     });
 
     async function loadMyNotifications() {
-      try {
-        const res = await fetch(`${SCRIPT_URL}?action=getMyNotifications&email=${encodeURIComponent(currentUser.email)}`);
-        const d   = await res.json();
-        notifCache = d.notifications || [];
-        renderNotifPanel();
-        updateNotifDot();
-        // Mark read
-        fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ action:'markNotificationsRead', callerEmail: currentUser.email }) });
-      } catch(_) {}
-    }
+  try {
+    const res = await fetch(`${SCRIPT_URL}?action=getMyNotifications&email=${encodeURIComponent(currentUser.email)}`);
+    const d   = await res.json();
+    notifCache = d.notifications || [];
+    updateNotifDot(); // only update the red dot — don't render panel yet
+  } catch(_) {}
+}
 
     function renderNotifPanel() {
       const panel = document.getElementById('notifPanel');
