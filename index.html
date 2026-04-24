@@ -1866,19 +1866,27 @@
   .btn { padding: 13px 16px; font-size: 0.88rem; border-radius: 14px; }
   .tab-btn { font-size: 0.72rem; padding: 8px 10px; }
 
-  .notif-panel {
+  .notif-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 998;
+  display: none;
+}
+.notif-overlay.open { display: block; }
+.notif-panel {
   position: fixed;
   top: 56px;
-  right: 16px;
-  width: 320px;
-  max-height: 60vh;
+  right: 12px;
+  width: min(320px, calc(100vw - 24px));
+  max-height: 70vh;
   overflow-y: auto;
   background: var(--card);
   border-radius: 16px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.2);
   z-index: 999;
   display: none;
-  border: 1px solid rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.08);
 }
 .notif-panel.open { display: block; }
 .notif-item {
@@ -1887,7 +1895,10 @@
   font-size: 0.85rem;
   line-height: 1.5;
 }
-.notif-item.unread { background: #FFF8F4; border-left: 3px solid var(--saffron); }
+.notif-item.unread {
+  background: #FFF8F4;
+  border-left: 3px solid var(--saffron);
+}
 .notif-time { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
 
   .search-bar { font-size: 0.88rem; padding: 11px 14px 11px 38px; }
@@ -1952,7 +1963,8 @@
       </div>
     </div>
     <!-- Notification Panel -->
-    <div id="notifPanel" class="notif-panel"></div>
+    <div id="notifOverlay" class="notif-overlay" onclick="closeNotifPanel()"></div>
+<div id="notifPanel" class="notif-panel"></div>
     <!-- Geofence Overlay (hidden by default) -->
     <div id="geoOverlay" class="geo-overlay" style="display:none"></div>
     <div class="progress-wrap">
@@ -4769,67 +4781,77 @@ function formatSabhaTime(timeStr) {
     // ══════════════════════════════════════════════════════════════════
     let notifCache = [];
 
-    function toggleNotifPanel() {
-  const panel = document.getElementById('notifPanel');
-  const isOpen = panel.classList.contains('open');
-  panel.classList.toggle('open');
-  if (!isOpen) {
+function toggleNotifPanel() {
+  const panel   = document.getElementById('notifPanel');
+  const overlay = document.getElementById('notifOverlay');
+  const isOpen  = panel.classList.contains('open');
+  if (isOpen) {
+    closeNotifPanel();
+  } else {
+    panel.classList.add('open');
+    overlay.classList.add('open');
     renderNotifPanel();
+    // mark read
     if (notifCache.some(n => !n.read)) {
       notifCache.forEach(n => n.read = true);
       updateNotifDot();
-      fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ action:'markNotificationsRead', callerEmail: currentUser.email }) });
+      fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'markNotificationsRead', callerEmail: currentUser.email })
+      });
     }
   }
 }
-    document.addEventListener('click', e => {
-      const panel = document.getElementById('notifPanel');
-      const bell  = document.getElementById('notifBellWrap');
-      if (panel && !panel.contains(e.target) && !bell.contains(e.target)) {
-        panel.classList.remove('open');
-      }
-    });
 
-    async function loadMyNotifications() {
+function closeNotifPanel() {
+  document.getElementById('notifPanel')?.classList.remove('open');
+  document.getElementById('notifOverlay')?.classList.remove('open');
+}
+
+async function loadMyNotifications() {
   try {
     const res = await fetch(`${SCRIPT_URL}?action=getMyNotifications&email=${encodeURIComponent(currentUser.email)}`);
     const d   = await res.json();
     notifCache = d.notifications || [];
-    updateNotifDot(); // only update the red dot — don't render panel yet
+    updateNotifDot();
   } catch(_) {}
 }
 
-    function renderNotifPanel() {
-      const panel = document.getElementById('notifPanel');
-      if (!notifCache.length) {
-        panel.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">No notifications yet</div>';
-        return;
-      }
-      panel.innerHTML = `<div style="padding:12px 16px;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:800;border-bottom:1px solid #F0EDE8">🔔 Notifications</div>`
-        + notifCache.map(n => `
-        <div class="notif-item${n.read?'':' unread'}">
-          <div style="font-size:.82rem;line-height:1.4">${esc(n.message)}</div>
-          <div class="notif-time">${esc(n.time)} · ${esc(n.from)}</div>
-        </div>`).join('');
-    }
+function renderNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  if (!notifCache.length) {
+    panel.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">No notifications yet</div>';
+    return;
+  }
+  panel.innerHTML =
+    `<div style="padding:12px 16px;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:800;border-bottom:1px solid #F0EDE8;display:flex;justify-content:space-between;align-items:center">
+      🔔 Notifications
+      <span onclick="closeNotifPanel()" style="cursor:pointer;font-size:1.1rem;color:var(--muted)">✕</span>
+    </div>`
+    + notifCache.map(n => `
+      <div class="notif-item${n.read?'':' unread'}">
+        <div style="font-size:.82rem;line-height:1.4">${esc(n.message)}</div>
+        <div class="notif-time">${esc(n.time)} · ${esc(n.from)}</div>
+      </div>`).join('');
+}
 
-    function updateNotifDot() {
-      const dot  = document.getElementById('notifDot');
-      const hasUnread = notifCache.some(n => !n.read);
-      if (dot) dot.style.display = hasUnread ? 'block' : 'none';
-    }
+function updateNotifDot() {
+  const dot = document.getElementById('notifDot');
+  const hasUnread = notifCache.some(n => !n.read);
+  if (dot) dot.style.display = hasUnread ? 'block' : 'none';
+}
 
-    // Poll notifications every 90 seconds while logged in
-    let notifInterval = null;
-    function startNotifPolling() {
-      if (notifInterval) clearInterval(notifInterval);
-      notifInterval = setInterval(() => {
-        if (currentUser && currentUser.role !== 'admin') loadMyNotifications();
-      }, 90000);
-    }
-    function stopNotifPolling() { if (notifInterval) clearInterval(notifInterval); notifInterval = null; }
-
+let notifInterval = null;
+function startNotifPolling() {
+  if (notifInterval) clearInterval(notifInterval);
+  notifInterval = setInterval(() => {
+    if (currentUser && currentUser.role !== 'admin') loadMyNotifications();
+  }, 90000);
+}
+function stopNotifPolling() {
+  if (notifInterval) clearInterval(notifInterval);
+  notifInterval = null;
+}
     // ══════════════════════════════════════════════════════════════════
     // BATCH MANAGEMENT  (Admin)
     // ══════════════════════════════════════════════════════════════════
