@@ -1866,40 +1866,120 @@
   .btn { padding: 13px 16px; font-size: 0.88rem; border-radius: 14px; }
   .tab-btn { font-size: 0.72rem; padding: 8px 10px; }
 
+  /* ── NOTIFICATION BELL ── */
+  .notif-bell-btn {
+    position: relative;
+    width: 34px; height: 34px;
+    background: rgba(255,255,255,0.1);
+    border: none; border-radius: 99px;
+    cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    transition: background 0.2s;
+  }
+  .notif-bell-btn:hover { background: rgba(255,255,255,0.2); }
+  .notif-count {
+    position: absolute;
+    top: -5px; right: -5px;
+    min-width: 18px; height: 18px;
+    background: #E53935; color: #fff;
+    font-size: 0.6rem; font-weight: 800;
+    font-family: 'Syne', sans-serif;
+    border-radius: 99px;
+    display: none; align-items: center; justify-content: center;
+    padding: 0 4px;
+    border: 2px solid #0D0D0D;
+    pointer-events: none;
+  }
+  body.dark .notif-count { border-color: #0A0C10; }
+
+  /* ── NOTIF BACKDROP ── */
   .notif-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  z-index: 998;
-  display: none;
-}
-.notif-overlay.open { display: block; }
-.notif-panel {
-  position: fixed;
-  top: 56px;
-  right: 12px;
-  width: min(320px, calc(100vw - 24px));
-  max-height: 70vh;
-  overflow-y: auto;
-  background: var(--card);
-  border-radius: 16px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.2);
-  z-index: 999;
-  display: none;
-  border: 1px solid rgba(0,0,0,0.08);
-}
-.notif-panel.open { display: block; }
-.notif-item {
-  padding: 12px 16px;
-  border-bottom: 1px solid #F0EDE8;
-  font-size: 0.85rem;
-  line-height: 1.5;
-}
-.notif-item.unread {
-  background: #FFF8F4;
-  border-left: 3px solid var(--saffron);
-}
-.notif-time { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 1098;
+    display: none;
+  }
+  .notif-overlay.open { display: block; }
+
+  /* ── FLOATING PANEL ── */
+  .notif-panel {
+    position: fixed;
+    top: 54px; right: 10px;
+    width: 300px;
+    max-width: calc(100vw - 20px);
+    max-height: 72vh;
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.07);
+    z-index: 1099;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    /* animation */
+    transform-origin: top right;
+    transform: scale(0.9) translateY(-6px);
+    opacity: 0;
+    transition: transform 0.2s cubic-bezier(.34,1.4,.64,1), opacity 0.15s ease;
+  }
+  .notif-panel.open {
+    display: flex;
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  /* header */
+  .np-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    flex-shrink: 0;
+  }
+  .np-title {
+    font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 800;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .np-unread-chip {
+    font-size: 0.62rem; font-weight: 700;
+    background: var(--saffron); color: #fff;
+    padding: 2px 6px; border-radius: 99px;
+  }
+  .np-actions { display: flex; align-items: center; gap: 6px; }
+  .np-markall {
+    font-size: 0.7rem; font-weight: 600; color: var(--saffron);
+    background: none; border: none; cursor: pointer; padding: 0;
+  }
+  .np-close {
+    width: 24px; height: 24px; border-radius: 99px;
+    background: var(--surface); border: none; cursor: pointer;
+    font-size: 0.8rem; color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* scroll body */
+  .np-body { overflow-y: auto; flex: 1; }
+  /* items */
+  .notif-item {
+    display: flex; gap: 9px; align-items: flex-start;
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    cursor: pointer; transition: background 0.12s;
+  }
+  .notif-item:last-child { border-bottom: none; }
+  .notif-item:hover { background: var(--surface); }
+  .notif-item.unread { background: #FFF8F4; border-left: 3px solid var(--saffron); }
+  body.dark .notif-item.unread { background: #2A1A0A; }
+  .ni-dot {
+    width: 7px; height: 7px; border-radius: 99px;
+    background: var(--saffron); flex-shrink: 0; margin-top: 5px;
+  }
+  .ni-dot.read { background: transparent; }
+  .ni-msg { font-size: 0.8rem; line-height: 1.45; color: var(--ink); }
+  .notif-time { font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+  /* empty state */
+  .np-empty { padding: 30px 16px; text-align: center; color: var(--muted); font-size: 0.82rem; }
+  .np-empty-icon { font-size: 1.8rem; margin-bottom: 6px; }
+  body.dark .notif-panel { border-color: rgba(255,255,255,0.07); }
+  body.dark .np-head { border-color: rgba(255,255,255,0.06); }
 
   .search-bar { font-size: 0.88rem; padding: 11px 14px 11px 38px; }
 
@@ -1952,10 +2032,11 @@
         <div id="volUserChip" class="user-chip"></div>
         <div id="volCounter" class="counter-badge">— / —</div>
         <!-- Notification Bell -->
-        <div class="notif-bell icon-btn" id="notifBellWrap" onclick="toggleNotifPanel()" title="Notifications">
+        <!-- Notification Bell -->
+        <button class="notif-bell-btn" id="notifBellWrap" onclick="toggleNotifPanel()" aria-label="Notifications">
           🔔
-          <div class="notif-dot" id="notifDot"></div>
-        </div>
+          <span class="notif-count" id="notifCountBadge"></span>
+        </button>
         <button class="icon-btn" onclick="loadVolunteerContacts()" title="Refresh">🔄</button>
         <button id="addContactHeaderBtn" class="icon-btn" onclick="openAddContactModal()" title="Add Contact" style="display:none">➕</button>
         <button class="icon-btn" onclick="toggleDark()" title="Dark mode">🌙</button>
@@ -4784,28 +4865,50 @@ function formatSabhaTime(timeStr) {
 function toggleNotifPanel() {
   const panel   = document.getElementById('notifPanel');
   const overlay = document.getElementById('notifOverlay');
-  const isOpen  = panel.classList.contains('open');
-  if (isOpen) {
+  if (panel.classList.contains('open')) {
     closeNotifPanel();
   } else {
-    panel.classList.add('open');
-    overlay.classList.add('open');
     renderNotifPanel();
-    // mark read
-    if (notifCache.some(n => !n.read)) {
-      notifCache.forEach(n => n.read = true);
-      updateNotifDot();
-      fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ action:'markNotificationsRead', callerEmail: currentUser.email })
-      });
-    }
+    // show first, then add class so CSS transition fires
+    panel.style.display = 'flex';
+    requestAnimationFrame(() => {
+      panel.classList.add('open');
+      overlay.classList.add('open');
+    });
   }
 }
 
 function closeNotifPanel() {
-  document.getElementById('notifPanel')?.classList.remove('open');
-  document.getElementById('notifOverlay')?.classList.remove('open');
+  const panel   = document.getElementById('notifPanel');
+  const overlay = document.getElementById('notifOverlay');
+  panel.classList.remove('open');
+  overlay.classList.remove('open');
+  setTimeout(() => { if (!panel.classList.contains('open')) panel.style.display = 'none'; }, 200);
+}
+
+async function markAllNotifsRead() {
+  if (!notifCache.some(n => !n.read)) return;
+  notifCache.forEach(n => n.read = true);
+  updateNotifBadge();
+  renderNotifPanel();
+  try {
+    fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'markNotificationsRead', callerEmail: currentUser.email })
+    });
+  } catch(_) {}
+}
+
+function markOneRead(idx) {
+  const n = notifCache[idx];
+  if (!n || n.read) return;
+  n.read = true;
+  updateNotifBadge();
+  renderNotifPanel();
+  fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'markNotificationsRead', callerEmail: currentUser.email })
+  }).catch(()=>{});
 }
 
 async function loadMyNotifications() {
@@ -4813,33 +4916,53 @@ async function loadMyNotifications() {
     const res = await fetch(`${SCRIPT_URL}?action=getMyNotifications&email=${encodeURIComponent(currentUser.email)}`);
     const d   = await res.json();
     notifCache = d.notifications || [];
-    updateNotifDot();
+    updateNotifBadge();
   } catch(_) {}
 }
 
 function renderNotifPanel() {
-  const panel = document.getElementById('notifPanel');
-  if (!notifCache.length) {
-    panel.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">No notifications yet</div>';
-    return;
-  }
-  panel.innerHTML =
-    `<div style="padding:12px 16px;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:800;border-bottom:1px solid #F0EDE8;display:flex;justify-content:space-between;align-items:center">
-      🔔 Notifications
-      <span onclick="closeNotifPanel()" style="cursor:pointer;font-size:1.1rem;color:var(--muted)">✕</span>
-    </div>`
-    + notifCache.map(n => `
-      <div class="notif-item${n.read?'':' unread'}">
-        <div style="font-size:.82rem;line-height:1.4">${esc(n.message)}</div>
-        <div class="notif-time">${esc(n.time)} · ${esc(n.from)}</div>
-      </div>`).join('');
+  const panel   = document.getElementById('notifPanel');
+  const unread  = notifCache.filter(n => !n.read).length;
+
+  const head = `<div class="np-head">
+    <div class="np-title">🔔 Notifications
+      ${unread > 0 ? `<span class="np-unread-chip">${unread} new</span>` : ''}
+    </div>
+    <div class="np-actions">
+      ${unread > 0 ? `<button class="np-markall" onclick="markAllNotifsRead()">Mark all read</button>` : ''}
+      <button class="np-close" onclick="closeNotifPanel()">✕</button>
+    </div>
+  </div>`;
+
+  const body = notifCache.length === 0
+    ? `<div class="np-empty"><div class="np-empty-icon">🔕</div>No notifications yet</div>`
+    : `<div class="np-body">${
+        notifCache.map((n, i) => `
+          <div class="notif-item${n.read ? '' : ' unread'}" onclick="markOneRead(${i})">
+            <div class="ni-dot${n.read ? ' read' : ''}"></div>
+            <div style="flex:1;min-width:0">
+              <div class="ni-msg">${esc(n.message)}</div>
+              <div class="notif-time">${esc(n.time)} · ${esc(n.from)}</div>
+            </div>
+          </div>`).join('')
+      }</div>`;
+
+  panel.innerHTML = head + body;
 }
 
-function updateNotifDot() {
-  const dot = document.getElementById('notifDot');
-  const hasUnread = notifCache.some(n => !n.read);
-  if (dot) dot.style.display = hasUnread ? 'block' : 'none';
+function updateNotifBadge() {
+  const badge  = document.getElementById('notifCountBadge');
+  const dot    = document.getElementById('notifDot'); // legacy fallback
+  const unread = notifCache.filter(n => !n.read).length;
+  if (badge) {
+    badge.textContent = unread > 99 ? '99+' : unread;
+    badge.style.display = unread > 0 ? 'flex' : 'none';
+  }
+  if (dot) dot.style.display = unread > 0 ? 'block' : 'none';
 }
+
+// legacy alias
+function updateNotifDot() { updateNotifBadge(); }
 
 let notifInterval = null;
 function startNotifPolling() {
