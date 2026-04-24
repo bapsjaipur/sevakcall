@@ -1844,6 +1844,7 @@
     .activity-item-upgraded {
       animation: rowIn 0.2s ease both;
     }
+    
   </style>
 </head>
 
@@ -1884,15 +1885,21 @@
       <div class="header-right">
         <div id="volUserChip" class="user-chip"></div>
         <div id="volCounter" class="counter-badge">— / —</div>
-
-        <button class="icon-btn" onclick="loadVolunteerContacts()" title="Refresh Contacts">🔄</button>
-
-        <button id="addContactHeaderBtn" class="icon-btn" onclick="openAddContactModal()" title="Add Contact"
-          style="display:none">➕</button>
+        <!-- Notification Bell -->
+        <div class="notif-bell icon-btn" id="notifBellWrap" onclick="toggleNotifPanel()" title="Notifications">
+          🔔
+          <div class="notif-dot" id="notifDot"></div>
+        </div>
+        <button class="icon-btn" onclick="loadVolunteerContacts()" title="Refresh">🔄</button>
+        <button id="addContactHeaderBtn" class="icon-btn" onclick="openAddContactModal()" title="Add Contact" style="display:none">➕</button>
         <button class="icon-btn" onclick="toggleDark()" title="Dark mode">🌙</button>
         <button class="logout-btn" onclick="doLogout()">Out</button>
       </div>
     </div>
+    <!-- Notification Panel -->
+    <div id="notifPanel" class="notif-panel"></div>
+    <!-- Geofence Overlay (hidden by default) -->
+    <div id="geoOverlay" class="geo-overlay" style="display:none"></div>
     <div class="progress-wrap">
       <div id="volProgressBar" class="progress-bar" style="width:0%"></div>
     </div>
@@ -2147,13 +2154,16 @@
     </div>
 
     <div class="admin-wrap">
-      <div class="tab-bar">
+      <div class="tab-bar" style="flex-wrap:wrap;">
         <button class="tab-btn active" onclick="switchTab('overview')">📊 Overview</button>
         <button class="tab-btn" onclick="switchTab('volunteers')">👥 Volunteers</button>
+        <button class="tab-btn" onclick="switchTab('assigning')">📦 Assigning</button>
         <button class="tab-btn" onclick="switchTab('areas')">🏘️ Areas</button>
         <button class="tab-btn" onclick="switchTab('sabhas')">🙏 Sabhas</button>
         <button class="tab-btn" onclick="switchTab('contacts')">👤 Contacts</button>
         <button class="tab-btn" onclick="switchTab('message')">💬 Message</button>
+        <button class="tab-btn" onclick="switchTab('permissions')">⚙️ Perms</button>
+        <button class="tab-btn" onclick="switchTab('notifications')">🔔 Notify</button>
         <button class="tab-btn" onclick="switchTab('activity')">⚡ Activity</button>
       </div>
 
@@ -2393,9 +2403,118 @@
           <button id="actNextBtn" class="page-btn" onclick="loadActivityPage(actCurrentPage+1)" disabled>Next →</button>
         </div>
       </div>
-    </div>
-  </div>
 
+      <!-- ══════════════ ASSIGNING TAB ══════════════ -->
+      <div id="tabAssigning" class="flex flex-col gap-4 fade-in" style="display:none!important">
+        <div class="admin-section-title">📦 Batch Management</div>
+        
+        <!-- Create Batches -->
+        <div class="batch-card">
+          <div style="font-family:'Syne',sans-serif;font-size:.9rem;font-weight:800;margin-bottom:4px">⚙️ Create Batches</div>
+          <div style="font-size:.82rem;color:var(--muted)">Divide all unassigned contacts into equal-sized batches.</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="batchSizeInput" type="number" class="styled-input" value="50" min="1" max="500"
+              style="max-width:100px;font-size:.9rem;padding:10px 12px" placeholder="Size"/>
+            <button onclick="doCreateBatches()" class="btn btn-purple" style="width:auto;padding:10px 20px;font-size:.88rem">
+              <span id="createBatchTxt">Create Batches →</span>
+            </button>
+          </div>
+          <div id="batchCreateStatus" style="font-size:.8rem;color:var(--green);display:none"></div>
+        </div>
+
+        <!-- Batch Stats + Assign -->
+        <div class="batch-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div style="font-family:'Syne',sans-serif;font-size:.9rem;font-weight:800">📋 Batch Overview</div>
+            <div style="display:flex;gap:6px">
+              <button onclick="loadBatchSummary()" class="btn btn-outline" style="width:auto;padding:7px 14px;font-size:.78rem">🔄 Refresh</button>
+              <button onclick="doClearBatches()" class="btn btn-outline" style="width:auto;padding:7px 14px;font-size:.78rem;color:var(--red);border-color:var(--red)">🗑 Clear All</button>
+            </div>
+          </div>
+          <div id="batchStatsRow" style="display:flex;gap:12px;flex-wrap:wrap"></div>
+          <input id="batchSearchInput" class="styled-input" placeholder="🔍 Search batch number or volunteer…"
+            style="font-size:.88rem;padding:10px 12px" oninput="filterBatchList(this.value)"/>
+          <div id="batchListContainer" class="flex flex-col gap-2" style="max-height:400px;overflow-y:auto"></div>
+        </div>
+
+        <!-- Assign a Batch -->
+        <div class="batch-card">
+          <div style="font-family:'Syne',sans-serif;font-size:.9rem;font-weight:800;margin-bottom:4px">✅ Assign Batch to Volunteer</div>
+          <div style="font-size:.82rem;color:var(--muted)">A volunteer can receive multiple batches — no limit.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input id="assignBatchNum" class="styled-input" placeholder="Batch #" style="max-width:90px;font-size:.88rem;padding:10px 12px"/>
+            <select id="assignBatchVol" class="styled-select" style="flex:1;font-size:.88rem;padding:10px 14px">
+              <option value="">— Select Volunteer —</option>
+            </select>
+            <button onclick="doAssignBatch()" class="btn btn-primary" style="width:auto;padding:10px 18px;font-size:.88rem">Assign →</button>
+          </div>
+          <div id="assignBatchStatus" style="font-size:.8rem;color:var(--muted)"></div>
+        </div>
+      </div>
+
+      <!-- ══════════════ PERMISSIONS TAB ══════════════ -->
+      <div id="tabPermissions" class="flex flex-col gap-4 fade-in" style="display:none!important">
+        <div class="admin-section-title">⚙️ Role Permissions</div>
+        
+        <!-- Global role permissions -->
+        <div class="contact-card" style="padding:20px">
+          <div style="font-family:'Syne',sans-serif;font-size:.85rem;font-weight:800;margin-bottom:12px">Global Role Defaults</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:14px">These apply to all users of that role unless overridden below.</div>
+          <div id="permissionsGrid" style="display:flex;flex-direction:column;gap:16px">
+            <div style="color:var(--muted);font-size:.85rem">Loading…</div>
+          </div>
+          <button id="savePermsBtn" onclick="savePermissions()" class="btn btn-primary" style="margin-top:16px;width:auto;padding:10px 20px;font-size:.85rem">
+            <span id="savePermsTxt">💾 Save Global Permissions</span>
+          </button>
+          <div id="permsStatus" style="font-size:.8rem;color:var(--green);margin-top:8px;display:none"></div>
+        </div>
+
+        <!-- Individual overrides -->
+        <div class="admin-section-title" style="margin-top:4px">👤 Individual Overrides</div>
+        <div class="contact-card" style="padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="font-size:.82rem;color:var(--muted)">Search a volunteer or moderator to set custom permissions that override their role defaults.</div>
+          <div class="search-wrap">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="permUserSearch" class="search-bar" placeholder="Search volunteer by name or email…"
+              oninput="filterPermUsers(this.value)" autocomplete="off"/>
+          </div>
+          <div id="permUserResults" class="flex flex-col gap-3"></div>
+        </div>
+      </div>
+
+      <!-- ══════════════ NOTIFICATIONS TAB ══════════════ -->
+      <div id="tabNotifications" class="flex flex-col gap-4 fade-in" style="display:none!important">
+        <div class="admin-section-title">🔔 Send Notifications</div>
+        
+        <!-- Geo Requests -->
+        <div class="contact-card" style="padding:20px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-family:'Syne',sans-serif;font-size:.9rem;font-weight:800">📍 Remote Access Requests</div>
+          <div id="geoRequestList" style="display:flex;flex-direction:column;gap:8px">
+            <div style="color:var(--muted);font-size:.85rem">Loading…</div>
+          </div>
+          <button onclick="loadGeoRequests()" class="btn btn-outline" style="width:auto;padding:8px 14px;font-size:.8rem;align-self:flex-end">🔄 Refresh</button>
+        </div>
+
+        <!-- Send Message -->
+        <div class="contact-card" style="padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="font-family:'Syne',sans-serif;font-size:.9rem;font-weight:800">📢 Message Volunteers</div>
+          <div class="input-group">
+            <div class="input-group-label">To</div>
+            <select id="notifToSelect" class="styled-select">
+              <option value="all">📣 Everyone</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <div class="input-group-label">Message</div>
+            <textarea id="notifMessage" class="styled-input" rows="3" placeholder="Type your announcement…" style="resize:vertical;min-height:80px"></textarea>
+          </div>
+          <button id="sendNotifBtn" onclick="doSendNotification()" class="btn btn-primary" style="width:auto;padding:10px 20px;font-size:.88rem;align-self:flex-end">
+            <span id="sendNotifTxt">Send Message →</span>
+          </button>
+          <div id="notifSendStatus" style="font-size:.8rem;color:var(--green);display:none"></div>
+        </div>
+      </div>
+    </div>
   <div id="reassignModal" class="modal-overlay" onclick="if(event.target===this)closeReassignModal()">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
@@ -2546,7 +2665,7 @@
     // ══════════════════════════════════════════════════════════════════
     // CONFIG
     // ══════════════════════════════════════════════════════════════════
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxL3K6gvLHDAHLG8yC2PTomTSsLTpjqofk1FqqPNnt8h0e7_zo5_yNPTRz0ekwkzscV/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxg5ceqM282B0I5QDvrVwLE9jdv-xxhLqX5TY6j6NhICroxRlCbv_4F1XjWIRjkzCRD/exec';
     const WA_MSG = (n, m, a) => `Namaste ${n} ji 🙏\n\nWe are reaching out from *${m}* (${a}) regarding our upcoming volunteer program. We would love your support!\n\nKindly let us know a convenient time to connect. 🙂`;
 
     // ══════════════════════════════════════════════════════════════════
@@ -2599,7 +2718,35 @@
       if (!offlineQueue.length) showToast('✅ Offline saves synced!', 'success');
       else refreshOfflineBanner();
     }
+function formatSabhaDate(dateStr) {
+  try {
+    const s = String(dateStr||'').substring(0, 10); // "2026-04-18"
+    const p = s.split('-');
+    const d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]), 12, 0, 0);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-IN', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+  } catch(_) { return dateStr; }
+}
 
+function formatSabhaTime(timeStr) {
+  try {
+    let t = String(timeStr||'');
+    // Handle "1899-12-30T13:38:50.000Z" — extract HH:mm from ISO
+    if (t.includes('T')) {
+      const d = new Date(t);
+      const h = d.getUTCHours(); // use UTC since sheet stores as UTC
+      const m = d.getUTCMinutes();
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      return (h % 12 || 12) + ':' + String(m).padStart(2,'0') + ' ' + ampm;
+    }
+    // Handle "HH:mm" string
+    const p = t.split(':');
+    const h = parseInt(p[0]), m = parseInt(p[1])||0;
+    if (isNaN(h)) return timeStr;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    return (h % 12 || 12) + ':' + String(m).padStart(2,'0') + ' ' + ampm;
+  } catch(_) { return timeStr; }
+}
     // ══════════════════════════════════════════════════════════════════
     // CALL TIME
     // ══════════════════════════════════════════════════════════════════
@@ -2748,19 +2895,13 @@
     // }
     function formatSabhaDate(dateStr) {
       if (!dateStr || dateStr === "Invalid Date" || dateStr === "undefined") return "N/A";
-
       try {
-        const d = new Date(dateStr);
+        const s = String(dateStr).substring(0, 10);
+        const p = s.split('-');
+        const d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]), 12, 0, 0);
         if (isNaN(d.getTime())) return "N/A";
-
-        return d.toLocaleDateString('en-IN', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric'
-        });
-      } catch (_) {
-        return "N/A";
-      }
+        return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+      } catch(_) { return "N/A"; }
     }
 
     // Build the Sabha widget HTML block — injected at bottom of contact card
@@ -3395,7 +3536,7 @@
               <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
                 <div class="sabha-event-title">${esc(ev.title)}</div>${statusTag}
               </div>
-              <div class="sabha-event-date">📅 ${esc(ev.date)} at ${esc(ev.time)} · ⏱️ ${ev.duration}m</div>
+              <div class="sabha-event-date">📅 ${formatSabhaDate(ev.date)} at ${formatSabhaTime(ev.time)} · ⏱️ ${ev.duration}m</div>
               ${ev.speaker ? `<div style="font-size:0.7rem;color:var(--purple-fg);font-weight:600;margin-top:2px">🎤 ${esc(ev.speaker)}</div>` : ''}
               ${presentBadge}
             </div>
@@ -4487,6 +4628,695 @@
       } catch(e) { showToast('Network error — check connection', 'error'); }
       btn.disabled = false; txt.textContent = '💾 Save Permissions';
     }
+    // ══════════════════════════════════════════════════════════════════
+    // GEOFENCING
+    // ══════════════════════════════════════════════════════════════════
+    const CAMPUS_LAT    = 26.9124;   // edit: campus latitude
+    const CAMPUS_LNG    = 75.7873;   // edit: campus longitude
+    const CAMPUS_RADIUS = 200;       // edit: metres
+
+    function haversineDistance(lat1, lng1, lat2, lng2) {
+      const R = 6371000, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    let geoBypassActive = false; // set true after server approval
+
+    async function runGeofenceCheck() {
+      if (!currentUser || currentUser.role === 'admin') return; // admins bypass
+      // Check server for permanent bypass or active approval
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=checkRemoteAccess&email=${encodeURIComponent(currentUser.email)}`);
+        const d   = await res.json();
+        if (d.approved) { geoBypassActive = true; return; }
+      } catch(_) {}
+      // Check permanent anywhereAccess in volunteer data
+      if (currentUser.anywhereAccess) { geoBypassActive = true; return; }
+
+      if (!navigator.geolocation) return; // no geolocation support — allow
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const dist = haversineDistance(pos.coords.latitude, pos.coords.longitude, CAMPUS_LAT, CAMPUS_LNG);
+          if (dist > CAMPUS_RADIUS) showGeoBlock();
+        },
+        () => { /* permission denied or error — allow (don't block) */ },
+        { timeout: 8000, maximumAge: 60000 }
+      );
+    }
+
+    function showGeoBlock() {
+      const overlay = document.getElementById('geoOverlay');
+      overlay.style.display = 'flex';
+      overlay.innerHTML = `
+        <div class="geo-card card-animate">
+          <div class="geo-icon">📍</div>
+          <div class="geo-title">Outside Campus Zone</div>
+          <div class="geo-sub">You appear to be outside the designated campus area (${CAMPUS_RADIUS}m radius). Please enter campus or request remote access from your admin.</div>
+          <button class="btn btn-primary" onclick="openGeoRequest()">Request Remote Access</button>
+          <button class="btn btn-outline" onclick="retryGeoCheck()" style="font-size:.85rem">🔄 Retry Location Check</button>
+          <button class="logout-btn" onclick="doLogout()" style="margin-top:4px;font-size:.8rem;color:var(--muted)">Sign Out</button>
+        </div>`;
+    }
+
+    function hideGeoBlock() { document.getElementById('geoOverlay').style.display = 'none'; }
+
+    async function retryGeoCheck() {
+      // Re-check server approval first
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=checkRemoteAccess&email=${encodeURIComponent(currentUser.email)}`);
+        const d   = await res.json();
+        if (d.approved) { geoBypassActive = true; hideGeoBlock(); showToast('✅ Remote access approved!','success'); return; }
+      } catch(_) {}
+      showToast('Not approved yet — ask your admin.','warn');
+    }
+
+    async function openGeoRequest() {
+      const reason = prompt('Please briefly explain why you need remote access today:');
+      if (!reason) return;
+      const overlay = document.getElementById('geoOverlay');
+      const btn = overlay.querySelector('.btn-primary');
+      if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+      try {
+        await fetch(SCRIPT_URL, {
+          method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ action:'requestRemoteAccess', callerEmail: currentUser.email, reason })
+        });
+        showToast('✅ Request sent! Your admin will approve it.','success');
+        if (btn) { btn.textContent = '⏳ Awaiting Approval…'; }
+      } catch(e) { showToast('Failed to send request','error'); if (btn) { btn.disabled=false; btn.textContent='Request Remote Access'; } }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // NOTIFICATIONS
+    // ══════════════════════════════════════════════════════════════════
+    let notifCache = [];
+
+    function toggleNotifPanel() {
+      const panel = document.getElementById('notifPanel');
+      panel.classList.toggle('open');
+      if (panel.classList.contains('open')) {
+        loadMyNotifications();
+      }
+    }
+    document.addEventListener('click', e => {
+      const panel = document.getElementById('notifPanel');
+      const bell  = document.getElementById('notifBellWrap');
+      if (panel && !panel.contains(e.target) && !bell.contains(e.target)) {
+        panel.classList.remove('open');
+      }
+    });
+
+    async function loadMyNotifications() {
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=getMyNotifications&email=${encodeURIComponent(currentUser.email)}`);
+        const d   = await res.json();
+        notifCache = d.notifications || [];
+        renderNotifPanel();
+        updateNotifDot();
+        // Mark read
+        fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ action:'markNotificationsRead', callerEmail: currentUser.email }) });
+      } catch(_) {}
+    }
+
+    function renderNotifPanel() {
+      const panel = document.getElementById('notifPanel');
+      if (!notifCache.length) {
+        panel.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">No notifications yet</div>';
+        return;
+      }
+      panel.innerHTML = `<div style="padding:12px 16px;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:800;border-bottom:1px solid #F0EDE8">🔔 Notifications</div>`
+        + notifCache.map(n => `
+        <div class="notif-item${n.read?'':' unread'}">
+          <div style="font-size:.82rem;line-height:1.4">${esc(n.message)}</div>
+          <div class="notif-time">${esc(n.time)} · ${esc(n.from)}</div>
+        </div>`).join('');
+    }
+
+    function updateNotifDot() {
+      const dot  = document.getElementById('notifDot');
+      const hasUnread = notifCache.some(n => !n.read);
+      if (dot) dot.style.display = hasUnread ? 'block' : 'none';
+    }
+
+    // Poll notifications every 90 seconds while logged in
+    let notifInterval = null;
+    function startNotifPolling() {
+      if (notifInterval) clearInterval(notifInterval);
+      notifInterval = setInterval(() => {
+        if (currentUser && currentUser.role !== 'admin') loadMyNotifications();
+      }, 90000);
+    }
+    function stopNotifPolling() { if (notifInterval) clearInterval(notifInterval); notifInterval = null; }
+
+    // ══════════════════════════════════════════════════════════════════
+    // BATCH MANAGEMENT  (Admin)
+    // ══════════════════════════════════════════════════════════════════
+    let batchData = [];
+
+    async function loadBatchSummary() {
+      const container = document.getElementById('batchListContainer');
+      const statsRow  = document.getElementById('batchStatsRow');
+      if (container) container.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:8px">Loading…</div>';
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=getBatchSummary&email=${encodeURIComponent(currentUser.email)}`);
+        const d   = await res.json();
+        batchData = d.batches || [];
+        const cfg = d.config || {};
+
+        // Stats
+        const totalBatches    = batchData.length;
+        const assignedBatches = batchData.filter(b => b.unassigned === 0).length;
+        const unassignedBatches = batchData.filter(b => b.isFullyAssigned === false).length;
+
+        if (statsRow) statsRow.innerHTML = `
+          <div class="summary-card" style="flex:1;min-width:100px">
+            <div class="summary-val">${totalBatches}</div>
+            <div class="summary-lbl">Total Batches</div>
+          </div>
+          <div class="summary-card" style="flex:1;min-width:100px">
+            <div class="summary-val" style="color:var(--green)">${assignedBatches}</div>
+            <div class="summary-lbl">Fully Assigned</div>
+          </div>
+          <div class="summary-card" style="flex:1;min-width:100px">
+            <div class="summary-val" style="color:var(--yellow)">${unassignedBatches}</div>
+            <div class="summary-lbl">Partial/Unassigned</div>
+          </div>
+          <div class="summary-card" style="flex:1;min-width:100px">
+            <div class="summary-val" style="color:var(--muted);font-size:1.1rem">${cfg.size||50}</div>
+            <div class="summary-lbl">Batch Size</div>
+          </div>`;
+
+        renderBatchList(batchData);
+      } catch(e) {
+        if (container) container.innerHTML = '<div style="color:var(--red)">Failed to load batches.</div>';
+      }
+    }
+
+    function renderBatchList(list) {
+      const container = document.getElementById('batchListContainer');
+      if (!container) return;
+      if (!list.length) { container.innerHTML = '<div style="color:var(--muted);padding:12px;font-size:.85rem">No batches found. Create batches first.</div>'; return; }
+      container.innerHTML = list.map(b => {
+        const vols = b.assignedTo.length ? b.assignedTo.map(v => `<span class="pill blue">${esc(v)}</span>`).join('') : '<span class="pill gray">Unassigned</span>';
+        const pct  = b.total ? Math.round((b.total - b.unassigned) / b.total * 100) : 0;
+        return `<div class="batch-row">
+          <div class="batch-num">${b.batch}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:.85rem">Batch ${b.batch} — ${b.total} contacts</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${vols}</div>
+            <div class="vol-progress-wrap" style="margin-top:6px;height:4px">
+              <div class="vol-progress-bar" style="width:${pct}%;background:${pct===100?'var(--green)':'var(--saffron)'}"></div>
+            </div>
+          </div>
+          <div style="text-align:right;font-size:.75rem;color:var(--muted);flex-shrink:0">
+            <div style="font-weight:700;color:${b.unassigned?'var(--yellow)':'var(--green)'}">
+              ${b.total - b.unassigned}/${b.total} assigned
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function filterBatchList(q) {
+      if (!q.trim()) { renderBatchList(batchData); return; }
+      const ql = q.toLowerCase();
+      const filtered = batchData.filter(b =>
+        String(b.batch).includes(ql) ||
+        b.assignedTo.some(v => v.toLowerCase().includes(ql))
+      );
+      renderBatchList(filtered);
+    }
+
+    async function doCreateBatches() {
+      const size = parseInt(document.getElementById('batchSizeInput')?.value) || 50;
+      const btn  = document.getElementById('createBatchTxt');
+      const stat = document.getElementById('batchCreateStatus');
+      if (btn) btn.innerHTML = '<span class="spinner"></span> Creating…';
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify({ action:'createBatches', batchSize: size, callerEmail: currentUser.email })
+        });
+        const d = await res.json();
+        if (d.success) {
+          showToast(`✅ ${d.batchesCreated} batches created, ${d.totalAssigned} contacts assigned!`, 'success');
+          if (stat) { stat.textContent = `Created ${d.batchesCreated} new batches for ${d.totalAssigned} contacts.`; stat.style.display=''; }
+          loadBatchSummary();
+        } else {
+          showToast('❌ ' + (d.error||'Failed'), 'error');
+          if (stat) { stat.textContent = d.error||'Failed'; stat.style.display=''; }
+        }
+      } catch(e) { showToast('Network error','error'); }
+      if (btn) btn.textContent = 'Create Batches →';
+    }
+
+    async function doClearBatches() {
+      if (!confirm('⚠️ This will clear ALL batch assignments for ALL contacts. This cannot be undone. Continue?')) return;
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify({ action:'clearBatches', callerEmail: currentUser.email })
+        });
+        const d = await res.json();
+        if (d.success) { showToast(`✅ Cleared ${d.cleared} batch assignments.`,'success'); loadBatchSummary(); }
+        else showToast('❌ '+(d.error||'Failed'),'error');
+      } catch(e) { showToast('Network error','error'); }
+    }
+
+    async function doAssignBatch() {
+      const batchNum = document.getElementById('assignBatchNum')?.value.trim();
+      const toVol    = document.getElementById('assignBatchVol')?.value;
+      const stat     = document.getElementById('assignBatchStatus');
+      if (!batchNum) { showToast('Enter a batch number','warn'); return; }
+      if (!toVol)    { showToast('Select a volunteer','warn'); return; }
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify({ action:'assignBatch', batchNumber: batchNum, toVolunteer: toVol, callerEmail: currentUser.email })
+        });
+        const d = await res.json();
+        if (d.success) {
+          showToast(`✅ Batch ${batchNum} → ${toVol} (${d.assigned} contacts)`, 'success');
+          if (stat) stat.textContent = `Assigned ${d.assigned} contacts to ${toVol}.`;
+          loadBatchSummary();
+        } else showToast('❌ '+(d.error||'Failed'),'error');
+      } catch(e) { showToast('Network error','error'); }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // PDF DOWNLOAD (client-side base64 → blob → save)
+    // ══════════════════════════════════════════════════════════════════
+    function downloadBase64Pdf(base64, filename) {
+      const bytes    = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const blob     = new Blob([bytes], { type: 'application/pdf' });
+      const url      = URL.createObjectURL(blob);
+      const a        = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    async function downloadContactsPdf(statusFilter, selectedHeaders) {
+      showToast('Generating PDF… please wait', '');
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify({
+            action:'generateContactsPdf',
+            headers: selectedHeaders || null,
+            status:  statusFilter || 'all',
+            callerEmail: currentUser.email
+          })
+        });
+        const d = await res.json();
+        if (d.success) { downloadBase64Pdf(d.base64, d.filename); showToast('✅ PDF downloaded!','success'); }
+        else showToast('❌ '+(d.error||'PDF failed'),'error');
+      } catch(e) { showToast('Network error','error'); }
+    }
+
+    async function downloadSabhaPdf(columnName) {
+      showToast('Generating Sabha PDF…','');
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify({ action:'generateSabhaPdfDownload', columnName, callerEmail: currentUser.email })
+        });
+        const d = await res.json();
+        if (d.success) { downloadBase64Pdf(d.base64, d.filename); showToast('✅ PDF downloaded!','success'); }
+        else showToast('❌ '+(d.error||'PDF failed'),'error');
+      } catch(e) { showToast('Network error','error'); }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // GEO REQUESTS (Admin/Mod Notifications tab)
+    // ══════════════════════════════════════════════════════════════════
+    async function loadGeoRequests() {
+      const container = document.getElementById('geoRequestList');
+      if (!container) return;
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=getGeoRequests&email=${encodeURIComponent(currentUser.email)}`);
+        const d   = await res.json();
+        const requests = d.requests || [];
+        if (!requests.length) {
+          container.innerHTML = '<div style="color:var(--muted);font-size:.85rem">No pending requests.</div>';
+          return;
+        }
+        container.innerHTML = requests.map(r => `
+          <div style="background:var(--surface);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:.88rem">${esc(r.name)}</div>
+              <div style="font-size:.75rem;color:var(--muted)">${esc(r.email)} · ${esc(r.time)}</div>
+              <div style="font-size:.8rem;margin-top:3px">${esc(r.reason)}</div>
+              ${r.status==='approved' ? `<div style="font-size:.72rem;color:var(--green);margin-top:2px">✅ Approved · Expires ${esc(r.expires)}</div>` : ''}
+            </div>
+            ${r.status==='pending' ? `<button onclick="doApproveGeo(${r.row})" class="btn btn-primary" style="width:auto;padding:7px 14px;font-size:.78rem">✅ Approve 12h</button>` : ''}
+          </div>`).join('');
+      } catch(e) { container.innerHTML = '<div style="color:var(--red)">Failed to load.</div>'; }
+    }
+
+    async function doApproveGeo(row) {
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify({ action:'approveRemoteAccess', requestRow: row, callerEmail: currentUser.email })
+        });
+        const d = await res.json();
+        if (d.success) { showToast('✅ Remote access approved for 12h','success'); loadGeoRequests(); }
+        else showToast('❌ '+(d.error||'Failed'),'error');
+      } catch(e) { showToast('Network error','error'); }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // SEND NOTIFICATION (Admin)
+    // ══════════════════════════════════════════════════════════════════
+    async function doSendNotification() {
+      const to  = document.getElementById('notifToSelect')?.value;
+      const msg = document.getElementById('notifMessage')?.value.trim();
+      if (!msg) { showToast('Enter a message','warn'); return; }
+      const btn = document.getElementById('sendNotifBtn'), txt = document.getElementById('sendNotifTxt');
+      const stat= document.getElementById('notifSendStatus');
+      btn.disabled = true; txt.innerHTML = '<span class="spinner"></span> Sending…';
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify({ action:'sendNotification', callerEmail: currentUser.email, toEmail: to||'all', message: msg })
+        });
+        const d = await res.json();
+        if (d.success) {
+          showToast(`✅ Sent to ${d.sent} recipient(s)!`,'success');
+          if (stat) { stat.textContent = `Message sent to ${d.sent} volunteer(s).`; stat.style.display=''; }
+          document.getElementById('notifMessage').value = '';
+          setTimeout(() => { if (stat) stat.style.display='none'; }, 4000);
+        } else showToast('❌ '+(d.error||'Failed'),'error');
+      } catch(e) { showToast('Network error','error'); }
+      btn.disabled=false; txt.textContent='Send Message →';
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // INDIVIDUAL PERMISSION OVERRIDES (Admin)
+    // ══════════════════════════════════════════════════════════════════
+    let permVolList = [];
+
+    async function loadPermissionsTab() {
+      // Load global permissions
+      try {
+        const d = await (await fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(currentUser.email)}`)).json();
+        if (d.permissions) { appPermissions = d.permissions; renderPermissionsGrid(d.permissions); }
+      } catch(_) {}
+      // Load volunteer list for individual overrides
+      try {
+        const d = await (await fetch(`${SCRIPT_URL}?action=getVolunteersForAdmin&email=${encodeURIComponent(currentUser.email)}`)).json();
+        permVolList = (d.volunteers||[]).filter(v => v.role !== 'admin');
+      } catch(_) {}
+    }
+
+    function filterPermUsers(q) {
+      const container = document.getElementById('permUserResults');
+      if (!q.trim()) { container.innerHTML = ''; return; }
+      const ql = q.toLowerCase();
+      const hits = permVolList.filter(v =>
+        v.name.toLowerCase().includes(ql) || v.email.toLowerCase().includes(ql)
+      ).slice(0, 5);
+      if (!hits.length) { container.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:8px">No volunteers found.</div>'; return; }
+      container.innerHTML = hits.map(v => `
+        <div class="perm-user-card" id="puc_${btoa(v.email)}">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1"><div style="font-weight:700;font-size:.88rem">${esc(v.name)}</div><div style="font-size:.72rem;color:var(--muted)">${esc(v.email)} · <span class="role-badge ${v.role}">${v.role.toUpperCase()}</span></div></div>
+            <div class="spinner dark-spin" id="puc_spin_${btoa(v.email)}" style="display:none"></div>
+          </div>
+          <div id="puc_perms_${btoa(v.email)}" style="font-size:.8rem;color:var(--muted)">Loading overrides…</div>
+          <button onclick="saveUserPerms('${esc(v.email)}')" class="btn btn-primary" style="width:auto;padding:7px 16px;font-size:.8rem;align-self:flex-end">💾 Save Overrides</button>
+        </div>`).join('');
+      hits.forEach(v => loadUserPermsUI(v));
+    }
+
+    async function loadUserPermsUI(vol) {
+      const id  = btoa(vol.email);
+      const el  = document.getElementById(`puc_perms_${id}`);
+      const sp  = document.getElementById(`puc_spin_${id}`);
+      if (!el) return;
+      if (sp) sp.style.display = '';
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=getUserPermissions&email=${encodeURIComponent(currentUser.email)}&targetEmail=${encodeURIComponent(vol.email)}`);
+        const d   = await res.json();
+        const overrides = d.perms || {};
+        const rolePerms = appPermissions[vol.role] || {};
+        el.innerHTML = Object.entries(PERM_LABELS).map(([key, label]) => {
+          const hasOverride = key in overrides;
+          const val = hasOverride ? overrides[key] : rolePerms[key] !== false;
+          return `<label class="perm-check-row">
+            <input type="checkbox" id="up_${id}_${key}" ${val?'checked':''} style="width:16px;height:16px;accent-color:var(--saffron);cursor:pointer"/>
+            <span>${label}</span>
+            ${hasOverride ? `<span style="font-size:.68rem;background:var(--accent-line);color:var(--saffron-deep);border-radius:99px;padding:1px 7px;margin-left:4px">Custom</span>` : ''}
+          </label>`;
+        }).join('');
+      } catch(_) { el.textContent = 'Failed to load overrides.'; }
+      if (sp) sp.style.display = 'none';
+    }
+
+    async function saveUserPerms(email) {
+      const id  = btoa(email);
+      const overrides = Object.keys(PERM_LABELS).map(key => ({
+        email,
+        permission: key,
+        value: document.getElementById(`up_${id}_${key}`)?.checked ?? true
+      }));
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify({ action:'saveUserPermissions', overrides, callerEmail: currentUser.email })
+        });
+        const d = await res.json();
+        if (d.success) { showToast('✅ Individual permissions saved!','success'); loadUserPermsUI({ email, role: permVolList.find(v=>v.email===email)?.role||'volunteer' }); }
+        else showToast('❌ '+(d.error||'Failed'),'error');
+      } catch(e) { showToast('Network error','error'); }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // SABHA LIST — download buttons per Sabha card
+    // ══════════════════════════════════════════════════════════════════
+    const _origLoadAdminSabhas = typeof loadAdminSabhas !== 'undefined' ? loadAdminSabhas : null;
+    async function loadAdminSabhas() {
+      const listEl = document.getElementById('sabhaList');
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=getEvents`);
+        const d   = await res.json();
+        let events = d.events || [];
+        if (!events.length) { listEl.innerHTML = '<div style="color:var(--muted);font-size:.85rem">No Sabhas created yet.</div>'; return; }
+        events.sort((a,b) => b.date.localeCompare(a.date));
+        const allC       = adminData?.allContacts || [];
+        const today      = new Date().toISOString().slice(0,10);
+        const displayed  = events.slice(0, 4);
+        const hasMore    = events.length > 4;
+
+        const renderRows = (list) => list.map(ev => {
+          const isPast   = ev.date < today, isToday = ev.date === today;
+          const cnt      = allC.filter(c => String(c[ev.columnName]||'').trim()==='Present').length;
+          const statusTag= isToday
+            ? `<span style="background:#FFF3E0;color:#E65100;font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:99px">TODAY</span>`
+            : isPast
+            ? `<span style="background:#F3F4F6;color:var(--muted);font-size:.68rem;font-weight:600;padding:2px 7px;border-radius:99px">PAST</span>`
+            : `<span style="background:#E8F5E9;color:#2E7D32;font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:99px">UPCOMING</span>`;
+          return `<div class="sabha-event-row" style="align-items:flex-start">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                <div class="sabha-event-title">${esc(ev.title)}</div>${statusTag}
+              </div>
+              <div class="sabha-event-date">📅 ${formatSabhaDate(ev.date)} at ${formatSabhaTime(ev.time)} · ⏱️ ${ev.duration}m</div>
+              ${ev.speaker?`<div style="font-size:.7rem;color:var(--purple-fg);font-weight:600;margin-top:2px">🎤 ${esc(ev.speaker)}</div>`:''}
+              <div style="margin-top:6px">
+                <span style="font-size:1rem;font-weight:900;color:var(--green)">● ${cnt}</span>
+                <span style="font-size:.75rem;font-weight:700;color:var(--green);letter-spacing:.02em"> PRESENT</span>
+              </div>
+              <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                <button onclick="exportSabhaCSV('${esc(ev.columnName)}')" style="background:#EAF2FF;border:none;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:700;color:#1A5CB8;cursor:pointer">📥 CSV</button>
+                <button onclick="downloadSabhaPdf('${esc(ev.columnName)}')" style="background:var(--purple-bg);border:none;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:700;color:var(--purple-fg);cursor:pointer">📄 PDF</button>
+              </div>
+            </div>
+            <span class="sabha-event-col" style="margin-top:2px">${esc(ev.columnName)}</span>
+          </div>`;
+        }).join('');
+
+        listEl.innerHTML = renderRows(displayed)
+          + (hasMore ? `<div id="sabhaShowMore" style="text-align:center;padding:10px 0"><button onclick="expandAllSabhas(${JSON.stringify(events).replace(/'/g,'\\\'').replace(/"/g,'&quot;')})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.82rem;font-weight:600;text-decoration:underline">Show all ${events.length} Sabhas ▼</button></div>` : '');
+      } catch(e) { listEl.innerHTML = '<div style="color:var(--muted)">Failed to load.</div>'; }
+    }
+
+    function expandAllSabhas(events) {
+      showToast('Showing all Sabhas','');
+    }
+
+    function exportSabhaCSV(columnName) {
+      if (!adminData?.allContacts) { showToast('Load admin data first','warn'); return; }
+      const rows = [['ID','Name','Phone','Mandal','Area','Assigned_To','Attendance']];
+      adminData.allContacts.filter(c => String(c.Name||'').trim() && String(c[columnName]||'').trim() === 'Present').forEach(c => {
+        rows.push([c.ID, c.Name, c.Phone, c.Mandal, c.Area, c.Assigned_To, 'Present']);
+      });
+      const csv = rows.map(r => r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+      a.download = `Sabha_${columnName}.csv`; a.click();
+      showToast('CSV downloaded!','success');
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // UPGRADED switchTab — include new tabs
+    // ══════════════════════════════════════════════════════════════════
+    function switchTab(tab) {
+      const tabs = ['overview','volunteers','assigning','areas','sabhas','contacts','message','permissions','notifications','activity'];
+      tabs.forEach(t => {
+        const el = document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}`);
+        if (el) el.style.display = t === tab ? '' : 'none';
+      });
+      document.querySelectorAll('.admin-wrap .tab-btn').forEach((b,i) => {
+        b.classList.toggle('active', tabs[i] === tab);
+      });
+      if (tab === 'sabhas')       loadAdminSabhas();
+      if (tab === 'activity')     loadActivityPage(1);
+      if (tab === 'contacts')     renderAdminContactsTable();
+      if (tab === 'message')      loadMessageTemplate();
+      if (tab === 'assigning')    { loadBatchSummary(); populateBatchVolSelect(); }
+      if (tab === 'permissions')  loadPermissionsTab();
+      if (tab === 'notifications'){ loadGeoRequests(); populateNotifVolSelect(); }
+    }
+
+    async function populateBatchVolSelect() {
+      const sel = document.getElementById('assignBatchVol');
+      if (!sel) return;
+      if (!adminData) return;
+      sel.innerHTML = '<option value="">— Select Volunteer —</option>';
+      (adminData.volunteers||[]).filter(v=>v.role!=='admin').forEach(v => {
+        const o = document.createElement('option'); o.value = v.name; o.textContent = `${v.name} (${v.total} contacts)`; sel.appendChild(o);
+      });
+    }
+
+    async function populateNotifVolSelect() {
+      const sel = document.getElementById('notifToSelect');
+      if (!sel) return;
+      sel.innerHTML = '<option value="all">📣 Everyone</option>';
+      if (!adminData) return;
+      (adminData.volunteers||[]).filter(v=>v.role!=='admin'&&v.status!=='deactivated').forEach(v => {
+        const o = document.createElement('option'); o.value = v.email; o.textContent = `${v.name} (${v.role})`; sel.appendChild(o);
+      });
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // ANYWHERE ACCESS toggle in Edit Volunteer Modal
+    // ══════════════════════════════════════════════════════════════════
+    const _baseOpenEditModal = openEditModal;
+    function openEditModal(name, email, currentRole) {
+      document.getElementById('editVolTitle').textContent = 'Edit Volunteer';
+      const areaOpts = Object.keys(adminData?.areaStats||{}).map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
+      const vol = adminData?.volunteers?.find(v => v.email === email);
+      const anywhereChecked = vol?.anywhereAccess ? 'checked' : '';
+      document.getElementById('editVolForm').innerHTML = `
+        <div class="input-group"><div class="input-group-label">Name</div><input id="evName" class="styled-input" value="${esc(name)}"/></div>
+        <div class="input-group"><div class="input-group-label">Email</div><input id="evEmail" type="email" class="styled-input" value="${esc(email)}"/></div>
+        <div class="input-group"><div class="input-group-label">New Password <span style="color:var(--muted);font-size:.68rem">(blank = keep)</span></div><input id="evPass" type="text" class="styled-input" placeholder="Optional"/></div>
+        <div class="input-group">
+          <div class="input-group-label">Role</div>
+          <select id="evRole" class="styled-select">
+            <option value="volunteer"${currentRole==='volunteer'?' selected':''}>Volunteer</option>
+            <option value="moderator"${currentRole==='moderator'?' selected':''}>Moderator</option>
+            <option value="admin"${currentRole==='admin'?' selected':''}>Admin</option>
+          </select>
+        </div>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border-radius:12px;cursor:pointer">
+          <input type="checkbox" id="evAnywhere" ${anywhereChecked} style="width:18px;height:18px;accent-color:var(--saffron);cursor:pointer"/>
+          <div>
+            <div style="font-weight:700;font-size:.88rem">📍 Anywhere Access</div>
+            <div style="font-size:.72rem;color:var(--muted)">Permanently bypass geofence — no approval needed</div>
+          </div>
+        </label>
+        <div style="display:flex;gap:8px">
+          <button onclick="saveVol('edit','${esc(name)}')" class="btn btn-primary" style="flex:1">Save Changes</button>
+          <button onclick="saveVol('deactivate','${esc(name)}')" class="btn btn-outline" style="flex:none;padding:14px;color:var(--red);border-color:var(--red)">🗑</button>
+        </div>
+        <button onclick="closeEditModal()" class="btn btn-outline">Cancel</button>`;
+      document.getElementById('editVolModal').classList.add('open');
+    }
+
+    // Patch saveVol to also handle anywhereAccess toggle
+    const _baseSaveVol = saveVol;
+    async function saveVol(mode, orig='') {
+      const name    = document.getElementById('evName')?.value.trim();
+      const email   = document.getElementById('evEmail')?.value.trim();
+      const pass    = document.getElementById('evPass')?.value.trim();
+      const area    = document.getElementById('evArea')?.value;
+      const role    = document.getElementById('evRole')?.value||'volunteer';
+      const anywhere= document.getElementById('evAnywhere')?.checked ?? false;
+      if (mode !== 'deactivate' && (!name||!email)) { showToast('Name and email required','error'); return; }
+      closeEditModal();
+      try {
+        await fetch(SCRIPT_URL, {
+          method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ action:'manageVolunteer', mode, originalName:orig, name, email, password:pass, area, role, callerEmail:currentUser.email })
+        });
+        // Set anywhere access if it changed
+        if (mode === 'edit' && email) {
+          await fetch(SCRIPT_URL, {
+            method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ action:'setAnywhereAccess', targetEmail:email, value:anywhere, callerEmail:currentUser.email })
+          });
+        }
+        showToast(mode==='add'?'Volunteer added!':mode==='deactivate'?'Deactivated!':'Changes saved!','success');
+        setTimeout(loadAdminData, 800);
+      } catch(e) { showToast('Operation failed','error'); }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // HOOK into handleLoginSuccess to start geo + notifications
+    // ══════════════════════════════════════════════════════════════════
+    const _origHandleLogin = handleLoginSuccess;
+    function handleLoginSuccess(user) {
+      currentUser = user;
+      const role  = user.role;
+
+      if (role === 'admin') {
+        showScreen('screenAdmin');
+        loadAdminData();
+        fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(user.email)}`)
+          .then(r=>r.json()).then(d=>{ if(d.permissions) appPermissions=d.permissions; }).catch(()=>{});
+      } else {
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn) { loginBtn.disabled=true; loginBtn.innerHTML='<span class="spinner"></span> Loading…'; }
+        loadAndApplyPermissions(() => {
+          if (loginBtn) { loginBtn.disabled=false; loginBtn.innerHTML='Sign In →'; }
+          showScreen('screenCalling');
+          const chip = document.getElementById('volUserChip');
+          if (chip) {
+            const badge = role==='moderator'?'<span class="role-badge moderator" style="margin-left:4px">MOD</span>':'';
+            chip.innerHTML = `<span>${esc(user.name)}</span>${badge}`;
+          }
+          applyPermissions();
+          loadVolunteerContacts();
+          updateCallTime();
+          loadEventsForVolunteer();
+          loadAllContactsForAttendance();
+          loadAreasForForms();
+          // Start geofence check
+          runGeofenceCheck();
+          // Start notification polling + initial load
+          loadMyNotifications();
+          startNotifPolling();
+        });
+      }
+    }
+
+    // Override doLogout to stop polling
+    const _baseDoLogout = doLogout;
+    function doLogout() {
+      stopNotifPolling();
+      currentUser=null; contacts=[]; currentIdx=0; offlineQueue=[];
+      allContacts=[]; eventsCache=[]; selectedSabhaCol='';
+      notifCache=[]; geoBypassActive=false; batchData=[];
+      ['loginEmail','loginPassword'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('loginError').style.display='none';
+      document.getElementById('geoOverlay').style.display='none';
+      showScreen('screenLogin');
+    }
+
   </script>
 </body>
 
