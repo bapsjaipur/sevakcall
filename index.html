@@ -3899,16 +3899,40 @@ function formatSabhaTime(timeStr) {
     // EDIT VOL MODAL
     // ══════════════════════════════════════════════════════════════════
     function openAddVolModal() {
-      document.getElementById('editVolTitle').textContent = 'Add Volunteer';
-      document.getElementById('editVolForm').innerHTML = `
-    <div class="input-group"><div class="input-group-label">Name</div><input id="evName" class="styled-input" placeholder="Full name"/></div>
-    <div class="input-group"><div class="input-group-label">Email</div><input id="evEmail" type="email" class="styled-input" placeholder="email@example.com"/></div>
-    <div class="input-group"><div class="input-group-label">Password</div><input id="evPass" type="text" class="styled-input" placeholder="Set a password"/></div>
-    <div class="input-group"><div class="input-group-label">Assign to Area</div><select id="evArea" class="styled-select"><option value="">— Unassigned —</option>${Object.keys(adminData?.areaStats || {}).map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('')}</select></div>
+  document.getElementById('editVolTitle').textContent = 'Add Volunteer';
+  // Build batch options with progress
+  const batchOptions = (batchData||[]).map(b => {
+    const assigned = b.total - b.unassigned;
+    const pct = b.total ? Math.round(assigned/b.total*100) : 0;
+    const status = b.isFullyAssigned ? '✅' : b.unassigned === b.total ? '⬜' : '🟡';
+    return `<option value="${esc(b.batch)}">${status} Batch ${esc(b.batch)} — ${assigned}/${b.total} assigned (${pct}%)</option>`;
+  }).join('');
+
+  document.getElementById('editVolForm').innerHTML = `
+    <div class="input-group"><div class="input-group-label">Name</div>
+      <input id="evName" class="styled-input" placeholder="Full name"/></div>
+    <div class="input-group"><div class="input-group-label">Email</div>
+      <input id="evEmail" type="email" class="styled-input" placeholder="email@example.com"/></div>
+    <div class="input-group"><div class="input-group-label">Password</div>
+      <input id="evPass" type="text" class="styled-input" placeholder="Set a password"/></div>
+    <div class="input-group">
+      <div class="input-group-label">Assign Batch <span style="color:var(--muted);font-size:0.68rem">(optional)</span></div>
+      <select id="evBatch" class="styled-select">
+        <option value="">— No batch —</option>
+        ${batchOptions}
+      </select>
+      ${batchData?.length ? '' : '<div style="font-size:0.72rem;color:var(--muted);margin-top:4px">⚠️ No batches yet — create batches first in Assigning tab</div>'}
+    </div>
+    <div class="input-group"><div class="input-group-label">Role</div>
+      <select id="evRole" class="styled-select">
+        <option value="volunteer">Volunteer</option>
+        <option value="moderator">Moderator</option>
+      </select>
+    </div>
     <button onclick="saveVol('add')" class="btn btn-primary">Add Volunteer</button>
     <button onclick="closeEditModal()" class="btn btn-outline">Cancel</button>`;
-      document.getElementById('editVolModal').classList.add('open');
-    }
+  document.getElementById('editVolModal').classList.add('open');
+}
     function openEditModal(name, email) {
       document.getElementById('editVolTitle').textContent = 'Edit Volunteer';
       document.getElementById('editVolForm').innerHTML = `
@@ -3923,10 +3947,12 @@ function formatSabhaTime(timeStr) {
       document.getElementById('editVolModal').classList.add('open');
     }
     async function saveVol(mode, orig = '') {
-      const name = document.getElementById('evName')?.value.trim();
-      const email = document.getElementById('evEmail')?.value.trim();
-      const pass = document.getElementById('evPass')?.value.trim();
-      const area = document.getElementById('evArea')?.value;
+  const name  = document.getElementById('evName')?.value.trim();
+  const email = document.getElementById('evEmail')?.value.trim();
+  const pass  = document.getElementById('evPass')?.value.trim();
+  const role  = document.getElementById('evRole')?.value || 'volunteer';
+  const batch = document.getElementById('evBatch')?.value;
+  const area  = document.getElementById('evArea')?.value; // keep for edit modal
       if (mode !== 'deactivate' && (!name || !email)) { showToast('Name and email required', 'error'); return; }
       closeEditModal();
       try {
@@ -3964,12 +3990,18 @@ function formatSabhaTime(timeStr) {
 
     /** Check if current user has a permission. Admin always has all. */
     function hasPerm(key) {
-      if (!currentUser) return false;
-      if (currentUser.role === 'admin') return true;
-      const rp = appPermissions[currentUser.role];
-      if (!rp || Object.keys(rp).length === 0) return false; // deny until loaded
-      return rp[key] !== false;
-    }
+  if (!currentUser) return false;
+  if (currentUser.role === 'admin') return true;
+  if (currentUser.role === 'moderator') {
+    // moderator always has all permissions unless explicitly denied
+    const rp = appPermissions['moderator'];
+    if (!rp || Object.keys(rp).length === 0) return true; // default allow
+    return rp[key] !== false;
+  }
+  const rp = appPermissions[currentUser.role];
+  if (!rp || Object.keys(rp).length === 0) return false;
+  return rp[key] !== false;
+}
 
     /** Apply current appPermissions to the live UI — show/hide buttons & tabs */
     function applyPermissions() {
@@ -4081,6 +4113,7 @@ function formatSabhaTime(timeStr) {
         const res = await fetch(`${SCRIPT_URL}?action=getAreas`);
         const d = await res.json();
         areasCache = d.areas || [];
+        window._loadedAreas = areas; // cache for edit modal
         const sel = document.getElementById('acArea');
         if (!sel) return;
         sel.innerHTML = '<option value="">— Select Area —</option>';
@@ -4486,22 +4519,30 @@ function formatSabhaTime(timeStr) {
 
     // Override saveVol to pass role + callerEmail
     async function saveVol(mode, orig = '') {
-      const name = document.getElementById('evName')?.value.trim();
-      const email = document.getElementById('evEmail')?.value.trim();
-      const pass = document.getElementById('evPass')?.value.trim();
-      const area = document.getElementById('evArea')?.value;
-      const role = document.getElementById('evRole')?.value || 'volunteer';
-      if (mode !== 'deactivate' && (!name || !email)) { showToast('Name and email required', 'error'); return; }
-      closeEditModal();
-      try {
-        await fetch(SCRIPT_URL, {
-          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'manageVolunteer', mode, originalName: orig, name, email, password: pass, area, role, callerEmail: currentUser.email })
-        });
-        showToast(mode === 'add' ? 'Volunteer added!' : mode === 'deactivate' ? 'Deactivated!' : 'Changes saved!', 'success');
-        setTimeout(loadAdminData, 800);
-      } catch (e) { showToast('Operation failed', 'error'); }
+  const name  = document.getElementById('evName')?.value.trim();
+  const email = document.getElementById('evEmail')?.value.trim();
+  const pass  = document.getElementById('evPass')?.value.trim();
+  const area  = document.getElementById('evArea')?.value || '';
+  const role  = document.getElementById('evRole')?.value || 'volunteer';
+  const batch = document.getElementById('evBatch')?.value || '';
+  if (mode !== 'deactivate' && (!name || !email)) { showToast('Name and email required', 'error'); return; }
+  closeEditModal();
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'manageVolunteer', mode, originalName: orig, name, email, password: pass, area, role, batchNumber: batch, callerEmail: currentUser.email })
+    });
+    // If batch assigned, also call assignBatch
+    if (mode === 'add' && batch) {
+      await fetch(SCRIPT_URL, {
+        method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'assignBatch', batchNumber: batch, toVolunteer: name, callerEmail: currentUser.email })
+      });
     }
+    showToast(mode === 'add' ? 'Volunteer added!' : mode === 'deactivate' ? 'Deactivated!' : 'Changes saved!', 'success');
+    setTimeout(() => { loadAdminData(); loadBatchSummary(); }, 800);
+  } catch(e) { showToast('Operation failed', 'error'); }
+}
 
     // ══════════════════════════════════════════════════════════════════
     // UPGRADED AREA BREAKDOWN (admin can add areas inline)
@@ -4512,11 +4553,23 @@ function formatSabhaTime(timeStr) {
       if (!el) return;
       if (!Object.keys(a).length) { el.innerHTML = '<div style="color:var(--muted)">No area data.</div>'; return; }
       const rows = Object.entries(a).sort((x, y) => y[1].total - x[1].total).map(([area, s]) => {
-        const pct = s.total ? Math.round((s.called / s.total) * 100) : 0;
-        return `<div class="area-row"><div><div class="area-name">🏘️ ${esc(area)}</div><div style="font-size:0.7rem;color:var(--muted);margin-top:2px">${s.called}/${s.total} called · ${s.interested || 0} interested</div></div>
-      <div style="text-align:right;min-width:80px"><div class="syne" style="font-size:1rem;font-weight:800">${pct}%</div>
-      <div class="vol-progress-wrap" style="width:70px;margin-top:4px"><div class="vol-progress-bar" style="width:${pct}%;background:${pct >= 100 ? 'var(--green)' : pct >= 50 ? 'var(--saffron)' : '#F5A623'}"></div></div></div></div>`;
-      }).join('');
+  const pct = s.total ? Math.round((s.called / s.total) * 100) : 0;
+  const editBtn = currentUser?.role === 'admin'
+    ? `<button onclick="openEditAreaModal('${esc(area)}')" style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:var(--muted);padding:2px 6px;border-radius:6px;margin-left:6px" title="Edit">✏️</button>`
+    : '';
+  return `<div class="area-row">
+    <div>
+      <div class="area-name">🏘️ ${esc(area)}${editBtn}</div>
+      <div style="font-size:0.7rem;color:var(--muted);margin-top:2px">${s.called}/${s.total} called · ${s.interested||0} interested</div>
+    </div>
+    <div style="text-align:right;min-width:80px">
+      <div class="syne" style="font-size:1rem;font-weight:800">${pct}%</div>
+      <div class="vol-progress-wrap" style="width:70px;margin-top:4px">
+        <div class="vol-progress-bar" style="width:${pct}%;background:${pct>=100?'var(--green)':pct>=50?'var(--saffron)':'#F5A623'}"></div>
+      </div>
+    </div>
+  </div>`;
+}).join('');
       const mgmt = currentUser?.role === 'admin' ? `
     <div style="border-top:1px solid #EDE9E2;margin-top:12px;padding-top:12px">
       <div style="font-family:'Syne',sans-serif;font-size:0.8rem;font-weight:800;margin-bottom:8px;color:var(--muted)">➕ Add Area</div>
@@ -4544,6 +4597,54 @@ function formatSabhaTime(timeStr) {
         setTimeout(() => { loadAdminData(); loadAreasForForms(); }, 800);
       } catch (e) { showToast('Failed to add area', 'error'); }
     }
+    function openEditAreaModal(oldName) {
+  // find area code from loaded areas
+  const areaObj = (window._loadedAreas||[]).find(a => a.name === oldName);
+  const oldCode = areaObj ? areaObj.code : '';
+  const html = `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center" id="editAreaOverlay">
+      <div style="background:var(--card);border-radius:16px;padding:24px;width:min(340px,90vw);display:flex;flex-direction:column;gap:12px">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1rem">✏️ Edit Area</div>
+        <div class="input-group"><div class="input-group-label">Area Name</div>
+          <input id="editAreaName" class="styled-input" value="${esc(oldName)}"/></div>
+        <div class="input-group"><div class="input-group-label">Area Code</div>
+          <input id="editAreaCode" class="styled-input" value="${esc(oldCode)}" maxlength="6"/></div>
+        <div style="display:flex;gap:8px">
+          <button onclick="doEditArea('${esc(oldName)}')" class="btn btn-primary" style="flex:1">Save</button>
+          <button onclick="document.getElementById('editAreaOverlay').remove()" class="btn btn-outline" style="flex:1">Cancel</button>
+        </div>
+        <button onclick="doDeleteArea('${esc(oldName)}')" class="btn btn-outline" style="color:var(--red);border-color:var(--red);font-size:0.82rem">🗑 Delete Area</button>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function doEditArea(oldName) {
+  const newName = document.getElementById('editAreaName')?.value.trim();
+  const newCode = document.getElementById('editAreaCode')?.value.trim();
+  if (!newName) { showToast('Name required', 'error'); return; }
+  document.getElementById('editAreaOverlay')?.remove();
+  try {
+    // delete old, add new
+    await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'manageArea', mode:'delete', name:oldName, callerEmail:currentUser.email }) });
+    await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'manageArea', mode:'add', name:newName, code:newCode, callerEmail:currentUser.email }) });
+    showToast('Area updated!', 'success');
+    setTimeout(() => { loadAdminData(); loadAreasForForms(); }, 800);
+  } catch(e) { showToast('Failed to update area', 'error'); }
+}
+
+async function doDeleteArea(name) {
+  if (!confirm(`Delete area "${name}"? This cannot be undone.`)) return;
+  document.getElementById('editAreaOverlay')?.remove();
+  try {
+    await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'manageArea', mode:'delete', name, callerEmail:currentUser.email }) });
+    showToast('Area deleted!', 'success');
+    setTimeout(() => { loadAdminData(); loadAreasForForms(); }, 800);
+  } catch(e) { showToast('Failed to delete area', 'error'); }
+}
 
     // ══════════════════════════════════════════════════════════════════
     // UPGRADED SWITCH TAB (loads activity page on activity tab)
@@ -5425,17 +5526,21 @@ function stopNotifPolling() {
     let permVolList = [];
 
     async function loadPermissionsTab() {
-      // Load global permissions
-      try {
-        const d = await (await fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(currentUser.email)}`)).json();
-        if (d.permissions) { appPermissions = d.permissions; renderPermissionsGrid(d.permissions); }
-      } catch(_) {}
-      // Load volunteer list for individual overrides
-      try {
-        const d = await (await fetch(`${SCRIPT_URL}?action=getVolunteersForAdmin&email=${encodeURIComponent(currentUser.email)}`)).json();
-        permVolList = (d.volunteers||[]).filter(v => v.role !== 'admin');
-      } catch(_) {}
-    }
+  // show cached permissions immediately if available
+  if (appPermissions && Object.keys(appPermissions).length) {
+    renderPermissionsGrid(appPermissions);
+  }
+  // Load both in parallel
+  try {
+    const [permRes, volRes] = await Promise.all([
+      fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(currentUser.email)}`),
+      fetch(`${SCRIPT_URL}?action=getVolunteersForAdmin&email=${encodeURIComponent(currentUser.email)}`)
+    ]);
+    const [pd, vd] = await Promise.all([permRes.json(), volRes.json()]);
+    if (pd.permissions) { appPermissions = pd.permissions; renderPermissionsGrid(pd.permissions); }
+    permVolList = (vd.volunteers||[]).filter(v => v.role !== 'admin');
+  } catch(_) {}
+}
 
     function filterPermUsers(q) {
       const container = document.getElementById('permUserResults');
