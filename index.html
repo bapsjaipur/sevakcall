@@ -4030,16 +4030,32 @@ function formatSabhaTime(timeStr) {
 
     /** Fetch permissions from server, store, then run applyPermissions + optional callback */
     async function loadAndApplyPermissions(callback) {
-      try {
-        const res = await fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(currentUser.email)}`);
-        const d   = await res.json();
-        if (d.permissions && Object.keys(d.permissions).length) {
-          appPermissions = d.permissions;
-        }
-      } catch(e) { console.warn('Permissions load failed', e); }
-      applyPermissions();
-      if (callback) callback();
+  // Pre-set moderator permissions immediately — don't wait for server
+  if (currentUser?.role === 'moderator') {
+    appPermissions['moderator'] = {
+      canAddContact: true, canEditContact: true, canReassign: true,
+      canViewAllContacts: true, canMarkAttendance: true
+    };
+    applyPermissions();
+    if (callback) callback(); // proceed immediately, fetch in background
+    // Then fetch real perms in background to override if needed
+    fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(currentUser.email)}`)
+      .then(r => r.json())
+      .then(d => { if (d.permissions) { appPermissions = d.permissions; applyPermissions(); } })
+      .catch(() => {});
+    return;
+  }
+  // Volunteer — fetch then proceed
+  try {
+    const res = await fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(currentUser.email)}`);
+    const d   = await res.json();
+    if (d.permissions && Object.keys(d.permissions).length) {
+      appPermissions = d.permissions;
     }
+  } catch(e) { console.warn('Permissions load failed', e); }
+  applyPermissions();
+  if (callback) callback();
+}
 
     // ══════════════════════════════════════════════════════════════════
     // ROLE-AWARE LOGIN ROUTING
@@ -4077,10 +4093,16 @@ function formatSabhaTime(timeStr) {
 
           // applyPermissions() already ran inside loadAndApplyPermissions
           loadVolunteerContacts();
-          updateCallTime();
-          loadEventsForVolunteer();
-          loadAllContactsForAttendance();
-          loadAreasForForms();
+updateCallTime();
+loadEventsForVolunteer();
+loadAllContactsForAttendance();
+loadAreasForForms();
+loadMyNotifications();
+startNotifPolling();
+// run geo check
+runGeofenceCheck().then(allowed => {
+  if (!allowed) return; // geo blocker handles UI
+});
         });
       }
     }
@@ -5774,60 +5796,6 @@ function stopNotifPolling() {
         showToast(mode==='add'?'Volunteer added!':mode==='deactivate'?'Deactivated!':'Changes saved!','success');
         setTimeout(loadAdminData, 800);
       } catch(e) { showToast('Operation failed','error'); }
-    }
-
-    // ══════════════════════════════════════════════════════════════════
-    // HOOK into handleLoginSuccess to start geo + notifications
-    // ══════════════════════════════════════════════════════════════════
-    const _origHandleLogin = handleLoginSuccess;
-    function handleLoginSuccess(user) {
-      currentUser = user;
-      const role  = user.role;
-
-      if (role === 'admin') {
-        showScreen('screenAdmin');
-        loadAdminData();
-        fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(user.email)}`)
-          .then(r=>r.json()).then(d=>{ if(d.permissions) appPermissions=d.permissions; }).catch(()=>{});
-      } else {
-        // Step 1: Load permissions first (lightweight)
-        const loginBtn = document.getElementById('loginBtn');
-        if (loginBtn) { loginBtn.disabled=true; loginBtn.innerHTML='<span class="spinner"></span> Loading…'; }
-
-        loadAndApplyPermissions(async () => {
-          if (loginBtn) { loginBtn.disabled=false; loginBtn.innerHTML='Sign In →'; }
-
-          // Step 2: Show the calling screen shell (header visible, content hidden)
-          showScreen('screenCalling');
-
-          // Step 3: Set name chip
-          const chip = document.getElementById('volUserChip');
-          if (chip) {
-            const badge = role==='moderator'?'<span class="role-badge moderator" style="margin-left:4px">MOD</span>':'';
-            chip.innerHTML = `<span>${esc(user.name)}</span>${badge}`;
-          }
-          applyPermissions();
-
-          // Step 4: Run geo check — this shows the geo-blocker overlay until resolved.
-          // The overlay sits above the screen so contacts are NOT visible yet.
-          const allowed = await runGeofenceCheck();
-
-          if (!allowed) {
-            // Volunteer is blocked — geo-blocker is showing the "outside campus" card.
-            // Do NOT load contacts. Stop here. Volunteer must retry or request access.
-            return;
-          }
-
-          // Step 5: Geo passed — load everything
-          loadVolunteerContacts();
-          updateCallTime();
-          loadEventsForVolunteer();
-          loadAllContactsForAttendance();
-          loadAreasForForms();
-          loadMyNotifications();
-          startNotifPolling();
-        });
-      }
     }
 
     // Override doLogout to stop polling
