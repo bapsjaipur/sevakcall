@@ -1990,11 +1990,124 @@
   /* Reference input */
   .styled-input { font-size: 0.88rem; padding: 12px 14px; }
 }
+
+/* ── GEOFENCE FULL-SCREEN BLOCKER ── */
+.geo-blocker {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px;
+  animation: fadeIn 0.25s ease;
+}
+.geo-blocker.hidden { display: none; }
+
+.geo-checking-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+.geo-checking-spinner {
+  width: 44px; height: 44px;
+  border: 4px solid #E8E4DD;
+  border-top-color: var(--saffron);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.geo-checking-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.1rem; font-weight: 800;
+  color: var(--ink);
+}
+.geo-checking-sub {
+  font-size: 0.82rem; color: var(--muted); line-height: 1.5;
+}
+
+.geo-blocked-card {
+  background: var(--card);
+  border-radius: 24px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+  padding: 32px 24px;
+  max-width: 380px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: stretch;
+  animation: slideUp 0.35s cubic-bezier(0.34,1.2,0.64,1) both;
+}
+.geo-blocked-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding-bottom: 4px;
+}
+.geo-blocked-icon {
+  width: 56px; height: 56px;
+  background: #FDECEA;
+  border-radius: 99px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem;
+}
+.geo-blocked-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.2rem; font-weight: 800;
+  color: var(--ink);
+}
+.geo-blocked-sub {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.55;
+  text-align: center;
+}
+.geo-note {
+  background: var(--area-bg);
+  color: var(--area-fg);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+}
+.geo-divider {
+  height: 1px;
+  background: #EDE9E2;
+  margin: 2px 0;
+}
+.geo-signout-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px;
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-family: 'DM Sans', sans-serif;
+}
+body.dark .geo-blocked-card { background: var(--card); }
+body.dark .geo-blocked-icon { background: #3D0C0A; }
+body.dark .geo-note { background: var(--area-bg); }
+body.dark .geo-divider { background: #2A2D35; }
     
   </style>
 </head>
 
 <body>
+
+  <!-- GEOFENCE FULL-SCREEN BLOCKER — shown while checking location, hidden when done -->
+  <div id="geoBlocker" class="geo-blocker hidden"></div>
 
   <div id="offlineBanner" class="offline-banner">📶 Offline — changes saved locally, will sync on reconnect <span
       id="offlineCount"></span></div>
@@ -2046,8 +2159,6 @@
     <!-- Notification Panel -->
     <div id="notifOverlay" class="notif-overlay" onclick="closeNotifPanel()"></div>
 <div id="notifPanel" class="notif-panel"></div>
-    <!-- Geofence Overlay (hidden by default) -->
-    <div id="geoOverlay" class="geo-overlay" style="display:none"></div>
     <div class="progress-wrap">
       <div id="volProgressBar" class="progress-bar" style="width:0%"></div>
     </div>
@@ -4791,71 +4902,161 @@ function formatSabhaTime(timeStr) {
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    let geoBypassActive = false; // set true after server approval
+    let geoBypassActive = false;
 
-    async function runGeofenceCheck() {
-      if (!currentUser || currentUser.role === 'admin') return; // admins bypass
-      // Check server for permanent bypass or active approval
-      try {
-        const res = await fetch(`${SCRIPT_URL}?action=checkRemoteAccess&email=${encodeURIComponent(currentUser.email)}`);
-        const d   = await res.json();
-        if (d.approved) { geoBypassActive = true; return; }
-      } catch(_) {}
-      // Check permanent anywhereAccess in volunteer data
-      if (currentUser.anywhereAccess) { geoBypassActive = true; return; }
-
-      if (!navigator.geolocation) return; // no geolocation support — allow
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          const dist = haversineDistance(pos.coords.latitude, pos.coords.longitude, CAMPUS_LAT, CAMPUS_LNG);
-          if (dist > CAMPUS_RADIUS) showGeoBlock();
-        },
-        () => { /* permission denied or error — allow (don't block) */ },
-        { timeout: 8000, maximumAge: 60000 }
-      );
-    }
-
-    function showGeoBlock() {
-      const overlay = document.getElementById('geoOverlay');
-      overlay.style.display = 'flex';
-      overlay.innerHTML = `
-        <div class="geo-card card-animate">
-          <div class="geo-icon">📍</div>
-          <div class="geo-title">Outside Campus Zone</div>
-          <div class="geo-sub">You appear to be outside the designated campus area (${CAMPUS_RADIUS}m radius). Please enter campus or request remote access from your admin.</div>
-          <button class="btn btn-primary" onclick="openGeoRequest()">Request Remote Access</button>
-          <button class="btn btn-outline" onclick="retryGeoCheck()" style="font-size:.85rem">🔄 Retry Location Check</button>
-          <button class="logout-btn" onclick="doLogout()" style="margin-top:4px;font-size:.8rem;color:var(--muted)">Sign Out</button>
+    // ── Show full-screen "checking location" state ────────────────────
+    function showGeoChecking() {
+      const el = document.getElementById('geoBlocker');
+      el.classList.remove('hidden');
+      el.innerHTML = `
+        <div class="geo-checking-wrap">
+          <div class="geo-checking-spinner"></div>
+          <div class="geo-checking-title">Checking Your Location</div>
+          <div class="geo-checking-sub">Please allow location access when prompted.<br>This ensures you are within the campus zone.</div>
         </div>`;
     }
 
-    function hideGeoBlock() { document.getElementById('geoOverlay').style.display = 'none'; }
+    // ── Hide geo blocker — volunteer is cleared to use the app ────────
+    function hideGeoBlocker() {
+      const el = document.getElementById('geoBlocker');
+      el.classList.add('hidden');
+      el.innerHTML = '';
+    }
 
+    // ── Show the "outside campus" blocked card ────────────────────────
+    function showGeoBlock() {
+      const el = document.getElementById('geoBlocker');
+      el.classList.remove('hidden');
+      el.innerHTML = `
+        <div class="geo-blocked-card">
+          <div class="geo-blocked-header">
+            <div class="geo-blocked-icon">📍</div>
+            <div class="geo-blocked-title">Outside Campus Zone</div>
+            <div class="geo-blocked-sub">You appear to be outside the designated campus area (${CAMPUS_RADIUS}m radius). Please enter campus or request remote access from your admin.</div>
+          </div>
+          <div class="geo-note">💡 After your admin approves, tap <strong>Retry Location Check</strong> — or log in again to resume.</div>
+          <button class="btn btn-primary" id="geoRequestBtn" onclick="openGeoRequest()">Request Remote Access</button>
+          <button class="btn btn-outline" onclick="retryGeoCheck()" style="font-size:.85rem">🔄 Retry Location Check</button>
+          <div class="geo-divider"></div>
+          <button class="geo-signout-btn" onclick="doLogout()">Sign Out</button>
+        </div>`;
+    }
+
+    // ── Full geo check flow (called after screen is shown) ────────────
+    // Returns a Promise that resolves when the check is done.
+    // Resolves true = allowed, false = blocked (showGeoBlock already called).
+    function runGeofenceCheck() {
+      return new Promise(resolve => {
+        if (!currentUser || currentUser.role === 'admin') { resolve(true); return; }
+
+        showGeoChecking();
+
+        // 1. Check server for permanent bypass or existing approval first
+        fetch(`${SCRIPT_URL}?action=checkRemoteAccess&email=${encodeURIComponent(currentUser.email)}`)
+          .then(r => r.json())
+          .then(d => {
+            if (d.approved) { geoBypassActive = true; hideGeoBlocker(); resolve(true); return; }
+            // 2. Check anywhereAccess flag sent with user object
+            if (currentUser.anywhereAccess) { geoBypassActive = true; hideGeoBlocker(); resolve(true); return; }
+            // 3. Now do GPS check
+            doGpsCheck(resolve);
+          })
+          .catch(() => {
+            // Server unreachable — fall through to GPS only
+            if (currentUser.anywhereAccess) { geoBypassActive = true; hideGeoBlocker(); resolve(true); return; }
+            doGpsCheck(resolve);
+          });
+      });
+    }
+
+    function doGpsCheck(resolve) {
+      if (!navigator.geolocation) {
+        // Device has no geolocation — allow access
+        hideGeoBlocker();
+        resolve(true);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const dist = haversineDistance(pos.coords.latitude, pos.coords.longitude, CAMPUS_LAT, CAMPUS_LNG);
+          if (dist <= CAMPUS_RADIUS) {
+            hideGeoBlocker();
+            resolve(true);
+          } else {
+            showGeoBlock();
+            resolve(false);
+          }
+        },
+        err => {
+          // Permission denied or timeout — do NOT block, allow access
+          hideGeoBlocker();
+          resolve(true);
+        },
+        { timeout: 10000, maximumAge: 30000, enableHighAccuracy: true }
+      );
+    }
+
+    // ── Retry button — re-runs the full check ─────────────────────────
     async function retryGeoCheck() {
-      // Re-check server approval first
+      showGeoChecking();
+      // Always re-check server approval first (admin may have just approved)
       try {
         const res = await fetch(`${SCRIPT_URL}?action=checkRemoteAccess&email=${encodeURIComponent(currentUser.email)}`);
         const d   = await res.json();
-        if (d.approved) { geoBypassActive = true; hideGeoBlock(); showToast('✅ Remote access approved!','success'); return; }
+        if (d.approved) {
+          geoBypassActive = true;
+          hideGeoBlocker();
+          showToast('✅ Remote access approved! Welcome.', 'success');
+          return;
+        }
       } catch(_) {}
-      showToast('Not approved yet — ask your admin.','warn');
+      // Re-do GPS check
+      doGpsCheck(allowed => {
+        if (allowed) showToast('✅ Location verified! You\'re on campus.', 'success');
+      });
     }
 
+    // ── Request remote access flow ────────────────────────────────────
     async function openGeoRequest() {
       const reason = prompt('Please briefly explain why you need remote access today:');
-      if (!reason) return;
-      const overlay = document.getElementById('geoOverlay');
-      const btn = overlay.querySelector('.btn-primary');
-      if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+      if (reason === null) return; // cancelled
+      const trimmed = reason.trim();
+      if (!trimmed) { showToast('Please enter a reason', 'warn'); return; }
+
+      const btn = document.getElementById('geoRequestBtn');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Sending…'; }
+
       try {
         await fetch(SCRIPT_URL, {
-          method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ action:'requestRemoteAccess', callerEmail: currentUser.email, reason })
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'requestRemoteAccess', callerEmail: currentUser.email, reason: trimmed })
         });
-        showToast('✅ Request sent! Your admin will approve it.','success');
-        if (btn) { btn.textContent = '⏳ Awaiting Approval…'; }
-      } catch(e) { showToast('Failed to send request','error'); if (btn) { btn.disabled=false; btn.textContent='Request Remote Access'; } }
+        // Update the card to reflect sent state
+        const el = document.getElementById('geoBlocker');
+        if (el) {
+          el.innerHTML = `
+            <div class="geo-blocked-card">
+              <div class="geo-blocked-header">
+                <div class="geo-blocked-icon" style="background:#D4EDDA">✅</div>
+                <div class="geo-blocked-title">Request Sent!</div>
+                <div class="geo-blocked-sub">Your admin has been notified. Once approved, tap the button below to refresh and gain access.</div>
+              </div>
+              <div class="geo-note">📌 <strong>Note:</strong> Log in again or tap Retry after your admin approves to resume access.</div>
+              <button class="btn btn-primary" onclick="retryGeoCheck()">🔄 Retry Location Check</button>
+              <div class="geo-divider"></div>
+              <button class="geo-signout-btn" onclick="doLogout()">Sign Out</button>
+            </div>`;
+        }
+      } catch(e) {
+        showToast('Failed to send request — check your connection', 'error');
+        if (btn) { btn.disabled = false; btn.textContent = 'Request Remote Access'; }
+      }
     }
+
+    // Legacy alias (used in old code paths)
+    function hideGeoBlock() { hideGeoBlocker(); }
 
     // ══════════════════════════════════════════════════════════════════
     // NOTIFICATIONS
@@ -5484,25 +5685,40 @@ function stopNotifPolling() {
         fetch(`${SCRIPT_URL}?action=getPermissions&email=${encodeURIComponent(user.email)}`)
           .then(r=>r.json()).then(d=>{ if(d.permissions) appPermissions=d.permissions; }).catch(()=>{});
       } else {
+        // Step 1: Load permissions first (lightweight)
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) { loginBtn.disabled=true; loginBtn.innerHTML='<span class="spinner"></span> Loading…'; }
-        loadAndApplyPermissions(() => {
+
+        loadAndApplyPermissions(async () => {
           if (loginBtn) { loginBtn.disabled=false; loginBtn.innerHTML='Sign In →'; }
+
+          // Step 2: Show the calling screen shell (header visible, content hidden)
           showScreen('screenCalling');
+
+          // Step 3: Set name chip
           const chip = document.getElementById('volUserChip');
           if (chip) {
             const badge = role==='moderator'?'<span class="role-badge moderator" style="margin-left:4px">MOD</span>':'';
             chip.innerHTML = `<span>${esc(user.name)}</span>${badge}`;
           }
           applyPermissions();
+
+          // Step 4: Run geo check — this shows the geo-blocker overlay until resolved.
+          // The overlay sits above the screen so contacts are NOT visible yet.
+          const allowed = await runGeofenceCheck();
+
+          if (!allowed) {
+            // Volunteer is blocked — geo-blocker is showing the "outside campus" card.
+            // Do NOT load contacts. Stop here. Volunteer must retry or request access.
+            return;
+          }
+
+          // Step 5: Geo passed — load everything
           loadVolunteerContacts();
           updateCallTime();
           loadEventsForVolunteer();
           loadAllContactsForAttendance();
           loadAreasForForms();
-          // Start geofence check
-          runGeofenceCheck();
-          // Start notification polling + initial load
           loadMyNotifications();
           startNotifPolling();
         });
@@ -5518,7 +5734,9 @@ function stopNotifPolling() {
       notifCache=[]; geoBypassActive=false; batchData=[];
       ['loginEmail','loginPassword'].forEach(id=>document.getElementById(id).value='');
       document.getElementById('loginError').style.display='none';
-      document.getElementById('geoOverlay').style.display='none';
+      // Hide geo blocker
+      const gb = document.getElementById('geoBlocker');
+      if (gb) { gb.classList.add('hidden'); gb.innerHTML=''; }
       showScreen('screenLogin');
     }
 
