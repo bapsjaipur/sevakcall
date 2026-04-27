@@ -2517,6 +2517,47 @@
       font-size: 1.6rem;
       font-weight: 800;
     }
+
+    /* ── EMAIL TOGGLE SWITCH ── */
+    .email-toggle-wrap {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 26px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .email-toggle-wrap input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+    .email-toggle-track {
+      position: absolute;
+      inset: 0;
+      background: #D1D5DB;
+      border-radius: 99px;
+      transition: background 0.2s;
+    }
+    .email-toggle-track::after {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+      transition: transform 0.22s cubic-bezier(0.34,1.3,0.64,1);
+    }
+    .email-toggle-wrap input:checked + .email-toggle-track {
+      background: var(--saffron);
+    }
+    .email-toggle-wrap input:checked + .email-toggle-track::after {
+      transform: translateX(22px);
+    }
   </style>
 </head>
 
@@ -2900,12 +2941,12 @@
       <div class="tab-bar admin-tab-bar">
         <button class="tab-btn active" onclick="switchTab('overview')">📊 Overview</button>
         <button class="tab-btn" onclick="switchTab('volunteers')">👥 Volunteers / Moderator</button>
-        <button class="tab-btn" onclick="switchTab('areas')">📍 Area / Mandal</button>
-        <button class="tab-btn" onclick="switchTab('sabhas')">🙏 Sabhas</button>
-        <button class="tab-btn" onclick="switchTab('activity')">⚡ Activity</button>
         <button class="tab-btn" onclick="switchTab('assigning')">📦 Assigning</button>
-        <button class="tab-btn" onclick="switchTab('contacts')">👤 All Contacts</button>
+        <button class="tab-btn" onclick="switchTab('sabhas')">🙏 Sabhas</button>
         <button class="tab-btn" onclick="switchTab('message')">💬 Message</button>
+        <button class="tab-btn" onclick="switchTab('contacts')">👤 All Contacts</button>
+        <button class="tab-btn" onclick="switchTab('areas')">📍 Area / Mandal</button>
+        <button class="tab-btn" onclick="switchTab('activity')">⚡ Activity</button>
       </div>
 
       <div id="tabOverview" class="flex flex-col gap-4 fade-in">
@@ -3210,9 +3251,9 @@
           </div>
           <div class="flex gap-2 mt-2">
             <button onclick="applyAdminSabhaFilter()" class="btn btn-primary"
-              style="flex:1;padding:10px;font-size:0.85rem">Apply</button>
+              style="flex:0 0 50%;padding:10px;font-size:0.85rem">Apply</button>
             <button onclick="clearAdminSabhaFilter()" class="btn btn-outline"
-              style="flex:none;padding:10px 14px;font-size:0.85rem">Clear</button>
+              style="flex:0 0 50%;padding:10px;font-size:0.85rem">Clear</button>
           </div>
         </div>
 
@@ -3283,8 +3324,8 @@
             </div>
           </div>
           <div style="display:flex;gap:8px;margin-top:10px">
-            <button onclick="applyActivityFilter()" class="btn btn-primary" style="flex:1;padding:10px;font-size:0.85rem">Apply Filters</button>
-            <button onclick="clearActivityFilter()" class="btn btn-outline" style="flex:none;padding:10px 16px;font-size:0.85rem">Clear</button>
+            <button onclick="applyActivityFilter()" class="btn btn-primary" style="flex:0 0 50%;padding:10px;font-size:0.85rem">Apply Filters</button>
+            <button onclick="clearActivityFilter()" class="btn btn-outline" style="flex:0 0 50%;padding:10px;font-size:0.85rem">Clear</button>
           </div>
           <!-- Active filter chips -->
           <div id="actFilterChips" style="display:none;margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"></div>
@@ -3316,66 +3357,213 @@
       </div>
 
       <!-- ══════════════════════════════════════════════════════════
-         MESSAGE TAB — Edit WhatsApp / notification template
+         MESSAGE TAB — WhatsApp Template + Email Automation
       ═══════════════════════════════════════════════════════════ -->
       <div id="tabMessage" class="flex flex-col gap-4 fade-in" style="display:none!important">
-        <div class="admin-section-title">💬 Message Template</div>
-        <div style="font-size:0.82rem;color:var(--muted);margin-top:-8px">Edit the WhatsApp message template that volunteers see. Changes save to the <strong>Message</strong> sheet.</div>
 
-        <!-- Preview Card -->
-        <div id="msgPreviewCard" class="contact-card" style="padding:18px;border-left:4px solid var(--wa)">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">📱 Current Template Preview</div>
-          <div id="msgCurrentText" style="font-size:0.88rem;color:var(--ink);white-space:pre-wrap;line-height:1.6">Loading…</div>
-          <div id="msgCurrentLink" style="display:none;margin-top:10px;padding:10px 14px;background:var(--area-bg);border-radius:12px">
-            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--area-fg);margin-bottom:3px">🔗 Link / Image URL</div>
-            <div id="msgCurrentLinkVal" style="font-size:0.82rem;font-weight:600;color:var(--area-fg);word-break:break-all"></div>
+        <!-- ── SUB-TAB BAR ── -->
+        <div style="display:flex;gap:4px;background:var(--surface);border-radius:14px;padding:4px">
+          <button id="msgSubTabWA" onclick="switchMsgSubTab('wa')"
+            style="flex:1;padding:9px;border-radius:10px;border:none;font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:800;cursor:pointer;background:var(--card);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,0.07);transition:all .2s">
+            💬 WhatsApp
+          </button>
+          <button id="msgSubTabEmail" onclick="switchMsgSubTab('email')"
+            style="flex:1;padding:9px;border-radius:10px;border:none;font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:800;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s">
+            📧 Email
+          </button>
+        </div>
+
+        <!-- ── WhatsApp Panel ── -->
+        <div id="msgPanelWA">
+          <div class="admin-section-title">💬 Message Template</div>
+          <div style="font-size:0.82rem;color:var(--muted);margin-top:-8px">Edit the WhatsApp message template that volunteers see. Changes save to the <strong>Message</strong> sheet.</div>
+
+          <div id="msgPreviewCard" class="contact-card" style="padding:18px;border-left:4px solid var(--wa);margin-top:8px">
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">📱 Current Template Preview</div>
+            <div id="msgCurrentText" style="font-size:0.88rem;color:var(--ink);white-space:pre-wrap;line-height:1.6">Loading…</div>
+            <div id="msgCurrentLink" style="display:none;margin-top:10px;padding:10px 14px;background:var(--area-bg);border-radius:12px">
+              <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--area-fg);margin-bottom:3px">🔗 Link / Image URL</div>
+              <div id="msgCurrentLinkVal" style="font-size:0.82rem;font-weight:600;color:var(--area-fg);word-break:break-all"></div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+              <span style="font-size:0.68rem;background:#D4EDDA;color:#156D3E;padding:2px 8px;border-radius:99px;font-weight:600">✅ {Name} auto-replaced</span>
+              <span style="font-size:0.68rem;background:var(--purple-bg);color:var(--purple-fg);padding:2px 8px;border-radius:99px;font-weight:600">🏘️ {Mandal} auto-replaced</span>
+              <span style="font-size:0.68rem;background:var(--area-bg);color:var(--area-fg);padding:2px 8px;border-radius:99px;font-weight:600">📍 {Area} auto-replaced</span>
+            </div>
           </div>
-          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-            <span style="font-size:0.68rem;background:#D4EDDA;color:#156D3E;padding:2px 8px;border-radius:99px;font-weight:600">✅ {Name} auto-replaced</span>
-            <span style="font-size:0.68rem;background:var(--purple-bg);color:var(--purple-fg);padding:2px 8px;border-radius:99px;font-weight:600">🏘️ {Mandal} auto-replaced</span>
-            <span style="font-size:0.68rem;background:var(--area-bg);color:var(--area-fg);padding:2px 8px;border-radius:99px;font-weight:600">📍 {Area} auto-replaced</span>
+
+          <div class="contact-card" style="padding:20px;margin-top:8px">
+            <div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;margin-bottom:14px">✏️ Edit Template</div>
+            <div class="flex flex-col gap-3">
+              <div class="input-group">
+                <div class="input-group-label">Message Text <span style="color:var(--red)">*</span></div>
+                <textarea id="msgEditText" class="styled-input" rows="8"
+                  placeholder="Namaste {Name} ji 🙏&#10;&#10;We are reaching out from *{Mandal}* ({Area})…"
+                  style="resize:vertical;min-height:160px;font-size:0.9rem;line-height:1.6"
+                  oninput="updateMsgPreview()"></textarea>
+                <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">Use <code style="background:var(--surface);padding:1px 5px;border-radius:4px">{Name}</code>, <code style="background:var(--surface);padding:1px 5px;border-radius:4px">{Mandal}</code>, <code style="background:var(--surface);padding:1px 5px;border-radius:4px">{Area}</code> as placeholders.</div>
+              </div>
+              <div class="input-group">
+                <div class="input-group-label">Link / Image URL <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:0.68rem">(optional)</span></div>
+                <input id="msgEditLink" class="styled-input" placeholder="https://example.com/event-poster.jpg" oninput="updateMsgPreview()" />
+              </div>
+              <div style="background:var(--surface);border-radius:14px;padding:14px;border:1px dashed #E0DDD8">
+                <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px">👁 Live Preview (with sample data)</div>
+                <div id="msgLivePreview" style="font-size:0.85rem;color:var(--ink);white-space:pre-wrap;line-height:1.6;font-family:'DM Sans',sans-serif"></div>
+              </div>
+              <div id="msgSaveMsg" style="display:none;font-size:0.82rem;padding:8px 12px;border-radius:10px"></div>
+              <button onclick="doSaveMsgTemplate()" class="btn btn-primary" style="margin-top:4px">
+                <span id="msgSaveBtnText">💾 Save Template to Sheet</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="contact-card" style="padding:16px 18px;border-left:4px solid var(--yellow);margin-top:8px">
+            <div style="font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:800;margin-bottom:8px">💡 Tips</div>
+            <div style="font-size:0.8rem;color:var(--muted);line-height:1.7">
+              • Use <strong>*bold text*</strong> in WhatsApp messages by wrapping with asterisks.<br>
+              • The link field can be a direct image URL (flyer) or an event registration page.<br>
+              • Volunteers can tap the WA button to send — the message auto-fills with the contact's real name, mandal, and area.<br>
+              • Changes take effect for all volunteers immediately after saving.
+            </div>
           </div>
         </div>
 
-        <!-- Edit Form -->
-        <div class="contact-card" style="padding:20px">
-          <div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;margin-bottom:14px">✏️ Edit Template</div>
-          <div class="flex flex-col gap-3">
-            <div class="input-group">
-              <div class="input-group-label">Message Text <span style="color:var(--red)">*</span></div>
-              <textarea id="msgEditText" class="styled-input" rows="8"
-                placeholder="Namaste {Name} ji 🙏&#10;&#10;We are reaching out from *{Mandal}* ({Area}) regarding our upcoming volunteer program…"
-                style="resize:vertical;min-height:160px;font-size:0.9rem;line-height:1.6"
-                oninput="updateMsgPreview()"></textarea>
-              <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">Use <code style="background:var(--surface);padding:1px 5px;border-radius:4px">{Name}</code>, <code style="background:var(--surface);padding:1px 5px;border-radius:4px">{Mandal}</code>, <code style="background:var(--surface);padding:1px 5px;border-radius:4px">{Area}</code> as placeholders.</div>
-            </div>
-            <div class="input-group">
-              <div class="input-group-label">Link / Image URL <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:0.68rem">(optional)</span></div>
-              <input id="msgEditLink" class="styled-input" placeholder="https://example.com/event-poster.jpg" oninput="updateMsgPreview()" />
-              <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">Add a flyer image URL or event registration link to share alongside the message.</div>
-            </div>
+        <!-- ── Email Automation Panel ── -->
+        <div id="msgPanelEmail" style="display:none">
+          <div class="admin-section-title">📧 Email Automation</div>
+          <div style="font-size:0.82rem;color:var(--muted);margin-top:-8px">Automated emails are sent at 10–11 PM daily (calling report) and 15 minutes after each Sabha ends (appreciation emails).</div>
 
-            <!-- Live Preview -->
-            <div style="background:var(--surface);border-radius:14px;padding:14px;border:1px dashed #E0DDD8">
-              <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px">👁 Live Preview (with sample data)</div>
-              <div id="msgLivePreview" style="font-size:0.85rem;color:var(--ink);white-space:pre-wrap;line-height:1.6;font-family:'DM Sans',sans-serif"></div>
-            </div>
+          <!-- AUTOMATION TOGGLES -->
+          <div class="contact-card" style="padding:20px;margin-top:8px">
+            <div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;margin-bottom:16px">⚙️ Automation Settings</div>
+            <div style="display:flex;flex-direction:column;gap:14px">
 
-            <div id="msgSaveMsg" style="display:none;font-size:0.82rem;padding:8px 12px;border-radius:10px"></div>
-            <button onclick="doSaveMsgTemplate()" class="btn btn-primary" style="margin-top:4px">
-              <span id="msgSaveBtnText">💾 Save Template to Sheet</span>
-            </button>
+              <!-- Toggle 1: Daily Report to Admin/Mod -->
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:var(--surface);border-radius:14px;border:1.5px solid #E8E4DD">
+                <div style="flex:1">
+                  <div style="font-size:0.88rem;font-weight:700;color:var(--ink)">📞 Daily Report → Admin &amp; Moderator</div>
+                  <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Sends nightly volunteer calling stats with PDF attachment to all admins and moderators at 10–11 PM</div>
+                </div>
+                <label class="email-toggle-wrap">
+                  <input type="checkbox" id="toggleAutoAdmin" onchange="saveEmailToggle('autoAdminEnabled', this.checked)">
+                  <span class="email-toggle-track"></span>
+                </label>
+              </div>
+
+              <!-- Toggle 2: Daily Report to Volunteers -->
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:var(--surface);border-radius:14px;border:1.5px solid #E8E4DD">
+                <div style="flex:1">
+                  <div style="font-size:0.88rem;font-weight:700;color:var(--ink)">📞 Daily Report → Active Volunteers</div>
+                  <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Sends each volunteer their personal calling stats at 10–11 PM (no contact list, only counts)</div>
+                </div>
+                <label class="email-toggle-wrap">
+                  <input type="checkbox" id="toggleAutoVol" onchange="saveEmailToggle('autoVolEnabled', this.checked)">
+                  <span class="email-toggle-track"></span>
+                </label>
+              </div>
+
+              <!-- Toggle 3: Post-Sabha Volunteer Appreciation -->
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:var(--surface);border-radius:14px;border:1.5px solid #E8E4DD">
+                <div style="flex:1">
+                  <div style="font-size:0.88rem;font-weight:700;color:var(--ink)">🙏 Sabha Appreciation → Volunteers</div>
+                  <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Sends personalized appreciation email with contact attendance PDF to each volunteer 15 min after Sabha ends</div>
+                </div>
+                <label class="email-toggle-wrap">
+                  <input type="checkbox" id="toggleAutoSabhaVol" onchange="saveEmailToggle('autoPostSabhaEnabled', this.checked)">
+                  <span class="email-toggle-track"></span>
+                </label>
+              </div>
+
+              <!-- Toggle 4: Post-Sabha to Admins -->
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:var(--surface);border-radius:14px;border:1.5px solid #E8E4DD">
+                <div style="flex:1">
+                  <div style="font-size:0.88rem;font-weight:700;color:var(--ink)">🛡️ Sabha Report → Admins</div>
+                  <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Sends total present/absent stats with full attendance PDF to admins after Sabha</div>
+                </div>
+                <label class="email-toggle-wrap">
+                  <input type="checkbox" id="toggleAutoSabhaAdmin" onchange="saveEmailToggle('autoAdminSabhaEnabled', this.checked)">
+                  <span class="email-toggle-track"></span>
+                </label>
+              </div>
+
+              <!-- Toggle 5: Post-Sabha to Moderators -->
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:var(--surface);border-radius:14px;border:1.5px solid #E8E4DD">
+                <div style="flex:1">
+                  <div style="font-size:0.88rem;font-weight:700;color:var(--ink)">👁️ Sabha Report → Moderators</div>
+                  <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Sends volunteer-wise present/absent ratios to moderators after Sabha ends</div>
+                </div>
+                <label class="email-toggle-wrap">
+                  <input type="checkbox" id="toggleAutoSabhaMod" onchange="saveEmailToggle('autoModSabhaEnabled', this.checked)">
+                  <span class="email-toggle-track"></span>
+                </label>
+              </div>
+            </div>
+            <div id="emailToggleSaveMsg" style="display:none;font-size:0.78rem;padding:6px 12px;border-radius:8px;margin-top:10px"></div>
           </div>
-        </div>
 
-        <!-- Tips Card -->
-        <div class="contact-card" style="padding:16px 18px;border-left:4px solid var(--yellow)">
-          <div style="font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:800;margin-bottom:8px">💡 Tips</div>
-          <div style="font-size:0.8rem;color:var(--muted);line-height:1.7">
-            • Use <strong>*bold text*</strong> in WhatsApp messages by wrapping with asterisks.<br>
-            • The link field can be a direct image URL (flyer) or an event registration page.<br>
-            • Volunteers can tap the WA button to send — the message auto-fills with the contact's real name, mandal, and area.<br>
-            • Changes take effect for all volunteers immediately after saving.
+          <!-- MANUAL SEND — PRE-SABHA DAILY REPORT -->
+          <div class="contact-card" style="padding:20px;margin-top:8px">
+            <div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;margin-bottom:4px">📞 Send Daily Calling Report</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">Send today's calling stats report now (same as the automated 10 PM report).</div>
+            <div class="flex flex-col gap-3">
+              <div class="input-group">
+                <div class="input-group-label">Send To</div>
+                <select id="emailDailyRecipient" class="styled-select">
+                  <option value="">— Select Recipients —</option>
+                  <option value="allAdmins">All Admins</option>
+                  <option value="allMods">All Moderators</option>
+                  <option value="allVols">All Active Volunteers (individual reports)</option>
+                  <optgroup id="emailIndivAdminGroup" label="-- Individual Admins --"></optgroup>
+                  <optgroup id="emailIndivModGroup" label="-- Individual Moderators --"></optgroup>
+                  <optgroup id="emailIndivVolGroup" label="-- Individual Volunteers --"></optgroup>
+                </select>
+              </div>
+              <button onclick="sendManualDailyEmail()" class="btn btn-primary">
+                <span id="emailDailySendBtnText">📧 Send Daily Report Now</span>
+              </button>
+              <div id="emailDailySendMsg" style="display:none;font-size:0.82rem;padding:8px 12px;border-radius:10px"></div>
+            </div>
+          </div>
+
+          <!-- MANUAL SEND — POST-SABHA VOLUNTEER APPRECIATION -->
+          <div class="contact-card" style="padding:20px;margin-top:8px">
+            <div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;margin-bottom:4px">🙏 Send Sabha Appreciation Email</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">Send personalized appreciation emails to volunteers (+ admin/mod reports) for a selected Sabha.</div>
+            <div class="flex flex-col gap-3">
+              <div class="input-group">
+                <div class="input-group-label">Select Sabha</div>
+                <select id="emailSabhaSelect" class="styled-select">
+                  <option value="">— Select Sabha —</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <div class="input-group-label">Send To</div>
+                <select id="emailSabhaRecipient" class="styled-select">
+                  <option value="all">All (Volunteers + Admin + Moderators)</option>
+                  <option value="allVols">All Active Volunteers Only</option>
+                  <option value="allAdmins">All Admins Only</option>
+                  <option value="allMods">All Moderators Only</option>
+                  <optgroup id="emailSabhaAdminGroup" label="-- Individual Admins --"></optgroup>
+                  <optgroup id="emailSabhaModGroup" label="-- Individual Moderators --"></optgroup>
+                  <optgroup id="emailSabhaVolGroup" label="-- Individual Volunteers --"></optgroup>
+                </select>
+              </div>
+              <button onclick="sendManualSabhaEmail()" class="btn btn-purple">
+                <span id="emailSabhaSendBtnText">🙏 Send Sabha Appreciation Now</span>
+              </button>
+              <div id="emailSabhaSendMsg" style="display:none;font-size:0.82rem;padding:8px 12px;border-radius:10px"></div>
+            </div>
+          </div>
+
+          <!-- INFO CARD -->
+          <div class="contact-card" style="padding:16px 18px;border-left:4px solid var(--saffron);margin-top:8px">
+            <div style="font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:800;margin-bottom:8px">⚠️ Backend Setup Required</div>
+            <div style="font-size:0.78rem;color:var(--muted);line-height:1.8">
+              For fully automated emails to work, you must also run <code style="background:var(--surface);padding:1px 6px;border-radius:4px;font-size:0.76rem">setupDailyTrigger()</code> once in the Google Apps Script editor. This creates the 10 PM daily cron job.<br><br>
+              For post-Sabha automation, call <code style="background:var(--surface);padding:1px 6px;border-radius:4px;font-size:0.76rem">triggerSabhaEmail(sabhaCol)</code> from the backend after each Sabha ends.
+              You can test everything using the manual send buttons above.
+            </div>
           </div>
         </div>
       </div>
@@ -3488,6 +3676,11 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span id="allContactsTotalBadge" style="font-size:0.75rem;font-weight:600;background:var(--purple-bg);color:var(--purple-fg);padding:4px 12px;border-radius:99px"></span>
           <span id="allContactsFilterBadge" style="font-size:0.75rem;font-weight:600;background:var(--area-bg);color:var(--area-fg);padding:4px 12px;border-radius:99px;display:none"></span>
+          <button onclick="openAdminAddContactModal()" id="adminAddContactBtn"
+            style="display:flex;align-items:center;gap:6px;background:var(--purple-bg);border:1.5px solid var(--purple);color:var(--purple-fg);border-radius:10px;padding:6px 14px;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap"
+            title="Add a new contact directly to the contact sheet">
+            ➕ Add New Contact
+          </button>
           <button onclick="doRebuildIds()" id="rebuildIdsBtn"
             style="margin-left:auto;display:flex;align-items:center;gap:6px;background:#FFF7ED;border:1.5px solid #F97316;color:#C2410C;border-radius:10px;padding:6px 14px;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap"
             title="Recalculate all Member IDs using the formula: Serial-AreaCode-MandalCode-Last4Phone">
@@ -3577,6 +3770,7 @@
         <button class="tab-btn" onclick="switchModTab('sabhas')">🙏 Sabha</button>
         <button class="tab-btn" onclick="switchModTab('contacts')">👤 Contacts</button>
         <button class="tab-btn" onclick="switchModTab('activity')">⚡ Activity</button>
+        <button class="tab-btn" onclick="switchModTab('message')">📧 Message</button>
       </div>
 
       <!-- ── MOD: Overview Tab ── -->
@@ -3784,8 +3978,8 @@
             </div>
           </div>
           <div style="display:flex;gap:8px;margin-top:10px">
-            <button onclick="applyModActivityFilter()" class="btn btn-primary" style="flex:1;padding:10px;font-size:0.85rem">Apply Filters</button>
-            <button onclick="clearModActivityFilter()" class="btn btn-outline" style="flex:none;padding:10px 16px;font-size:0.85rem">Clear</button>
+            <button onclick="applyModActivityFilter()" class="btn btn-primary" style="flex:0 0 50%;padding:10px;font-size:0.85rem">Apply Filters</button>
+            <button onclick="clearModActivityFilter()" class="btn btn-outline" style="flex:0 0 50%;padding:10px;font-size:0.85rem">Clear</button>
           </div>
           <div id="modActFilterChips" style="display:none;margin-top:10px;flex-wrap:wrap;gap:6px"></div>
         </div>
@@ -3812,9 +4006,64 @@
           <div id="modActPagination" style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap"></div>
         </div>
       </div>
+
+      <!-- ── MOD: Message Tab ── -->
+      <div id="modTabMessage" class="flex flex-col gap-4 fade-in" style="display:none!important">
+        <div class="admin-section-title">📧 Email Automation</div>
+        <div style="font-size:0.82rem;color:var(--muted);margin-top:-8px">Send emails to volunteers and admins. Automated emails are controlled by the Admin panel.</div>
+
+        <!-- Send Sabha Appreciation -->
+        <div class="contact-card" style="padding:20px">
+          <div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;margin-bottom:4px">🙏 Send Sabha Appreciation Email</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">Send post-Sabha appreciation emails to volunteers for a selected Sabha.</div>
+          <div class="flex flex-col gap-3">
+            <div class="input-group">
+              <div class="input-group-label">Select Sabha</div>
+              <select id="modEmailSabhaSelect" class="styled-select">
+                <option value="">— Select Sabha —</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <div class="input-group-label">Send To</div>
+              <select id="modEmailSabhaRecipient" class="styled-select">
+                <option value="allVols">👤 All Active Volunteers</option>
+                <option value="allAdmins">📋 All Admins</option>
+                <option value="allMods">👁️ All Moderators</option>
+                <optgroup id="modEmailSabhaAdminGroup" label="── Individual Admins ──"></optgroup>
+                <optgroup id="modEmailSabhaModGroup" label="── Individual Moderators ──"></optgroup>
+                <optgroup id="modEmailSabhaVolGroup" label="── Individual Volunteers ──"></optgroup>
+              </select>
+            </div>
+            <button onclick="modSendSabhaEmail()" class="btn btn-purple">
+              <span id="modEmailSabhaSendTxt">🙏 Send Sabha Email Now</span>
+            </button>
+            <div id="modEmailSabhaMsg" style="display:none;font-size:0.82rem;padding:8px 12px;border-radius:10px"></div>
+          </div>
+        </div>
+
+        <!-- Send Daily Report -->
+        <div class="contact-card" style="padding:20px">
+          <div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;margin-bottom:4px">📞 Send Daily Calling Report</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">Trigger today's calling report to selected recipients.</div>
+          <div class="flex flex-col gap-3">
+            <div class="input-group">
+              <div class="input-group-label">Send To</div>
+              <select id="modEmailDailyRecipient" class="styled-select">
+                <option value="allMods">👁️ All Moderators</option>
+                <option value="allAdmins">📋 All Admins</option>
+                <option value="allVols">👥 All Active Volunteers</option>
+                <optgroup id="modEmailIndivVolGroup" label="── Individual Volunteers ──"></optgroup>
+              </select>
+            </div>
+            <button onclick="modSendDailyEmail()" class="btn btn-primary">
+              <span id="modEmailDailySendTxt">📧 Send Daily Report Now</span>
+            </button>
+            <div id="modEmailDailyMsg" style="display:none;font-size:0.82rem;padding:8px 12px;border-radius:10px"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-  <!-- ══ END MODERATOR SCREEN ══ -->
   <div id="contactEditOverlay" class="confirm-overlay" onclick="if(event.target===this)closeContactEditModal()" style="display:none;z-index:600">
     <div class="modal-sheet" style="width:100%;max-width:520px;max-height:92dvh;overflow-y:auto;border-radius:24px;padding:0">
       <div style="position:sticky;top:0;z-index:10;background:var(--card);border-radius:24px 24px 0 0;padding:16px 20px 12px;border-bottom:1px solid #EDE9E2;display:flex;align-items:center;justify-content:space-between">
@@ -3991,6 +4240,70 @@
           <span id="amSubmitText">Add &amp; Mark Present ✅</span>
         </button>
         <button onclick="closeAddMemberModal()" class="btn btn-outline">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Admin: Add New Contact Modal ───────────────────────────────── -->
+  <div id="adminAddContactModal" class="modal-overlay" onclick="if(event.target===this)closeAdminAddContactModal()">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">➕ Add New Contact</div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:16px;margin-top:-8px">Add a new person directly to the contact sheet.</div>
+      <div id="acIdPreview" style="display:none;background:var(--purple-bg);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;">
+        <div style="font-size:0.65rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--purple-fg);margin-bottom:2px">Generated Member ID</div>
+        <div id="acIdValue" style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:var(--purple-fg)">—</div>
+      </div>
+      <div class="flex flex-col gap-3">
+        <div class="input-group">
+          <div class="input-group-label">Full Name <span style="color:var(--red)">*</span></div>
+          <input id="acName" class="styled-input" placeholder="Manish Kumawat" maxlength="100" />
+        </div>
+        <div class="input-group">
+          <div class="input-group-label">Phone <span style="color:var(--red)">*</span> <span style="color:var(--muted);font-size:0.68rem;text-transform:none;letter-spacing:0;font-weight:400">(10 digits)</span></div>
+          <input id="acPhone" type="tel" class="styled-input" placeholder="9511565884" maxlength="10"
+            oninput="this.value=this.value.replace(/\D/g,'').slice(0,10);updateAcId()" />
+        </div>
+        <div class="input-group">
+          <div class="input-group-label">Date of Birth <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:0.68rem">(optional)</span></div>
+          <input id="acDob" type="date" class="styled-input" />
+        </div>
+        <div class="input-group">
+          <div class="input-group-label">Study / Education <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:0.68rem">(optional)</span></div>
+          <input id="acStudy" class="styled-input" placeholder="e.g. B.Tech, 12th Science…" maxlength="100" />
+        </div>
+        <div class="input-group">
+          <div class="input-group-label">Profession <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:0.68rem">(optional)</span></div>
+          <input id="acProfession" class="styled-input" placeholder="e.g. Engineer, Teacher, Farmer…" maxlength="100" />
+        </div>
+        <div class="input-group">
+          <div class="input-group-label">Skill / Hobby <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:0.68rem">(optional)</span></div>
+          <input id="acSkill" class="styled-input" placeholder="e.g. Singing, Coding, Cooking…" maxlength="150" />
+        </div>
+        <div class="input-group">
+          <div class="input-group-label">Mandal <span style="color:var(--red)">*</span></div>
+          <select id="acMandal" class="styled-select" onchange="updateAcId()">
+            <option value="">— Select Mandal —</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <div class="input-group-label">Area <span style="color:var(--red)">*</span></div>
+          <select id="acArea" class="styled-select" onchange="updateAcId()">
+            <option value="">— Select Area —</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <div class="input-group-label">Complete Address <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:0.68rem">(optional)</span></div>
+          <input id="acAddress" class="styled-input" placeholder="House No., Street, Locality…" maxlength="250" />
+        </div>
+        <div class="input-group">
+          <div class="input-group-label">Note <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:0.68rem">(when/where met, description)</span></div>
+          <textarea id="acNote" class="styled-input" rows="2" placeholder="e.g. Met at Amer Sabha, enthusiastic about volunteering…" maxlength="400" style="resize:vertical;min-height:60px;"></textarea>
+        </div>
+        <button id="acSubmitBtn" class="btn btn-purple" onclick="doAdminAddContact()">
+          <span id="acSubmitText">Add Contact ✅</span>
+        </button>
+        <button onclick="closeAdminAddContactModal()" class="btn btn-outline">Cancel</button>
       </div>
     </div>
   </div>
@@ -6344,7 +6657,7 @@
     // ADMIN TABS
     // ══════════════════════════════════════════════════════════════════
     function switchTab(tab) {
-      const ALL_TABS = ['overview', 'volunteers', 'areas', 'sabhas', 'activity', 'assigning', 'contacts', 'message'];
+      const ALL_TABS = ['overview', 'volunteers', 'assigning', 'sabhas', 'message', 'contacts', 'areas', 'activity'];
       ALL_TABS.forEach(t => {
         const el = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
         if (el) el.style.display = t === tab ? '' : 'none';
@@ -6356,7 +6669,7 @@
       if (tab === 'assigning') refreshBatchTab();
       if (tab === 'contacts') initAllContactsTab();
       if (tab === 'activity') loadActivityLog();
-      if (tab === 'message') loadMsgTemplate();
+      if (tab === 'message') { loadMsgTemplate(); loadEmailSettings(); }
       if (tab === 'areas') {
         // Load allContacts if not yet loaded, for mandal stats
         if (!allContacts.length) {
@@ -7138,7 +7451,8 @@
     function renderBatchVolStats() {
       const el = document.getElementById('batchVolStats');
       if (!el) return;
-      const vols = adminData?.volunteers || [];
+      const allVols = adminData?.volunteers || [];
+      const vols = allVols.filter(v => !v.role || v.role.toLowerCase() !== 'moderator');
       if (!vols.length) {
         el.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:10px">No volunteers loaded. Refresh the dashboard first.</div>';
         return;
@@ -7213,6 +7527,83 @@
       if (acAreaFilter) areaSelect.value = acAreaFilter;
       acPage = 0;
       renderAllContacts();
+    }
+
+    // ── Admin: Add New Contact to Sheet ─────────────────────────────
+    function openAdminAddContactModal() {
+      ['acName','acPhone','acDob','acStudy','acProfession','acSkill','acAddress','acNote'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+      });
+      document.getElementById('acIdPreview').style.display = 'none';
+      const mandalSel = document.getElementById('acMandal');
+      const areaSel = document.getElementById('acArea');
+      mandalSel.innerHTML = '<option value="">— Select Mandal —</option>';
+      areaSel.innerHTML = '<option value="">— Select Area —</option>';
+      (adminData?.mandals || amMandalOptions || []).forEach(m => {
+        const val = typeof m === 'object' ? `${m.name}|${m.code||''}` : m;
+        const label = typeof m === 'object' ? m.name : m;
+        mandalSel.innerHTML += `<option value="${val}">${label}</option>`;
+      });
+      // Default to Yuvak Mandal
+      const defMandal = Array.from(mandalSel.options).find(o => o.text.toLowerCase() === DEFAULT_MANDAL_NAME.toLowerCase());
+      if (defMandal) { mandalSel.value = defMandal.value; }
+      (adminData?.areas || amAreaOptions || []).forEach(a => {
+        const val = typeof a === 'object' ? `${a.name}|${a.code||''}` : a;
+        const label = typeof a === 'object' ? a.name : a;
+        areaSel.innerHTML += `<option value="${val}">${label}</option>`;
+      });
+      document.getElementById('adminAddContactModal').classList.add('open');
+    }
+    function closeAdminAddContactModal() {
+      document.getElementById('adminAddContactModal').classList.remove('open');
+    }
+    function updateAcId() {
+      const phone = document.getElementById('acPhone').value.trim();
+      const mandalFull = document.getElementById('acMandal').value;
+      const areaFull = document.getElementById('acArea').value;
+      if (phone.length === 10 && mandalFull && areaFull) {
+        const id = generateMemberId(phone, mandalFull, areaFull);
+        if (id) { document.getElementById('acIdValue').textContent = id; document.getElementById('acIdPreview').style.display = 'block'; return; }
+      }
+      document.getElementById('acIdPreview').style.display = 'none';
+    }
+    async function doAdminAddContact() {
+      const name = document.getElementById('acName').value.trim();
+      const phone = document.getElementById('acPhone').value.trim();
+      const mandalFull = document.getElementById('acMandal').value;
+      const areaFull = document.getElementById('acArea').value;
+      const mandal = mandalFull ? mandalFull.split('|')[0] : '';
+      const area = areaFull ? areaFull.split('|')[0] : '';
+      if (!name) { showToast('Full Name is required', 'error'); return; }
+      if (!phone || phone.length !== 10) { showToast('Phone must be exactly 10 digits', 'error'); return; }
+      if (!mandalFull) { showToast('Please select a Mandal', 'error'); return; }
+      if (!areaFull) { showToast('Please select an Area', 'error'); return; }
+      const generatedId = generateMemberId(phone, mandalFull, areaFull);
+      const btn = document.getElementById('acSubmitBtn'), txt = document.getElementById('acSubmitText');
+      btn.disabled = true; txt.innerHTML = '<span class="spinner"></span> Adding…';
+      const contactData = {
+        Name: name, Phone: phone, Mandal: mandal, Area: area,
+        DOB: document.getElementById('acDob').value || '',
+        Study: document.getElementById('acStudy').value.trim() || '',
+        Profession: document.getElementById('acProfession').value.trim() || '',
+        Skill: document.getElementById('acSkill').value.trim() || '',
+        Complete_Address: document.getElementById('acAddress').value.trim() || '',
+        Note: document.getElementById('acNote').value.trim() || '',
+        GeneratedID: generatedId || ''
+      };
+      try {
+        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'addContactAndMark', contactData, columnName: '__skip__', volName: currentUser.name }) });
+        const fakeId = generatedId || 'LOCAL_' + Date.now();
+        if (typeof allContacts !== 'undefined') allContacts.unshift({ ID: fakeId, Name: name, Phone: phone, Mandal: mandal, Area: area });
+        if (typeof renderAllContacts === 'function') { acPage = 0; renderAllContacts(); }
+        closeAdminAddContactModal();
+        showToast(`${name} added to contact sheet! ID: ${fakeId}`, 'purple');
+      } catch (e) {
+        showToast('Failed to add contact. Try again.', 'error');
+      } finally {
+        btn.disabled = false; txt.innerHTML = 'Add Contact ✅';
+      }
     }
 
     // ── Search input handler ─────────────────────────────────────────
@@ -7727,7 +8118,7 @@
     // MODERATOR — TAB SWITCHING
     // ══════════════════════════════════════════════════════════════════
     function switchModTab(tab) {
-      const ALL = ['overview','volunteers','assigning','sabhas','contacts','activity'];
+      const ALL = ['overview','volunteers','assigning','sabhas','contacts','activity','message'];
       ALL.forEach(t => {
         const el = document.getElementById(`modTab${t.charAt(0).toUpperCase() + t.slice(1)}`);
         if (el) el.style.display = t === tab ? '' : 'none';
@@ -7739,6 +8130,7 @@
       if (tab === 'contacts')  initModAllContactsTab();
       if (tab === 'activity')  loadModActivityLog();
       if (tab === 'assigning') modRefreshBatchTab();
+      if (tab === 'message')   loadModEmailPanel();
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -7776,26 +8168,22 @@
       });
       document.getElementById('modOverviewChart').innerHTML = `<div class="donut-wrap"><svg width="130" height="130" viewBox="0 0 130 130">${arcs}<text x="${CX}" y="${CY-6}" text-anchor="middle" font-family="Syne,sans-serif" font-weight="800" font-size="18" fill="var(--ink)">${pct}%</text><text x="${CX}" y="${CY+12}" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="var(--muted)">Done</text></svg><div class="donut-legend">${leg}</div></div>`;
 
-      // Status breakdown
-      const rows = [['called','Called',called], ['Interested','Interested',interested], ['uncalled','Uncalled',uncalled],
-        ...Object.entries(S).sort((a,b)=>b[1]-a[1]).map(([s,v])=>[s,s,v])];
+      // Status breakdown — same style as admin overview
+      const modOverviewPct = total ? Math.round((called / total) * 100) : 0;
       const uniqueRows = Object.entries(S).sort((a,b)=>b[1]-a[1]);
-      document.getElementById('modOverviewBreakdown').innerHTML = uniqueRows.map(([s,v])=>{
-        const pct2 = total ? Math.round((v/total)*100) : 0;
-        const displayS = s === 'Not Interested' ? 'Not Joining' : s;
-        return `<div class="area-row" onclick="modFilterByStatus('${esc(s)}')" style="cursor:pointer">
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-              <span style="font-size:0.82rem;font-weight:600">${esc(displayS)}</span>
-              <span style="font-size:0.75rem;color:var(--muted)">${v} · ${pct2}%</span>
-            </div>
-            <div class="vol-progress-wrap"><div class="vol-progress-bar" style="width:${pct2}%;background:${statusColor(s)}"></div></div>
-          </div>
-        </div>`;
-      }).join('') + `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-        <button onclick="modFilterByStatus('all')" class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:0.78rem">Show All</button>
-        <button onclick="document.getElementById('modFilteredPanel').style.display='none'" class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:0.78rem">Close</button>
-      </div>`;
+      const modBreakdownRows = uniqueRows.map(([s, n]) => {
+        const bp = total ? Math.round((n / total) * 100) : 0;
+        return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F0EDE8;cursor:pointer" onclick="modFilterByStatus('${s.replace(/'/g, "\\'")}')">
+      <span class="pill ${spc(s)}" style="min-width:130px;text-align:center">${esc(s)}</span>
+      <div style="flex:1;height:6px;background:#EDE9E2;border-radius:99px;overflow:hidden"><div style="height:100%;width:${bp}%;background:var(--saffron);border-radius:99px;transition:width 0.5s"></div></div>
+      <span style="font-weight:700;font-size:0.82rem;min-width:32px;text-align:right">${n}</span>
+    </div>`;
+      }).join('');
+      document.getElementById('modOverviewBreakdown').innerHTML = `
+    <div style="margin-bottom:12px"><div class="field-label" style="margin-bottom:6px">Overall Progress · ${modOverviewPct}%</div>
+    <div class="vol-progress-wrap"><div class="vol-progress-bar" style="width:${modOverviewPct}%;background:${modOverviewPct >= 100 ? 'var(--green)' : modOverviewPct >= 50 ? 'var(--saffron)' : '#F5A623'}"></div></div>
+    <div style="font-size:0.75rem;color:var(--muted);margin-top:4px">${called} called · ${total - called} remaining</div></div>
+    <div>${modBreakdownRows || '<div style="color:var(--muted);font-size:0.85rem">No data yet.</div>'}</div>`;
     }
 
     function modFilterByStatus(status) {
@@ -8358,8 +8746,8 @@
 
     function openModAddContactModal() {
       // Build a dedicated modal for adding a contact directly (no Sabha marking)
-      const areaOpts = amAreaOptions.map(a=>`<option value="${esc(a.name)}">${esc(a.name)}</option>`).join('');
-      const mandalOpts = amMandalOptions.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('');
+      const areaOpts = amAreaOptions.map(a=>`<option value="${esc(a.name)}|${esc(a.code||'')}">${esc(a.name)}</option>`).join('');
+      const mandalOpts = amMandalOptions.map(m=>`<option value="${esc(m.name)}|${esc(m.code||'')}">${esc(m.name)}</option>`).join('');
       // Create/reuse a mod-add-contact overlay
       let overlay = document.getElementById('modAddContactOverlay');
       if (!overlay) {
@@ -8381,13 +8769,14 @@
           </div>
           <div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
             <div class="input-group"><div class="input-group-label">Full Name <span style="color:var(--red)">*</span></div><input id="macName" class="styled-input" placeholder="Full name" maxlength="100"/></div>
-            <div class="input-group"><div class="input-group-label">Phone <span style="color:var(--red)">*</span></div><input id="macPhone" class="styled-input" type="tel" placeholder="10-digit phone" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/\\D/g,'')"/></div>
+            <div class="input-group"><div class="input-group-label">Phone <span style="color:var(--red)">*</span></div><input id="macPhone" class="styled-input" type="tel" placeholder="10-digit phone" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/\\D/g,'');updateMacId()"/></div>
             <div class="input-group"><div class="input-group-label">Date of Birth</div><input id="macDob" class="styled-input" type="date"/></div>
             <div class="input-group"><div class="input-group-label">Study</div><input id="macStudy" class="styled-input" placeholder="e.g. B.Com" maxlength="100"/></div>
             <div class="input-group"><div class="input-group-label">Profession</div><input id="macProfession" class="styled-input" placeholder="e.g. Engineer" maxlength="100"/></div>
             <div class="input-group"><div class="input-group-label">Skill</div><input id="macSkill" class="styled-input" placeholder="e.g. Music" maxlength="100"/></div>
-            <div class="input-group"><div class="input-group-label">Mandal</div><select id="macMandal" class="styled-select"><option value="">— Select Mandal —</option>${mandalOpts}</select></div>
-            <div class="input-group"><div class="input-group-label">Area</div><select id="macArea" class="styled-select"><option value="">— Select Area —</option>${areaOpts}</select></div>
+            <div class="input-group"><div class="input-group-label">Mandal</div><select id="macMandal" class="styled-select" onchange="updateMacId()"><option value="">— Select Mandal —</option>${mandalOpts}</select></div>
+            <div class="input-group"><div class="input-group-label">Area</div><select id="macArea" class="styled-select" onchange="updateMacId()"><option value="">— Select Area —</option>${areaOpts}</select></div>
+            <div id="macIdPreview" style="display:none;background:var(--purple-bg);border-radius:12px;padding:10px 14px;font-size:0.82rem;"><div style="font-size:0.65rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--purple-fg);margin-bottom:2px">Generated Member ID</div><div id="macIdValue" style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:var(--purple-fg)">—</div></div>
             <div class="input-group"><div class="input-group-label">Complete Address</div><input id="macAddress" class="styled-input" placeholder="Full address" maxlength="250"/></div>
             <div class="input-group"><div class="input-group-label">Note</div><input id="macNote" class="styled-input" placeholder="Any note" maxlength="300"/></div>
             <div id="macError" style="display:none;background:#FDECEA;color:var(--red);padding:10px 14px;border-radius:12px;font-size:0.82rem;font-weight:600"></div>
@@ -8408,6 +8797,20 @@
       }
     }
 
+    function updateMacId() {
+      const phone = document.getElementById('macPhone')?.value.trim() || '';
+      const mandalFull = document.getElementById('macMandal')?.value || '';
+      const areaFull = document.getElementById('macArea')?.value || '';
+      const preview = document.getElementById('macIdPreview');
+      const valEl = document.getElementById('macIdValue');
+      if (!preview || !valEl) return;
+      if (phone.length === 10 && mandalFull && areaFull) {
+        const id = generateMemberId(phone, mandalFull, areaFull);
+        if (id) { valEl.textContent = id; preview.style.display = 'block'; return; }
+      }
+      preview.style.display = 'none';
+    }
+
     async function doModAddContact() {
       const name       = document.getElementById('macName')?.value.trim();
       const phone      = document.getElementById('macPhone')?.value.trim();
@@ -8415,8 +8818,10 @@
       const study      = document.getElementById('macStudy')?.value.trim() || '';
       const profession = document.getElementById('macProfession')?.value.trim() || '';
       const skill      = document.getElementById('macSkill')?.value.trim() || '';
-      const mandal     = document.getElementById('macMandal')?.value || '';
-      const area       = document.getElementById('macArea')?.value || '';
+      const mandalFull = document.getElementById('macMandal')?.value || '';
+      const areaFull   = document.getElementById('macArea')?.value || '';
+      const mandal     = mandalFull.split('|')[0];
+      const area       = areaFull.split('|')[0];
       const address    = document.getElementById('macAddress')?.value.trim() || '';
       const note       = document.getElementById('macNote')?.value.trim() || '';
       const errEl      = document.getElementById('macError');
@@ -8426,6 +8831,7 @@
       if (!name) { errEl.textContent = '❌ Name is required.'; errEl.style.display='block'; return; }
       if (!phone || !/^\d{10}$/.test(phone)) { errEl.textContent = '❌ Phone must be exactly 10 digits.'; errEl.style.display='block'; return; }
 
+      const generatedId = generateMemberId(phone, mandalFull, areaFull);
       saveTxt.innerHTML = '<span class="spinner"></span> Adding…';
       try {
         // Use addContactAndMark with columnName='__skip__' — no header will match so no Sabha mark happens
@@ -8434,12 +8840,13 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'addContactAndMark',
-            contactData: { Name:name, Phone:phone, DOB:dob, Study:study, Profession:profession, Skill:skill, Mandal:mandal, Area:area, Complete_Address:address, Note:note },
+            contactData: { Name:name, Phone:phone, DOB:dob, Study:study, Profession:profession, Skill:skill, Mandal:mandal, Area:area, Complete_Address:address, Note:note, GeneratedID:generatedId||'' },
             columnName: '__skip__',
             volName: currentUser?.name || ''
           })
         });
-        showToast('✅ Contact added!', 'success');
+        const fakeId = generatedId || 'LOCAL_' + Date.now();
+        showToast(`${name} added! ID: ${fakeId}`, 'purple');
         document.getElementById('modAddContactOverlay').style.display = 'none';
         // Refresh contacts list
         await new Promise(r=>setTimeout(r,3000));
@@ -8597,6 +9004,254 @@
       const startP=Math.max(0,modActPage-2),endP=Math.min(totalPages-1,startP+4);
       for(let p=startP;p<=endP;p++)pagEl.appendChild(mkBtn(p+1,p,false,p===modActPage));
       pagEl.appendChild(mkBtn('Next →',modActPage+1,modActPage>=totalPages-1,false));
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // EMAIL AUTOMATION — FRONTEND
+    // ══════════════════════════════════════════════════════════════════
+    let emailPeopleCache = null;   // { admins, moderators, volunteers }
+    let emailSettingsCache = {};
+
+    // ── Sub-tab switcher for Message tab ──────────────────────────────
+    function switchMsgSubTab(which) {
+      document.getElementById('msgPanelWA').style.display    = which === 'wa'    ? '' : 'none';
+      document.getElementById('msgPanelEmail').style.display = which === 'email' ? '' : 'none';
+      const wa = document.getElementById('msgSubTabWA'), em = document.getElementById('msgSubTabEmail');
+      if (wa) { wa.style.background = which === 'wa' ? 'var(--card)' : 'transparent'; wa.style.color = which === 'wa' ? 'var(--ink)' : 'var(--muted)'; wa.style.boxShadow = which === 'wa' ? '0 2px 8px rgba(0,0,0,0.07)' : 'none'; }
+      if (em) { em.style.background = which === 'email' ? 'var(--card)' : 'transparent'; em.style.color = which === 'email' ? 'var(--ink)' : 'var(--muted)'; em.style.boxShadow = which === 'email' ? '0 2px 8px rgba(0,0,0,0.07)' : 'none'; }
+      if (which === 'email') loadEmailPanel();
+    }
+
+    // ── Load email settings toggles + populate dropdowns ─────────────
+    async function loadEmailSettings() {
+      try {
+        const [settRes, peopleRes] = await Promise.all([
+          fetch(`${SCRIPT_URL}?action=getEmailSettings`),
+          fetch(`${SCRIPT_URL}?action=getVolunteersForEmail`)
+        ]);
+        const sd = await settRes.json();
+        const pd = await peopleRes.json();
+        emailSettingsCache = sd.settings || {};
+        emailPeopleCache   = pd;
+
+        // Apply toggles
+        const toggleMap = {
+          'toggleAutoAdmin':    'autoAdminEnabled',
+          'toggleAutoVol':      'autoVolEnabled',
+          'toggleAutoSabhaVol': 'autoPostSabhaEnabled',
+          'toggleAutoSabhaAdmin':'autoAdminSabhaEnabled',
+          'toggleAutoSabhaMod': 'autoModSabhaEnabled',
+        };
+        Object.entries(toggleMap).forEach(([id, key]) => {
+          const el = document.getElementById(id);
+          if (el) el.checked = emailSettingsCache[key] === 'true';
+        });
+      } catch(e) { console.error('loadEmailSettings error', e); }
+    }
+
+    async function loadEmailPanel() {
+      await loadEmailSettings();
+      // FIX Issue 2: fetch events fresh if cache is empty (user may not have opened Sabhas tab yet)
+      if (!eventsCache.length) {
+        try {
+          const res = await fetch(`${SCRIPT_URL}?action=getEvents`);
+          const d = await res.json();
+          eventsCache = d.events || [];
+        } catch(e) { console.error('loadEmailPanel: failed to fetch events', e); }
+      }
+      populateEmailDropdowns();
+    }
+
+    function populateEmailDropdowns() {
+      if (!emailPeopleCache) return;
+      const { admins = [], moderators = [], volunteers = [] } = emailPeopleCache;
+
+      // Admin daily report dropdown
+      const ag = document.getElementById('emailIndivAdminGroup');
+      const mg = document.getElementById('emailIndivModGroup');
+      const vg = document.getElementById('emailIndivVolGroup');
+      if (ag) { ag.innerHTML = ''; admins.forEach(a => { const o = document.createElement('option'); o.value = a.email; o.textContent = `${a.name} (${a.email})`; ag.appendChild(o); }); }
+      if (mg) { mg.innerHTML = ''; moderators.forEach(m => { const o = document.createElement('option'); o.value = m.email; o.textContent = `${m.name} (${m.email})`; mg.appendChild(o); }); }
+      if (vg) { vg.innerHTML = ''; volunteers.forEach(v => { const o = document.createElement('option'); o.value = v.email; o.textContent = `${v.name} (${v.email})`; vg.appendChild(o); }); }
+
+      // Sabha select — FIX Issue 2: filter to last 1 year
+      const ss = document.getElementById('emailSabhaSelect');
+      if (ss) {
+        const oneYearAgo = new Date(); oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        const oneYearAgoStr = oneYearAgo.toISOString().slice(0, 10);
+        const filteredEvents = eventsCache.filter(ev => (ev.date || '') >= oneYearAgoStr);
+        ss.innerHTML = '<option value="">— Select Sabha —</option>';
+        filteredEvents.forEach(ev => {
+          const o = document.createElement('option'); o.value = ev.columnName;
+          o.textContent = `${ev.title} (${ev.date || ev.columnName})`; ss.appendChild(o);
+        });
+        if (!filteredEvents.length && eventsCache.length) {
+          // fallback: show all if none found in last year
+          eventsCache.forEach(ev => {
+            const o = document.createElement('option'); o.value = ev.columnName;
+            o.textContent = `${ev.title} (${ev.date || ev.columnName})`; ss.appendChild(o);
+          });
+        }
+      }
+      // Sabha volunteer dropdown
+      const svg = document.getElementById('emailSabhaVolGroup');
+      if (svg) { svg.innerHTML = ''; volunteers.forEach(v => { const o = document.createElement('option'); o.value = v.email; o.textContent = `${v.name} (${v.email})`; svg.appendChild(o); }); }
+      const sag = document.getElementById('emailSabhaAdminGroup');
+      if (sag) { sag.innerHTML = ''; admins.forEach(a => { const o = document.createElement('option'); o.value = a.email; o.textContent = `${a.name} (${a.email})`; sag.appendChild(o); }); }
+      const smg = document.getElementById('emailSabhaModGroup');
+      if (smg) { smg.innerHTML = ''; moderators.forEach(m => { const o = document.createElement('option'); o.value = m.email; o.textContent = `${m.name} (${m.email})`; smg.appendChild(o); }); }
+    }
+
+    // ── Save toggle setting to backend ────────────────────────────────
+    async function saveEmailToggle(key, val) {
+      const msg = document.getElementById('emailToggleSaveMsg');
+      try {
+        const res = await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ action: 'saveEmailSettings', settings: { [key]: String(val) } }) });
+        emailSettingsCache[key] = String(val);
+        if (msg) { msg.style.display = ''; msg.style.background = '#D4EDDA'; msg.style.color = '#156D3E'; msg.textContent = '✅ Setting saved!'; setTimeout(() => { if(msg) msg.style.display='none'; }, 2500); }
+      } catch(e) {
+        if (msg) { msg.style.display = ''; msg.style.background = '#FDECEA'; msg.style.color = '#C0392B'; msg.textContent = '❌ Failed to save setting.'; setTimeout(() => { if(msg) msg.style.display='none'; }, 3000); }
+      }
+    }
+
+    // ── Send Manual Daily Email ───────────────────────────────────────
+    async function sendManualDailyEmail() {
+      const btn  = document.getElementById('emailDailySendBtnText');
+      const msg  = document.getElementById('emailDailySendMsg');
+      const sel  = document.getElementById('emailDailyRecipient');
+      const sendTo = sel ? sel.value : '';
+      if (!sendTo) { if(msg){msg.style.display='';msg.style.background='#FDECEA';msg.style.color='#C0392B';msg.textContent='❌ Please select recipients.';} return; }
+      if (btn) btn.textContent = '⏳ Sending…';
+      try {
+        let body = { action: 'sendManualEmail', emailType: 'dailyReport', sendTo };
+        // If individual recipient
+        if (!['allAdmins','allMods','allVols'].includes(sendTo)) {
+          body.sendTo = 'individual'; body.recipientEmail = sendTo;
+        }
+        await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        if (msg) { msg.style.display=''; msg.style.background='#D4EDDA'; msg.style.color='#156D3E'; msg.textContent='✅ Email sent! (Check inbox in a few minutes)'; }
+      } catch(e) {
+        if (msg) { msg.style.display=''; msg.style.background='#FDECEA'; msg.style.color='#C0392B'; msg.textContent='❌ Send failed. Check connection.'; }
+      } finally {
+        if (btn) btn.textContent = '📧 Send Daily Report Now';
+        setTimeout(() => { if(msg) msg.style.display='none'; }, 5000);
+      }
+    }
+
+    // ── Send Manual Sabha Email ───────────────────────────────────────
+    async function sendManualSabhaEmail() {
+      const btn     = document.getElementById('emailSabhaSendBtnText');
+      const msg     = document.getElementById('emailSabhaSendMsg');
+      const sabhaCol= (document.getElementById('emailSabhaSelect') || {}).value || '';
+      const sendTo  = (document.getElementById('emailSabhaRecipient') || {}).value || 'all';
+      if (!sabhaCol) { if(msg){msg.style.display='';msg.style.background='#FDECEA';msg.style.color='#C0392B';msg.textContent='❌ Please select a Sabha.';} return; }
+      if (btn) btn.textContent = '⏳ Sending…';
+      try {
+        await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ action:'sendManualEmail', emailType:'sabhaReport', sabhaCol, sendTo }) });
+        if (msg) { msg.style.display=''; msg.style.background='#D4EDDA'; msg.style.color='#156D3E'; msg.textContent='✅ Sabha emails sent! (Allow a few minutes for delivery)'; }
+      } catch(e) {
+        if (msg) { msg.style.display=''; msg.style.background='#FDECEA'; msg.style.color='#C0392B'; msg.textContent='❌ Send failed. Check connection.'; }
+      } finally {
+        if (btn) btn.textContent = '🙏 Send Sabha Appreciation Now';
+        setTimeout(() => { if(msg) msg.style.display='none'; }, 5000);
+      }
+    }
+
+    // ── Moderator email panel ─────────────────────────────────────────
+    async function loadModEmailPanel() {
+      try {
+        const pd = await fetch(`${SCRIPT_URL}?action=getVolunteersForEmail`).then(r => r.json());
+        emailPeopleCache = pd;
+        const { volunteers = [], admins = [], moderators = [] } = pd;
+
+        // FIX Issue 3: fetch events fresh if cache empty, then filter to last 1 month
+        if (!eventsCache.length) {
+          try {
+            const res = await fetch(`${SCRIPT_URL}?action=getEvents`);
+            const d = await res.json();
+            eventsCache = d.events || [];
+          } catch(e) { console.error('loadModEmailPanel: failed to fetch events', e); }
+        }
+
+        // Sabha select — filter to last 1 month
+        const ss = document.getElementById('modEmailSabhaSelect');
+        if (ss) {
+          const oneMonthAgo = new Date(); oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+          const oneMonthAgoStr = oneMonthAgo.toISOString().slice(0, 10);
+          const filteredEvents = eventsCache.filter(ev => (ev.date || '') >= oneMonthAgoStr);
+          ss.innerHTML = '<option value="">— Select Sabha —</option>';
+          filteredEvents.forEach(ev => {
+            const o = document.createElement('option'); o.value = ev.columnName;
+            o.textContent = `${ev.title} (${ev.date || ev.columnName})`; ss.appendChild(o);
+          });
+          if (!filteredEvents.length && eventsCache.length) {
+            // fallback: show all if none found in last month
+            eventsCache.forEach(ev => {
+              const o = document.createElement('option'); o.value = ev.columnName;
+              o.textContent = `${ev.title} (${ev.date || ev.columnName})`; ss.appendChild(o);
+            });
+          }
+        }
+
+        // Sabha recipient groups
+        const vg = document.getElementById('modEmailSabhaVolGroup');
+        if (vg) { vg.innerHTML = ''; volunteers.forEach(v => { const o = document.createElement('option'); o.value = v.email; o.textContent = `${v.name} (${v.email})`; vg.appendChild(o); }); }
+        const ag2 = document.getElementById('modEmailSabhaAdminGroup');
+        if (ag2) { ag2.innerHTML = ''; admins.forEach(a => { const o = document.createElement('option'); o.value = a.email; o.textContent = `${a.name} (${a.email})`; ag2.appendChild(o); }); }
+        const mg2 = document.getElementById('modEmailSabhaModGroup');
+        if (mg2) { mg2.innerHTML = ''; moderators.forEach(m => { const o = document.createElement('option'); o.value = m.email; o.textContent = `${m.name} (${m.email})`; mg2.appendChild(o); }); }
+
+        // FIX Issue 4: Daily report individual dropdown — populate admins, moderators AND volunteers
+        const dvg = document.getElementById('modEmailIndivVolGroup');
+        if (dvg) {
+          dvg.innerHTML = '';
+          // Add admins
+          admins.forEach(a => { const o = document.createElement('option'); o.value = a.email; o.textContent = `${a.name} — Admin (${a.email})`; dvg.appendChild(o); });
+          // Add moderators
+          moderators.forEach(m => { const o = document.createElement('option'); o.value = m.email; o.textContent = `${m.name} — Mod (${m.email})`; dvg.appendChild(o); });
+          // Add volunteers
+          volunteers.forEach(v => { const o = document.createElement('option'); o.value = v.email; o.textContent = `${v.name} (${v.email})`; dvg.appendChild(o); });
+        }
+      } catch(e) { console.error('loadModEmailPanel error', e); }
+    }
+
+    async function modSendSabhaEmail() {
+      const btn     = document.getElementById('modEmailSabhaSendTxt');
+      const msg     = document.getElementById('modEmailSabhaMsg');
+      const sabhaCol= (document.getElementById('modEmailSabhaSelect') || {}).value || '';
+      const sendTo  = (document.getElementById('modEmailSabhaRecipient') || {}).value || 'allVols';
+      if (!sabhaCol) { if(msg){msg.style.display='';msg.style.background='#FDECEA';msg.style.color='#C0392B';msg.textContent='❌ Please select a Sabha.';} return; }
+      if (btn) btn.textContent = '⏳ Sending…';
+      try {
+        await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ action:'sendManualEmail', emailType:'sabhaReport', sabhaCol, sendTo }) });
+        if (msg) { msg.style.display=''; msg.style.background='#D4EDDA'; msg.style.color='#156D3E'; msg.textContent='✅ Sabha emails sent!'; }
+      } catch(e) {
+        if (msg) { msg.style.display=''; msg.style.background='#FDECEA'; msg.style.color='#C0392B'; msg.textContent='❌ Send failed.'; }
+      } finally {
+        if (btn) btn.textContent = '🙏 Send Sabha Email Now';
+        setTimeout(() => { if(msg) msg.style.display='none'; }, 5000);
+      }
+    }
+
+    async function modSendDailyEmail() {
+      const btn    = document.getElementById('modEmailDailySendTxt');
+      const msg    = document.getElementById('modEmailDailyMsg');
+      const sendTo = (document.getElementById('modEmailDailyRecipient') || {}).value || 'allMods';
+      if (btn) btn.textContent = '⏳ Sending…';
+      try {
+        let body = { action:'sendManualEmail', emailType:'dailyReport', sendTo };
+        if (!['allAdmins','allMods','allVols'].includes(sendTo)) { body.sendTo = 'individual'; body.recipientEmail = sendTo; }
+        await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        if (msg) { msg.style.display=''; msg.style.background='#D4EDDA'; msg.style.color='#156D3E'; msg.textContent='✅ Daily report sent!'; }
+      } catch(e) {
+        if (msg) { msg.style.display=''; msg.style.background='#FDECEA'; msg.style.color='#C0392B'; msg.textContent='❌ Send failed.'; }
+      } finally {
+        if (btn) btn.textContent = '📧 Send Daily Report Now';
+        setTimeout(() => { if(msg) msg.style.display='none'; }, 5000);
+      }
     }
 
     // ── Patch doAddAndMark to support moderator Sabha col ────────────
