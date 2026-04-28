@@ -2558,6 +2558,17 @@
     .email-toggle-wrap input:checked + .email-toggle-track::after {
       transform: translateX(22px);
     }
+    .email-status-badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 99px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .email-status-badge.live { background: #D4EDDA; color: #156D3E; }
+    .email-status-badge.off  { background: #F0F0F0; color: #999; }
   </style>
 </head>
 
@@ -2947,6 +2958,7 @@
         <button class="tab-btn" onclick="switchTab('contacts')">👤 All Contacts</button>
         <button class="tab-btn" onclick="switchTab('areas')">📍 Area / Mandal</button>
         <button class="tab-btn" onclick="switchTab('activity')">⚡ Activity</button>
+        <button class="tab-btn" onclick="switchTab('birthdays')">🎂 Birthdays</button>
       </div>
 
       <div id="tabOverview" class="flex flex-col gap-4 fade-in">
@@ -3449,6 +3461,7 @@
                   <input type="checkbox" id="toggleAutoAdmin" onchange="saveEmailToggle('autoAdminEnabled', this.checked)">
                   <span class="email-toggle-track"></span>
                 </label>
+                <span class="email-status-badge off" id="badge_toggleAutoAdmin">OFF</span>
               </div>
 
               <!-- Toggle 2: Daily Report to Volunteers -->
@@ -3461,42 +3474,33 @@
                   <input type="checkbox" id="toggleAutoVol" onchange="saveEmailToggle('autoVolEnabled', this.checked)">
                   <span class="email-toggle-track"></span>
                 </label>
+                <span class="email-status-badge off" id="badge_toggleAutoVol">OFF</span>
               </div>
 
               <!-- Toggle 3: Post-Sabha Volunteer Appreciation -->
               <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:var(--surface);border-radius:14px;border:1.5px solid #E8E4DD">
                 <div style="flex:1">
                   <div style="font-size:0.88rem;font-weight:700;color:var(--ink)">🙏 Sabha Appreciation → Volunteers</div>
-                  <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Sends personalized appreciation email with contact attendance PDF to each volunteer 15 min after Sabha ends</div>
+                  <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Sends personalized appreciation email (no PDF) to each volunteer automatically 15 min after Sabha ends</div>
                 </div>
                 <label class="email-toggle-wrap">
                   <input type="checkbox" id="toggleAutoSabhaVol" onchange="saveEmailToggle('autoPostSabhaEnabled', this.checked)">
                   <span class="email-toggle-track"></span>
                 </label>
+                <span class="email-status-badge off" id="badge_toggleAutoSabhaVol">OFF</span>
               </div>
 
-              <!-- Toggle 4: Post-Sabha to Admins -->
+              <!-- Toggle 4: Post-Sabha to Admins & Moderators (merged) -->
               <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:var(--surface);border-radius:14px;border:1.5px solid #E8E4DD">
                 <div style="flex:1">
-                  <div style="font-size:0.88rem;font-weight:700;color:var(--ink)">🛡️ Sabha Report → Admins</div>
-                  <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Sends total present/absent stats with full attendance PDF to admins after Sabha</div>
+                  <div style="font-size:0.88rem;font-weight:700;color:var(--ink)">🛡️ Sabha Report → Admins &amp; Moderators</div>
+                  <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Sends total present/absent stats with full attendance PDF to admins and moderators automatically 15 min after Sabha ends</div>
                 </div>
                 <label class="email-toggle-wrap">
-                  <input type="checkbox" id="toggleAutoSabhaAdmin" onchange="saveEmailToggle('autoAdminSabhaEnabled', this.checked)">
+                  <input type="checkbox" id="toggleAutoSabhaAdminMod" onchange="saveEmailToggle('autoSabhaAdminModEnabled', this.checked)">
                   <span class="email-toggle-track"></span>
                 </label>
-              </div>
-
-              <!-- Toggle 5: Post-Sabha to Moderators -->
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:var(--surface);border-radius:14px;border:1.5px solid #E8E4DD">
-                <div style="flex:1">
-                  <div style="font-size:0.88rem;font-weight:700;color:var(--ink)">👁️ Sabha Report → Moderators</div>
-                  <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Sends volunteer-wise present/absent ratios to moderators after Sabha ends</div>
-                </div>
-                <label class="email-toggle-wrap">
-                  <input type="checkbox" id="toggleAutoSabhaMod" onchange="saveEmailToggle('autoModSabhaEnabled', this.checked)">
-                  <span class="email-toggle-track"></span>
-                </label>
+                <span class="email-status-badge off" id="badge_toggleAutoSabhaAdminMod">OFF</span>
               </div>
             </div>
             <div id="emailToggleSaveMsg" style="display:none;font-size:0.78rem;padding:6px 12px;border-radius:8px;margin-top:10px"></div>
@@ -3694,6 +3698,120 @@
         <!-- Pagination controls -->
         <div id="allContactsPagination" style="display:flex;gap:6px;justify-content:center;align-items:center;margin-top:8px;flex-wrap:wrap"></div>
       </div>
+
+      <!-- ══════════════════════════════════════════════════════════════
+           BIRTHDAY CALENDAR SYNC TAB
+      ══════════════════════════════════════════════════════════════ -->
+      <div id="tabBirthdays" class="flex flex-col gap-4 fade-in" style="display:none!important">
+
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div class="admin-section-title" style="margin:0">🎂 Birthday Calendar Sync</div>
+          <button onclick="loadBirthdaySync()" class="btn btn-outline" style="width:auto;padding:7px 14px;font-size:0.8rem">🔄 Refresh Status</button>
+        </div>
+
+        <!-- Status card -->
+        <div class="contact-card" style="padding:20px">
+          <div style="font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:800;margin-bottom:14px;color:var(--ink)">📅 Google Calendar Status</div>
+          <div class="summary-grid" style="grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+            <div class="summary-card" style="padding:14px 10px;text-align:center">
+              <div id="bdSyncCount" class="summary-val" style="font-size:1.6rem;color:var(--saffron)">—</div>
+              <div class="summary-lbl">Events Synced</div>
+            </div>
+            <div class="summary-card" style="padding:14px 10px;text-align:center">
+              <div id="bdCalStatus" class="summary-val" style="font-size:1rem;color:var(--green)">—</div>
+              <div class="summary-lbl">Calendar</div>
+            </div>
+            <div class="summary-card" style="padding:14px 10px;text-align:center">
+              <div id="bdAutoStatus" class="summary-val" style="font-size:0.8rem;color:var(--muted)">Daily 1 AM</div>
+              <div class="summary-lbl">Auto Sync</div>
+            </div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px" id="bdLastRun">Last sync: checking…</div>
+          <div style="font-size:0.73rem;color:var(--muted);line-height:1.5">
+            Contacts with a DOB are synced as yearly recurring all-day birthday events in Google Calendar.<br>
+            Each event includes contact profile, Sabha attendance, and a WhatsApp greeting link.
+          </div>
+        </div>
+
+        <!-- Calendar event preview -->
+        <div class="contact-card" style="padding:20px">
+          <div style="font-family:'Syne',sans-serif;font-size:0.88rem;font-weight:800;margin-bottom:12px">📋 Google Calendar Event Format</div>
+          <div style="background:var(--surface);border-radius:14px;padding:16px;font-size:0.78rem;line-height:1.9;font-family:monospace;color:var(--ink);border:1.5px solid var(--accent-line)">
+            <div style="font-size:0.95rem;font-family:'Syne',sans-serif;font-weight:800;margin-bottom:8px">🎂 Birthday — [Name]  ·  Turning [Age]</div>
+            <div style="color:var(--muted);font-size:0.7rem;margin-bottom:10px;font-family:'DM Sans',sans-serif">All-Day · Yearly Recurring · SevakCall Birthdays calendar</div>
+            <table style="width:100%;font-size:0.75rem;border-collapse:collapse">
+              <tr><td style="padding:2px 8px 2px 0;color:var(--muted);white-space:nowrap;font-weight:600">ID</td><td style="padding:2px 0">Name</td><td style="padding:2px 0">Mobile</td><td style="padding:2px 0">DOB</td><td style="padding:2px 0">Study/Profession</td></tr>
+              <tr><td colspan="5" style="padding:3px 0;color:var(--muted);font-size:0.68rem">Skill · Mandal · Area · Complete Address · Note</td></tr>
+            </table>
+            <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--accent-line)">
+              <span style="font-weight:700">🙏 Sabha Attendance</span> (since last birthday)<br>
+              Attended : X of Y Sabhas &nbsp;·&nbsp; Rate : Z%<br>
+              <span style="color:var(--wa);font-weight:700">💬 WhatsApp Greeting Link</span><br>
+              <span style="color:var(--muted);font-size:0.7rem">Generated : [timestamp]</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="contact-card" style="padding:20px">
+          <div style="font-family:'Syne',sans-serif;font-size:0.88rem;font-weight:800;margin-bottom:14px">⚡ Actions</div>
+          <div class="flex flex-col gap-3">
+
+            <!-- Bulk Sync -->
+            <div style="background:var(--surface);border-radius:14px;padding:16px;border:1.5px solid var(--accent-line)">
+              <div style="font-weight:700;font-size:0.85rem;margin-bottom:4px">📤 Bulk Sync to Google Calendar</div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-bottom:12px">
+                Syncs all contacts (with DOB) to the "SevakCall Birthdays" calendar. Creates new events or updates existing ones. Safe to run multiple times.
+              </div>
+              <button id="bdSyncBtn" onclick="doBulkBirthdaySync()" class="btn btn-primary" style="width:100%;padding:13px;font-size:0.9rem">
+                🔄 Sync All Birthdays to Calendar
+              </button>
+              <div id="bdSyncResult" style="display:none;margin-top:10px;padding:12px 14px;border-radius:12px;font-size:0.8rem;line-height:1.7"></div>
+            </div>
+
+            <!-- Auto-trigger info -->
+            <div style="background:var(--area-bg);border-radius:14px;padding:14px 16px;border:1.5px solid rgba(26,92,184,0.15)">
+              <div style="font-weight:700;font-size:0.82rem;color:var(--area-fg);margin-bottom:6px">⏰ Automatic Daily Sync</div>
+              <div style="font-size:0.75rem;color:var(--area-fg);line-height:1.6">
+                Run <code style="background:rgba(26,92,184,0.15);padding:1px 6px;border-radius:5px">setupBirthdayTrigger()</code> once from your Apps Script editor.<br>
+                After that, the calendar auto-syncs every night at <strong>1 AM</strong> — new contacts and edits are picked up automatically.
+              </div>
+            </div>
+
+            <!-- Delete / Reset -->
+            <div style="background:#FDF2F2;border-radius:14px;padding:16px;border:1.5px solid #FADADD">
+              <div style="font-weight:700;font-size:0.85rem;color:var(--red);margin-bottom:4px">🗑️ Delete All Birthday Events</div>
+              <div style="font-size:0.75rem;color:#C0392B;margin-bottom:12px">
+                Permanently removes all SevakCall birthday events from Google Calendar and clears the sync tracking sheet. Use only for a full reset.
+              </div>
+              <button id="bdDeleteBtn" onclick="doDeleteBirthdayCalendar()" style="width:100%;padding:12px;background:#FDECEA;border:1.5px solid #E74C3C;color:var(--red);border-radius:14px;font-weight:700;font-size:0.85rem;cursor:pointer">
+                ⚠️ Delete All Events &amp; Reset
+              </button>
+              <div id="bdDeleteResult" style="display:none;margin-top:10px;padding:12px 14px;border-radius:12px;font-size:0.8rem"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Instructions card -->
+        <div class="contact-card" style="padding:20px">
+          <div style="font-family:'Syne',sans-serif;font-size:0.88rem;font-weight:800;margin-bottom:12px">📖 Setup Guide</div>
+          <div style="font-size:0.78rem;color:var(--muted);line-height:1.9">
+            <div style="margin-bottom:8px"><strong style="color:var(--saffron)">Step 1</strong> — Paste <code>BirthdayCalendar_CodeGS_Addition.gs</code> at the bottom of your Code.gs in Apps Script.</div>
+            <div style="margin-bottom:8px"><strong style="color:var(--saffron)">Step 2</strong> — In the doGet() router, add:<br>
+              <code style="background:var(--surface);padding:2px 8px;border-radius:6px;display:block;margin-top:4px">else if (a === 'getBirthdaySync') r = getBirthdaySync();</code>
+            </div>
+            <div style="margin-bottom:8px"><strong style="color:var(--saffron)">Step 3</strong> — In the doPost() router, add:<br>
+              <code style="background:var(--surface);padding:2px 8px;border-radius:6px;display:block;margin-top:4px">else if (d.action === 'syncBirthdaysToCalendar') r = syncBirthdaysToCalendar('');<br>else if (d.action === 'deleteBirthdayCalendar') r = deleteBirthdayCalendar('');</code>
+            </div>
+            <div style="margin-bottom:8px"><strong style="color:var(--saffron)">Step 4</strong> — Run <code>setupBirthdayTrigger()</code> once from the Apps Script editor to enable nightly auto-sync.</div>
+            <div><strong style="color:var(--saffron)">Step 5</strong> — Deploy a new version of your Apps Script, then click <strong>"Sync All Birthdays"</strong> above for first sync.</div>
+          </div>
+        </div>
+
+      </div>
+      <!-- END tabBirthdays -->
 
     </div>
   </div>
@@ -4052,6 +4170,8 @@
                 <option value="allMods">👁️ All Moderators</option>
                 <option value="allAdmins">📋 All Admins</option>
                 <option value="allVols">👥 All Active Volunteers</option>
+                <optgroup id="modEmailIndivAdminGroup" label="── Individual Admins ──"></optgroup>
+                <optgroup id="modEmailIndivModGroup" label="── Individual Moderators ──"></optgroup>
                 <optgroup id="modEmailIndivVolGroup" label="── Individual Volunteers ──"></optgroup>
               </select>
             </div>
@@ -5527,6 +5647,7 @@
         if (badge) badge.textContent = amAreaOptions.length + ' total';
         renderAdminOverview(adminData); renderVolunteerCards(adminData);
         renderAreaBreakdown(adminData); renderMandalBreakdown(adminData); renderActivityFeed(adminData);
+        loadEmailSettings(); // always sync toggle states from sheet on load/refresh
       } catch (e) { showToast('Failed to load dashboard', 'error'); }
     }
 
@@ -6657,7 +6778,7 @@
     // ADMIN TABS
     // ══════════════════════════════════════════════════════════════════
     function switchTab(tab) {
-      const ALL_TABS = ['overview', 'volunteers', 'assigning', 'sabhas', 'message', 'contacts', 'areas', 'activity'];
+      const ALL_TABS = ['overview', 'volunteers', 'assigning', 'sabhas', 'message', 'contacts', 'areas', 'activity', 'birthdays'];
       ALL_TABS.forEach(t => {
         const el = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
         if (el) el.style.display = t === tab ? '' : 'none';
@@ -6669,6 +6790,7 @@
       if (tab === 'assigning') refreshBatchTab();
       if (tab === 'contacts') initAllContactsTab();
       if (tab === 'activity') loadActivityLog();
+      if (tab === 'birthdays') loadBirthdaySync();
       if (tab === 'message') { loadMsgTemplate(); loadEmailSettings(); }
       if (tab === 'areas') {
         // Load allContacts if not yet loaded, for mandal stats
@@ -9036,15 +9158,15 @@
 
         // Apply toggles
         const toggleMap = {
-          'toggleAutoAdmin':    'autoAdminEnabled',
-          'toggleAutoVol':      'autoVolEnabled',
-          'toggleAutoSabhaVol': 'autoPostSabhaEnabled',
-          'toggleAutoSabhaAdmin':'autoAdminSabhaEnabled',
-          'toggleAutoSabhaMod': 'autoModSabhaEnabled',
+          'toggleAutoAdmin':        'autoAdminEnabled',
+          'toggleAutoVol':          'autoVolEnabled',
+          'toggleAutoSabhaVol':     'autoPostSabhaEnabled',
+          'toggleAutoSabhaAdminMod':'autoSabhaAdminModEnabled',
         };
         Object.entries(toggleMap).forEach(([id, key]) => {
           const el = document.getElementById(id);
           if (el) el.checked = emailSettingsCache[key] === 'true';
+          updateToggleBadge(id, emailSettingsCache[key] === 'true');
         });
       } catch(e) { console.error('loadEmailSettings error', e); }
     }
@@ -9103,13 +9225,28 @@
     }
 
     // ── Save toggle setting to backend ────────────────────────────────
+    function updateToggleBadge(toggleId, isLive) {
+      const badge = document.getElementById('badge_' + toggleId);
+      if (!badge) return;
+      badge.textContent = isLive ? 'LIVE' : 'OFF';
+      badge.className = 'email-status-badge ' + (isLive ? 'live' : 'off');
+    }
+
     async function saveEmailToggle(key, val) {
       const msg = document.getElementById('emailToggleSaveMsg');
+      const keyToId = {
+        'autoAdminEnabled':        'toggleAutoAdmin',
+        'autoVolEnabled':          'toggleAutoVol',
+        'autoPostSabhaEnabled':    'toggleAutoSabhaVol',
+        'autoSabhaAdminModEnabled':'toggleAutoSabhaAdminMod',
+      };
       try {
-        const res = await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type':'application/json'},
+        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type':'application/json'},
           body: JSON.stringify({ action: 'saveEmailSettings', settings: { [key]: String(val) } }) });
         emailSettingsCache[key] = String(val);
-        if (msg) { msg.style.display = ''; msg.style.background = '#D4EDDA'; msg.style.color = '#156D3E'; msg.textContent = '✅ Setting saved!'; setTimeout(() => { if(msg) msg.style.display='none'; }, 2500); }
+        const tid = keyToId[key];
+        if (tid) updateToggleBadge(tid, val === true || val === 'true');
+        if (msg) { msg.style.display = ''; msg.style.background = '#D4EDDA'; msg.style.color = '#156D3E'; msg.textContent = val ? '✅ Enabled — Automation is now LIVE' : '⏹️ Disabled — Automation turned off'; setTimeout(() => { if(msg) msg.style.display='none'; }, 2500); }
       } catch(e) {
         if (msg) { msg.style.display = ''; msg.style.background = '#FDECEA'; msg.style.color = '#C0392B'; msg.textContent = '❌ Failed to save setting.'; setTimeout(() => { if(msg) msg.style.display='none'; }, 3000); }
       }
@@ -9203,16 +9340,30 @@
         const mg2 = document.getElementById('modEmailSabhaModGroup');
         if (mg2) { mg2.innerHTML = ''; moderators.forEach(m => { const o = document.createElement('option'); o.value = m.email; o.textContent = `${m.name} (${m.email})`; mg2.appendChild(o); }); }
 
-        // FIX Issue 4: Daily report individual dropdown — populate admins, moderators AND volunteers
+        // Daily report individual dropdown — sorted: Admins → Moderators → Volunteers
+        const indivAdmGrp = document.getElementById('modEmailIndivAdminGroup');
+        const indivModGrp = document.getElementById('modEmailIndivModGroup');
         const dvg = document.getElementById('modEmailIndivVolGroup');
+        if (indivAdmGrp) {
+          indivAdmGrp.innerHTML = '';
+          [...admins].sort((a,b) => a.name.localeCompare(b.name)).forEach(a => {
+            const o = document.createElement('option'); o.value = a.email;
+            o.textContent = `${a.name} (${a.email})`; indivAdmGrp.appendChild(o);
+          });
+        }
+        if (indivModGrp) {
+          indivModGrp.innerHTML = '';
+          [...moderators].sort((a,b) => a.name.localeCompare(b.name)).forEach(m => {
+            const o = document.createElement('option'); o.value = m.email;
+            o.textContent = `${m.name} (${m.email})`; indivModGrp.appendChild(o);
+          });
+        }
         if (dvg) {
           dvg.innerHTML = '';
-          // Add admins
-          admins.forEach(a => { const o = document.createElement('option'); o.value = a.email; o.textContent = `${a.name} — Admin (${a.email})`; dvg.appendChild(o); });
-          // Add moderators
-          moderators.forEach(m => { const o = document.createElement('option'); o.value = m.email; o.textContent = `${m.name} — Mod (${m.email})`; dvg.appendChild(o); });
-          // Add volunteers
-          volunteers.forEach(v => { const o = document.createElement('option'); o.value = v.email; o.textContent = `${v.name} (${v.email})`; dvg.appendChild(o); });
+          [...volunteers].sort((a,b) => a.name.localeCompare(b.name)).forEach(v => {
+            const o = document.createElement('option'); o.value = v.email;
+            o.textContent = `${v.name} (${v.email})`; dvg.appendChild(o);
+          });
         }
       } catch(e) { console.error('loadModEmailPanel error', e); }
     }
@@ -9273,7 +9424,138 @@
       } else {
         if (_origDoAddAndMarkFn) await _origDoAddAndMarkFn();
       }
-    };  </script>
+    };
+
+    // ══════════════════════════════════════════════════════════════════
+    // BIRTHDAY CALENDAR SYNC  —  Admin UI
+    // ══════════════════════════════════════════════════════════════════
+
+    async function loadBirthdaySync() {
+      document.getElementById('bdSyncCount').textContent  = '…';
+      document.getElementById('bdCalStatus').textContent  = '…';
+      document.getElementById('bdLastRun').textContent    = 'Last sync: checking…';
+      try {
+        const res  = await fetch(`${SCRIPT_URL}?action=getBirthdaySync`);
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('bdSyncCount').textContent = data.synced || '0';
+          document.getElementById('bdCalStatus').textContent = data.synced > 0 ? '✅ Active' : '⚪ Not synced yet';
+          document.getElementById('bdLastRun').textContent   = data.lastRun
+            ? `Last sync: ${data.lastRun}`
+            : 'Last sync: Never';
+        } else {
+          document.getElementById('bdCalStatus').textContent = '⚠️ Error';
+          document.getElementById('bdLastRun').textContent   = data.error || 'Could not load status';
+        }
+      } catch(e) {
+        document.getElementById('bdCalStatus').textContent = '⚠️ Network error';
+        document.getElementById('bdLastRun').textContent   = String(e);
+      }
+    }
+
+    async function doBulkBirthdaySync() {
+      const btn    = document.getElementById('bdSyncBtn');
+      const result = document.getElementById('bdSyncResult');
+
+      // Confirm
+      const ok = await showConfirm(
+        '🔄 Sync All Birthdays?',
+        'This will create or update yearly birthday events in your "SevakCall Birthdays" Google Calendar for every contact that has a Date of Birth. It is safe to run multiple times.',
+        'Sync Now', 'warn'
+      );
+      if (!ok) return;
+
+      btn.disabled    = true;
+      btn.textContent = '⏳ Syncing…';
+      result.style.display = 'none';
+
+      try {
+        const res  = await fetch(SCRIPT_URL, {
+          method:  'POST',
+          mode:    'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ action: 'syncBirthdaysToCalendar', calendarId: '' }),
+        });
+
+        // no-cors returns opaque — re-fetch status
+        await new Promise(r => setTimeout(r, 4000));
+        const statusRes  = await fetch(`${SCRIPT_URL}?action=getBirthdaySync`);
+        const statusData = await statusRes.json();
+
+        result.style.display = '';
+        result.style.background = '#D4EDDA';
+        result.style.color      = '#155724';
+        result.innerHTML = `
+          <strong>✅ Sync complete!</strong><br>
+          Events synced so far: <strong>${statusData.synced || '—'}</strong><br>
+          Calendar: <em>SevakCall Birthdays</em><br>
+          <span style="font-size:0.72rem;color:#555">Open Google Calendar to verify. If some contacts had no DOB, they were skipped.</span>
+        `;
+
+        document.getElementById('bdSyncCount').textContent = statusData.synced || '0';
+        document.getElementById('bdCalStatus').textContent = '✅ Active';
+        document.getElementById('bdLastRun').textContent   = statusData.lastRun
+          ? `Last sync: ${statusData.lastRun}` : 'Last sync: just now';
+
+      } catch(e) {
+        result.style.display    = '';
+        result.style.background = '#FDECEA';
+        result.style.color      = '#C0392B';
+        result.innerHTML = `<strong>⚠️ Error:</strong> ${e.message || String(e)}`;
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = '🔄 Sync All Birthdays to Calendar';
+      }
+    }
+
+    async function doDeleteBirthdayCalendar() {
+      const ok = await showConfirm(
+        '⚠️ Delete ALL Birthday Events?',
+        'This permanently removes all SevakCall birthday events from Google Calendar and resets the sync tracking sheet. This CANNOT be undone.',
+        'Delete All', 'warn'
+      );
+      if (!ok) return;
+
+      const btn    = document.getElementById('bdDeleteBtn');
+      const result = document.getElementById('bdDeleteResult');
+
+      btn.disabled    = true;
+      btn.textContent = '⏳ Deleting…';
+      result.style.display = 'none';
+
+      try {
+        await fetch(SCRIPT_URL, {
+          method:  'POST',
+          mode:    'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ action: 'deleteBirthdayCalendar', calendarId: '' }),
+        });
+
+        await new Promise(r => setTimeout(r, 3500));
+
+        result.style.display    = '';
+        result.style.background = '#FFF3CD';
+        result.style.color      = '#856404';
+        result.innerHTML = `<strong>✅ Done.</strong> All birthday events have been removed. Run Bulk Sync to re-add them.`;
+
+        document.getElementById('bdSyncCount').textContent = '0';
+        document.getElementById('bdCalStatus').textContent = '⚪ Not synced yet';
+        document.getElementById('bdLastRun').textContent   = 'Last sync: Never';
+
+      } catch(e) {
+        result.style.display    = '';
+        result.style.background = '#FDECEA';
+        result.style.color      = '#C0392B';
+        result.innerHTML = `<strong>⚠️ Error:</strong> ${e.message || String(e)}`;
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = '⚠️ Delete All Events & Reset';
+      }
+    }
+
+    // END BIRTHDAY CALENDAR SYNC
+
+  </script>
 </body>
 
 </html>
