@@ -3091,7 +3091,7 @@
         </div>
       </div>
 
-      <div id="tabVolunteers" class="flex flex-col gap-4 fade-in" style="display:none!important">
+      <div id="tabVolunteers" class="flex flex-col gap-4 fade-in" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div style="display:flex;align-items:center;gap:8px">
             <span id="volPillVolunteers"
@@ -3125,7 +3125,7 @@
         </div>
       </div>
 
-      <div id="tabAreas" class="flex flex-col gap-4 fade-in" style="display:none!important">
+      <div id="tabAreas" class="flex flex-col gap-4 fade-in" style="display:none">
 
         <!-- ── AREAS SECTION ── -->
         <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--ink);padding:4px 0 0">📍
@@ -3343,7 +3343,7 @@
         </div>
       </div>
 
-      <div id="tabSabhas" class="flex flex-col gap-4 fade-in" style="display:none!important">
+      <div id="tabSabhas" class="flex flex-col gap-4 fade-in" style="display:none">
         <div class="admin-section-title">Manage Sabhas</div>
 
         <div class="contact-card" style="padding:20px">
@@ -3431,7 +3431,7 @@
       <!-- ══════════════════════════════════════════════════════════
          ACTIVITY LOG TAB — Advanced, filterable, paginated
       ═══════════════════════════════════════════════════════════ -->
-      <div id="tabActivity" class="flex flex-col gap-4 fade-in" style="display:none!important">
+      <div id="tabActivity" class="flex flex-col gap-4 fade-in" style="display:none">
 
         <!-- Header row -->
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -3536,7 +3536,7 @@
       <!-- ══════════════════════════════════════════════════════════
          MESSAGE TAB — WhatsApp Template + Email Automation
       ═══════════════════════════════════════════════════════════ -->
-      <div id="tabMessage" class="flex flex-col gap-4 fade-in" style="display:none!important">
+      <div id="tabMessage" class="flex flex-col gap-4 fade-in" style="display:none">
 
         <!-- ── SUB-TAB BAR ── -->
         <div style="display:flex;gap:4px;background:var(--surface);border-radius:14px;padding:4px">
@@ -3798,7 +3798,7 @@
          ASSIGNING TAB — Batch Management
          Divide unassigned contacts into batches, assign to volunteers
     ════════════════════════════════════════════════════════════════ -->
-      <div id="tabAssigning" class="flex flex-col gap-4 fade-in" style="display:none!important">
+      <div id="tabAssigning" class="flex flex-col gap-4 fade-in" style="display:none">
 
         <!-- Summary strip -->
         <div class="summary-grid" id="batchSummaryGrid" style="grid-template-columns:repeat(3,1fr)">
@@ -3896,7 +3896,7 @@
       <!-- ═══════════════════════════════════════════════════════════
          ALL CONTACTS TAB — Paginated contact browser with overlay
       ════════════════════════════════════════════════════════════════ -->
-      <div id="tabContacts" class="flex flex-col gap-4 fade-in" style="display:none!important">
+      <div id="tabContacts" class="flex flex-col gap-4 fade-in" style="display:none">
 
         <!-- Search + Filter strip -->
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -3944,7 +3944,7 @@
       <!-- ══════════════════════════════════════════════════════════════
            BIRTHDAY CALENDAR SYNC TAB
       ══════════════════════════════════════════════════════════════ -->
-      <div id="tabBirthdays" class="flex flex-col gap-4 fade-in" style="display:none!important">
+      <div id="tabBirthdays" class="flex flex-col gap-4 fade-in" style="display:none">
 
         <!-- Header -->
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -4138,11 +4138,12 @@
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- ══════════════════════════════════════════════════════════════
+  <!-- ══════════════════════════════════════════════════════════════
        MODERATOR SCREEN
   ══════════════════════════════════════════════════════════════ -->
-    <div id="screenModerator" class="screen">
+  <div id="screenModerator" class="screen">
       <div class="header">
         <div class="header-title">Sevak<span>Call</span> <span
             style="color:#67E8F9;font-size:0.7rem;font-weight:600;letter-spacing:0.06em">MOD</span></div>
@@ -4187,7 +4188,7 @@
         </div>
 
         <!-- ── MOD: Overview Tab ── -->
-        <div id="modTabOverview" class="flex flex-col gap-4 fade-in">
+        <div id="modTabOverview" class="flex flex-col gap-4 fade-in" style="display:none">
           <div class="summary-grid" id="modSummaryGrid">
             <div class="summary-card">
               <div class="skeleton h-8 w-12 rounded mb-1"></div>
@@ -4227,7 +4228,7 @@
         </div>
 
         <!-- ── MOD: Volunteers Tab ── -->
-        <div id="modTabVolunteers" class="flex flex-col gap-4 fade-in" style="display:none!important">
+        <div id="modTabVolunteers" class="flex flex-col gap-4 fade-in" style="display:none">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <div class="admin-section-title" style="margin:0">Volunteer Progress</div>
@@ -4266,7 +4267,7 @@
         </div>
 
         <!-- ── MOD: Assigning Tab ── -->
-        <div id="modTabAssigning" class="flex flex-col gap-4 fade-in" style="display:none!important">
+        <div id="modTabAssigning" class="flex flex-col gap-4 fade-in" style="display:none">
 
           <!-- Summary strip -->
           <div class="summary-grid" id="modBatchSummaryGrid" style="grid-template-columns:repeat(3,1fr)">
@@ -4350,7 +4351,7 @@
         </div>
 
         <!-- ── MOD: Sabha Tab (volunteer-style) ── -->
-        <div id="modTabSabhas" class="flex flex-col gap-4 fade-in" style="display:none!important">
+        <div id="modTabSabhas" class="flex flex-col gap-4 fade-in" style="display:none">
           <div id="modUpcomingSabhaCard">
             <div class="sabha-loading-card">
               <div class="sabha-loading-sk" style="height:12px;width:96px;margin-bottom:4px"></div>
@@ -4384,7 +4385,7 @@
         </div>
 
         <!-- ── MOD: All Contacts Tab ── -->
-        <div id="modTabContacts" class="flex flex-col gap-4 fade-in" style="display:none!important">
+        <div id="modTabContacts" class="flex flex-col gap-4 fade-in" style="display:none">
           <!-- Search + Filter strip -->
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <div class="search-wrap" style="flex:1;min-width:200px">
@@ -4423,7 +4424,7 @@
             style="display:flex;gap:6px;justify-content:center;align-items:center;margin-top:8px;flex-wrap:wrap"></div>
         </div>
         <!-- ── MOD: Activity Tab ── -->
-        <div id="modTabActivity" class="flex flex-col gap-4 fade-in" style="display:none!important">
+        <div id="modTabActivity" class="flex flex-col gap-4 fade-in" style="display:none">
 
           <!-- Header -->
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -4513,7 +4514,7 @@
         </div>
 
         <!-- ── MOD: Message Tab ── -->
-        <div id="modTabMessage" class="flex flex-col gap-4 fade-in" style="display:none!important">
+        <div id="modTabMessage" class="flex flex-col gap-4 fade-in" style="display:none">
           <div class="admin-section-title">📧 Email Automation</div>
           <div style="font-size:0.82rem;color:var(--muted);margin-top:-8px">Send emails to volunteers and admins.
             Automated emails are controlled by the Admin panel.</div>
@@ -4863,7 +4864,7 @@
 
       // ══════════════════════════════════════════════════════════════════
       // STATE
-      // ══════════════════════════════════════════════════════════════════
+      // ══════════════════════════════════════════
       let currentUser = null;
       let contacts = [];   // volunteer's assigned contacts
       let currentIdx = 0;
@@ -4958,7 +4959,7 @@
             currentUser = d.user;
             setHeaderIdentity(currentUser);
             if (currentUser.role === 'admin') { showScreen('screenAdmin'); loadAdminData(); }
-            else if (currentUser.role === 'moderator') { showScreen('screenModerator'); loadModeratorData(); }
+            else if (currentUser.role === 'moderator') { showScreen('screenModerator'); switchModTab('overview'); loadModeratorData(); }
             else {
               showScreen('screenCalling');
               loadVolunteerContacts();
@@ -7895,20 +7896,19 @@
         const chunks = [];
         for (let i = 0; i < pool.length; i += size) chunks.push(pool.slice(i, i + size));
 
-        // ── Step 1: POST each chunk (no-cors = fire-and-forget to GAS) ──
-        // GAS generateBatch writes Batch_Number into Contacts sheet itself.
+        // ── Step 1: Send each chunk sequentially via GET (awaitable, no race condition) ──
+        // no-cors POST is fire-and-forget and causes batch number collisions when chunks
+        // arrive at GAS simultaneously. GET requests are properly awaited one by one.
         let failed = 0;
         for (const chunk of chunks) {
           try {
-            await fetch(SCRIPT_URL, {
-              method: 'POST', mode: 'no-cors',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                action: 'generateBatch',
-                contactIds: chunk.map(c => String(c.ID)),
-                area
-              })
+            const params = new URLSearchParams({
+              action: 'generateBatch',
+              contactIds: JSON.stringify(chunk.map(c => String(c.ID))),
+              area: area || 'All'
             });
+            const res = await fetch(`${SCRIPT_URL}?${params}`);
+            if (!res.ok) failed++;
           } catch (_) { failed++; }
         }
 
@@ -8888,22 +8888,20 @@
       // MODERATOR — PARALLEL DATA LOAD
       // ══════════════════════════════════════════════════════════════════
       async function loadModeratorData() {
+        // Show overview tab immediately while loading
+        switchModTab('overview');
         try {
-          // Parallel fetch: stats + contacts + areas + mandals
-          const [statsRes, contactsRes, areasRes, mandalsRes] = await Promise.all([
-            fetch(`${SCRIPT_URL}?action=getAdminStats`),
-            fetch(`${SCRIPT_URL}?action=getAllContacts`),
-            fetch(`${SCRIPT_URL}?action=getAreas`),
-            fetch(`${SCRIPT_URL}?action=getMandals`)
-          ]);
-          const [statsData, contactsData, areasData, mandalsData] = await Promise.all([
-            statsRes.json(), contactsRes.json(), areasRes.json(), mandalsRes.json()
-          ]);
+          // Single fetch — getAdminStats already returns allContacts, areas, mandals
+          const statsRes = await fetch(`${SCRIPT_URL}?action=getAdminStats`);
+          const statsData = await statsRes.json();
 
           modData = statsData;
-          if (contactsData.contacts) allContacts = contactsData.contacts;
-          if (Array.isArray(areasData.areas)) { amAreaOptions = areasData.areas; window.amAreaOptions = amAreaOptions; }
-          if (Array.isArray(mandalsData.mandals)) { amMandalOptions = mandalsData.mandals; window.amMandalOptions = amMandalOptions; }
+
+          // getAdminStats returns allContacts array directly
+          if (Array.isArray(statsData.allContacts)) allContacts = statsData.allContacts;
+          // getAdminStats returns areas and mandals
+          if (Array.isArray(statsData.areas)) { amAreaOptions = statsData.areas; window.amAreaOptions = amAreaOptions; }
+          if (Array.isArray(statsData.mandals)) { amMandalOptions = statsData.mandals; window.amMandalOptions = amMandalOptions; }
 
           // Render Overview directly
           modRenderOverview(modData);
@@ -8914,8 +8912,10 @@
           loadModEventsForSabha();
 
         } catch (e) {
-          showToast('Failed to load moderator data', 'error');
-          console.error(e);
+          showToast('Failed to load moderator data. Please refresh.', 'error');
+          console.error('loadModeratorData error:', e);
+          // Still render overview with empty data so screen is not blank
+          modRenderOverview(null);
         }
       }
 
@@ -8959,7 +8959,12 @@
       // MODERATOR — OVERVIEW (direct render, no DOM cloning)
       // ══════════════════════════════════════════════════════════════════
       function modRenderOverview(data) {
-        if (!data) { document.getElementById('modSummaryGrid').innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:24px;grid-column:1/-1">Loading data…</div>'; return; }
+        if (!data) {
+          document.getElementById('modSummaryGrid').innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:24px;grid-column:1/-1">⚠️ Could not load data. Please refresh.</div>';
+          const chart = document.getElementById('modOverviewChart'); if (chart) chart.innerHTML = '';
+          const brkdn = document.getElementById('modOverviewBreakdown'); if (brkdn) brkdn.innerHTML = '';
+          return;
+        }
         // getAdminStats returns totalContacts/totalCalled — map to local vars
         const total = data.total ?? data.totalContacts ?? 0;
         const called = data.called ?? data.totalCalled ?? 0;
@@ -9265,12 +9270,17 @@
         if (btn) btn.innerHTML = '<span class="spinner"></span> Generating…';
         showToast('⏳ Generating batches…');
         try {
+          // FIX: Use sequential GET requests instead of no-cors POST.
+          // no-cors POST is fire-and-forget — multiple chunks arrive at GAS simultaneously
+          // causing getNextBatchNumber_() race conditions and out-of-order batch numbers.
           for (let i = 0; i < unassigned.length; i += batchSize) {
             const chunk = unassigned.slice(i, i + batchSize);
-            await fetch(SCRIPT_URL, {
-              method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'generateBatch', contactIds: chunk.map(c => c.ID), area: areaFilter === '__all__' ? 'All' : areaFilter })
+            const params = new URLSearchParams({
+              action: 'generateBatch',
+              contactIds: JSON.stringify(chunk.map(c => c.ID)),
+              area: areaFilter === '__all__' ? 'All' : areaFilter
             });
+            await fetch(`${SCRIPT_URL}?${params}`);
           }
           await new Promise(r => setTimeout(r, 2500));
           await modRefreshBatchTab();
@@ -9325,7 +9335,8 @@
         const badge = document.getElementById('modBatchCountBadge');
         if (badge) badge.textContent = modBatches.length ? `${modBatches.length} batches` : '';
         if (!modBatches.length) { el.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:16px">No batches yet. Generate batches above.</div>'; return; }
-        const vols = modData?.volunteers || [];
+        // FIX: filter out moderators — only show volunteers in assign dropdown
+        const vols = (modData?.volunteers || []).filter(v => !v.role || v.role.toLowerCase() === 'volunteer');
         // Build vol options with assigned count (matching Admin panel style)
         const volOptions = vols.map(v => `<option value="${esc(v.name)}">${esc(v.name)} (${v.total} assigned)</option>`).join('');
         el.innerHTML = modBatches.map((batch, idx) => {
