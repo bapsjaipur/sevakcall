@@ -3148,7 +3148,8 @@
               </div>
             </div>
             <div style="font-size:0.72rem;color:var(--muted)">Short code is used in Member ID generation (e.g.
-              <strong>1-AM-YM-5884</strong>). Keep it 2–5 capital letters.</div>
+              <strong>1-AM-YM-5884</strong>). Keep it 2–5 capital letters.
+            </div>
             <button onclick="doAddArea()" class="btn btn-primary" style="margin-top:2px">
               <span id="addAreaBtnText">+ Add Area</span>
             </button>
@@ -3200,7 +3201,8 @@
               </div>
             </div>
             <div style="font-size:0.72rem;color:var(--muted)">Short code is used in Member ID generation (e.g.
-              <strong>1-AM-YM-5884</strong>). Keep it 2–5 capital letters.</div>
+              <strong>1-AM-YM-5884</strong>). Keep it 2–5 capital letters.
+            </div>
             <button onclick="doAddMandal()" class="btn btn-purple" style="margin-top:2px">
               <span id="addMandalBtnText">+ Add Mandal</span>
             </button>
@@ -3404,7 +3406,7 @@
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <div style="font-family:'Syne',sans-serif;font-size:0.88rem;font-weight:800;color:var(--muted)"
-              id="sabhaListTitle">Recent Sabhas</div>
+              id="sabhaListTitle">Upcoming & Past Sabhas</div>
             <div id="sabhaPaginationInfo" style="font-size:0.72rem;color:var(--muted);font-weight:600"></div>
           </div>
           <div class="flex flex-col gap-3" id="sabhaList">
@@ -3636,7 +3638,7 @@
         <div id="msgPanelEmail" style="display:none">
           <div class="admin-section-title">📧 Email Automation</div>
           <div style="font-size:0.82rem;color:var(--muted);margin-top:-8px">Automated emails are sent at 10–11 PM daily
-            (calling report) and 15 minutes after each Sabha ends (appreciation emails).</div>
+            (calling report) and 15 minutes after each Sabha ends Attendance Reprot.</div>
 
           <!-- AUTOMATION TOGGLES -->
           <div class="contact-card" style="padding:20px;margin-top:8px">
@@ -3681,9 +3683,9 @@
               <div
                 style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:var(--surface);border-radius:14px;border:1.5px solid #E8E4DD">
                 <div style="flex:1">
-                  <div style="font-size:0.88rem;font-weight:700;color:var(--ink)">🙏 Sabha Appreciation → Volunteers
+                  <div style="font-size:0.88rem;font-weight:700;color:var(--ink)">🙏 Sabha Attendance → Volunteers
                   </div>
-                  <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Sends personalized appreciation email
+                  <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">Sends personalized only assigned contacts attendance to email
                     (no PDF) to each volunteer automatically 15 min after Sabha ends</div>
                 </div>
                 <label class="email-toggle-wrap">
@@ -3745,8 +3747,8 @@
           <!-- MANUAL SEND — POST-SABHA VOLUNTEER APPRECIATION -->
           <div class="contact-card" style="padding:20px;margin-top:8px">
             <div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;margin-bottom:4px">🙏 Send Sabha
-              Appreciation Email</div>
-            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">Send personalized appreciation emails
+              Attendance Report Email</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">Send Attendance emails
               to volunteers (+ admin/mod reports) for a selected Sabha.</div>
             <div class="flex flex-col gap-3">
               <div class="input-group">
@@ -3768,7 +3770,7 @@
                 </select>
               </div>
               <button onclick="sendManualSabhaEmail()" class="btn btn-purple">
-                <span id="emailSabhaSendBtnText">🙏 Send Sabha Appreciation Now</span>
+                <span id="emailSabhaSendBtnText">🙏 Send Sabha Attendance Now</span>
               </button>
               <div id="emailSabhaSendMsg" style="display:none;font-size:0.82rem;padding:8px 12px;border-radius:10px">
               </div>
@@ -3856,9 +3858,22 @@
             <div class="admin-section-title">Batches <span id="batchCountBadge"
                 style="font-family:'DM Sans',sans-serif;font-size:0.75rem;font-weight:600;background:var(--area-bg);color:var(--area-fg);padding:2px 10px;border-radius:99px;margin-left:8px;vertical-align:middle"></span>
             </div>
+
+            <button onclick="clearAllAssignments()" class="btn btn-outline"
+              style="width:auto;padding:6px 14px;font-size:0.75rem;color:var(--red);border-color:var(--red)">
+              🗑️ Clear All Assignments
+            </button>
+            <button onclick="clearAllStatuses()" class="btn btn-outline"
+              style="width:auto;padding:6px 14px;font-size:0.75rem;color:var(--red);border-color:var(--red)">
+              🗑️ Clear All Status
+            </button>
+            <button onclick="clearAllReferences()" class="btn btn-outline"
+              style="width:auto;padding:6px 14px;font-size:0.75rem;color:var(--red);border-color:var(--red)">
+              🗑️ Clear All References
+            </button>           
             <button onclick="clearAllBatches()" class="btn btn-outline"
               style="width:auto;padding:6px 14px;font-size:0.75rem;color:var(--red);border-color:var(--red)">🗑 Clear
-              All</button>
+              All Batches</button>
           </div>
           <div id="batchList" class="flex flex-col gap-3">
             <div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px">Generate batches above to
@@ -4506,7 +4521,7 @@
           <!-- Send Sabha Appreciation -->
           <div class="contact-card" style="padding:20px">
             <div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;margin-bottom:4px">🙏 Send Sabha
-              Appreciation Email</div>
+              Attendance Report Email</div>
             <div style="font-size:0.78rem;color:var(--muted);margin-bottom:14px">Send post-Sabha appreciation emails to
               volunteers for a selected Sabha.</div>
             <div class="flex flex-col gap-3">
@@ -4528,7 +4543,7 @@
                 </select>
               </div>
               <button onclick="modSendSabhaEmail()" class="btn btn-purple">
-                <span id="modEmailSabhaSendTxt">🙏 Send Sabha Email Now</span>
+                <span id="modEmailSabhaSendTxt">🙏 Send Sabha Attendance Now</span>
               </button>
               <div id="modEmailSabhaMsg" style="display:none;font-size:0.82rem;padding:8px 12px;border-radius:10px">
               </div>
@@ -6306,7 +6321,7 @@
           return `
         <div class="area-row" style="flex-wrap:wrap;gap:6px">
           <div style="flex:1;min-width:0">
-            <div class="area-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">🕌 ${esc(m.name)}<span style="font-size:0.65rem;font-weight:700;background:var(--purple-bg);color:var(--purple-fg);padding:1px 7px;border-radius:99px">${esc(m.code)}</span></div>
+            <div class="area-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">📿 ${esc(m.name)}<span style="font-size:0.65rem;font-weight:700;background:var(--purple-bg);color:var(--purple-fg);padding:1px 7px;border-radius:99px">${esc(m.code)}</span></div>
             <div style="font-size:0.7rem;color:var(--muted);margin-top:2px">${stats.called}/${stats.total} called · ${stats.interested} interested</div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
@@ -6510,7 +6525,7 @@
         const contacts = _getMandalContacts(_mandalExportName);
         if (!contacts.length) { showToast('No contacts found for this mandal', 'warn'); return; }
         if (format === 'csv') _exportGroupCSV(contacts, `Mandal_${_mandalExportName}`);
-        else if (format === 'pdf') _exportGroupPDF(contacts, `🕌 Mandal: ${_mandalExportName}`, _mandalExportName);
+        else if (format === 'pdf') _exportGroupPDF(contacts, `📿 Mandal: ${_mandalExportName}`, _mandalExportName);
         else if (format === 'vcard') _exportGroupVCard(contacts, `Mandal_${_mandalExportName}`);
       }
 
@@ -6533,18 +6548,18 @@
 
       function _exportGroupPDF(contacts, groupTitle, fileName) {
         const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
-        const now   = new Date().toLocaleString('en-IN', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-        const interested = contacts.filter(c => ['Interested','Already Volunteer'].includes(c.Status)).length;
-        const noAnswer   = contacts.filter(c => c.Status === 'No Answer').length;
-        const responded  = contacts.filter(c => c.Status).length;
+        const now = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const interested = contacts.filter(c => ['Interested', 'Already Volunteer'].includes(c.Status)).length;
+        const noAnswer = contacts.filter(c => c.Status === 'No Answer').length;
+        const responded = contacts.filter(c => c.Status).length;
 
         // Status pill helper
         const statusPill = s => {
           if (!s) return '<span style="color:#aaa">—</span>';
-          const map = {'Interested':'#1A7A40','Already Volunteer':'#1A7A40','Not Interested':'#C0392B','Call Back Later':'#9A6700','No Answer':'#1A5CB8','Wrong Number':'#666','Pending':'#666'};
-          const bg  = {'Interested':'#D6F0E0','Already Volunteer':'#D6F0E0','Not Interested':'#FDECEA','Call Back Later':'#FFF4DE','No Answer':'#E8F0FE','Wrong Number':'#F0F0F0','Pending':'#F0F0F0'};
+          const map = { 'Interested': '#1A7A40', 'Already Volunteer': '#1A7A40', 'Not Interested': '#C0392B', 'Call Back Later': '#9A6700', 'No Answer': '#1A5CB8', 'Wrong Number': '#666', 'Pending': '#666' };
+          const bg = { 'Interested': '#D6F0E0', 'Already Volunteer': '#D6F0E0', 'Not Interested': '#FDECEA', 'Call Back Later': '#FFF4DE', 'No Answer': '#E8F0FE', 'Wrong Number': '#F0F0F0', 'Pending': '#F0F0F0' };
           const lbl = s === 'Not Interested' ? 'Not Joining' : s;
-          return `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:0.7rem;font-weight:700;background:${bg[s]||'#F0F0F0'};color:${map[s]||'#666'}">${lbl}</span>`;
+          return `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:0.7rem;font-weight:700;background:${bg[s] || '#F0F0F0'};color:${map[s] || '#666'}">${lbl}</span>`;
         };
 
         const rows = contacts.map((c, i) => `<tr>
@@ -6757,7 +6772,7 @@
           const d = await evRes.json();
           const dc = await cRes.json();
           allAdminSabhas = (d.events || []).sort((a, b) => b.date.localeCompare(a.date)); // newest first
-          if (dc.contacts) allContacts = dc.contacts;
+          if (dc.allContacts) allContacts = dc.allContacts;
           sabhaPage = 0;
           renderAdminSabhaList();
         } catch (e) {
@@ -6938,30 +6953,30 @@
       function downloadSabhaPDF(colName, title, date) {
         if (!allContacts || !allContacts.length) { showToast('Load attendance data first', 'warn'); return; }
         const present = allContacts.filter(c => String(c[colName] || '').trim() === 'Present');
-        const absent  = allContacts.filter(c => String(c[colName] || '').trim() !== 'Present');
-        const total   = allContacts.length;
+        const absent = allContacts.filter(c => String(c[colName] || '').trim() !== 'Present');
+        const total = allContacts.length;
         if (!present.length) { showToast('No present members for this Sabha', 'warn'); return; }
         const attendRate = total > 0 ? Math.round((present.length / total) * 100) : 0;
-        const progPct    = Math.max(attendRate, 2);
-        const now = new Date().toLocaleString('en-IN', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+        const progPct = Math.max(attendRate, 2);
+        const now = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
         // ── Area breakdown ──
         const areaMap = {};
         present.forEach(c => { const a = c.Area || 'Other'; areaMap[a] = (areaMap[a] || 0) + 1; });
-        const areaRows = Object.entries(areaMap).sort((a,b) => b[1]-a[1])
-          .map(([a,n]) => `<tr><td style="padding:6px 10px;border-bottom:1px solid #EEEAE4;color:#333">${esc(a)}</td><td style="padding:6px 10px;border-bottom:1px solid #EEEAE4;text-align:right;font-weight:700;color:#1A7A40">${n}</td></tr>`).join('');
+        const areaRows = Object.entries(areaMap).sort((a, b) => b[1] - a[1])
+          .map(([a, n]) => `<tr><td style="padding:6px 10px;border-bottom:1px solid #EEEAE4;color:#333">${esc(a)}</td><td style="padding:6px 10px;border-bottom:1px solid #EEEAE4;text-align:right;font-weight:700;color:#1A7A40">${n}</td></tr>`).join('');
 
         // ── Mandal breakdown ──
         const mandalMap = {};
         present.forEach(c => { const m = c.Mandal || 'Other'; mandalMap[m] = (mandalMap[m] || 0) + 1; });
-        const mandalRows = Object.entries(mandalMap).sort((a,b) => b[1]-a[1])
-          .map(([m,n]) => `<tr><td style="padding:6px 10px;border-bottom:1px solid #EEEAE4;color:#333">${esc(m)}</td><td style="padding:6px 10px;border-bottom:1px solid #EEEAE4;text-align:right;font-weight:700;color:#1A7A40">${n}</td></tr>`).join('');
+        const mandalRows = Object.entries(mandalMap).sort((a, b) => b[1] - a[1])
+          .map(([m, n]) => `<tr><td style="padding:6px 10px;border-bottom:1px solid #EEEAE4;color:#333">${esc(m)}</td><td style="padding:6px 10px;border-bottom:1px solid #EEEAE4;text-align:right;font-weight:700;color:#1A7A40">${n}</td></tr>`).join('');
 
         // ── Volunteer / Sevak breakdown ──
         const sevakMap = {};
         present.forEach(c => { const s = c.Assigned_To || c.Sevak || 'Unassigned'; sevakMap[s] = (sevakMap[s] || 0) + 1; });
-        const sevakRows = Object.entries(sevakMap).sort((a,b) => b[1]-a[1])
-          .map(([s,n]) => `<tr><td style="padding:6px 10px;border-bottom:1px solid #EEEAE4;color:#333">${esc(s)}</td><td style="padding:6px 10px;border-bottom:1px solid #EEEAE4;text-align:right;font-weight:700;color:#1A7A40">${n}</td></tr>`).join('');
+        const sevakRows = Object.entries(sevakMap).sort((a, b) => b[1] - a[1])
+          .map(([s, n]) => `<tr><td style="padding:6px 10px;border-bottom:1px solid #EEEAE4;color:#333">${esc(s)}</td><td style="padding:6px 10px;border-bottom:1px solid #EEEAE4;text-align:right;font-weight:700;color:#1A7A40">${n}</td></tr>`).join('');
 
         // ── Present members list ──
         const memberRows = present.map((c, i) => `<tr>
@@ -7416,11 +7431,11 @@
 
       function actCategoryStyle(cat) {
         const map = {
-          login:    { bg: '#D4EDDA', color: '#156D3E', icon: '🔑' },
+          login: { bg: '#D4EDDA', color: '#156D3E', icon: '🔑' },
           attendance: { bg: 'var(--purple-bg)', color: 'var(--purple-fg)', icon: '🙏' },
-          admin:    { bg: '#FFF3CD', color: '#856404', icon: '🛡️' },
-          contact:  { bg: 'var(--area-bg)', color: 'var(--area-fg)', icon: '👤' },
-          email:    { bg: '#FDE8FF', color: '#7B1FA2', icon: '📧' },
+          admin: { bg: '#FFF3CD', color: '#856404', icon: '🛡️' },
+          contact: { bg: 'var(--area-bg)', color: 'var(--area-fg)', icon: '👤' },
+          email: { bg: '#FDE8FF', color: '#7B1FA2', icon: '📧' },
           calendar: { bg: '#E8F5E9', color: '#2E7D32', icon: '📅' },
         };
         return map[cat] || map.contact;
@@ -7445,17 +7460,17 @@
         if (sl.includes('login')) return '🔑 Logged In';
         // ── Email labels ──────────────────────────────────────────────
         if (sl.includes('daily report email sent (manual)')) return '📧 Daily Report Sent (Manual)';
-        if (sl.includes('daily report email sent (auto)'))   return '📧 Daily Report Sent (Auto)';
+        if (sl.includes('daily report email sent (auto)')) return '📧 Daily Report Sent (Auto)';
         if (sl.includes('sabha report email sent (manual)')) return '📧 Sabha Report Sent (Manual)';
-        if (sl.includes('sabha report email sent (auto)'))   return '📧 Sabha Report Sent (Auto)';
+        if (sl.includes('sabha report email sent (auto)')) return '📧 Sabha Report Sent (Auto)';
         if (sl.includes('birthday summary emails sent (auto)')) return '📧 Birthday Summary (Auto)';
-        if (sl.includes('birthday summary emails sent'))     return '📧 Birthday Summary (Manual)';
-        if (sl.includes('birthday summary email error'))     return '⚠️ Birthday Email Error';
-        if (sl.includes('birthday email settings'))          return '⚙️ Birthday Email Settings';
+        if (sl.includes('birthday summary emails sent')) return '📧 Birthday Summary (Manual)';
+        if (sl.includes('birthday summary email error')) return '⚠️ Birthday Email Error';
+        if (sl.includes('birthday email settings')) return '⚙️ Birthday Email Settings';
         // ── Calendar labels ───────────────────────────────────────────
-        if (sl.includes('birthday calendar sync — complete'))  return '📅 Birthday Sync Complete';
-        if (sl.includes('birthday calendar sync — single'))    return '📅 Birthday Sync (Single)';
-        if (sl.includes('birthday calendar cleared'))          return '🗑️ Birthday Calendar Cleared';
+        if (sl.includes('birthday calendar sync — complete')) return '📅 Birthday Sync Complete';
+        if (sl.includes('birthday calendar sync — single')) return '📅 Birthday Sync (Single)';
+        if (sl.includes('birthday calendar cleared')) return '🗑️ Birthday Calendar Cleared';
         return s || 'Activity';
       }
 
@@ -7517,11 +7532,11 @@
         const logs = actFiltered;
         if (!logs.length) { strip.style.display = 'none'; return; }
         strip.style.display = 'grid';
-        const loginCount      = logs.filter(e => actCategory(e) === 'login').length;
-        const contactCount    = logs.filter(e => actCategory(e) === 'contact').length;
+        const loginCount = logs.filter(e => actCategory(e) === 'login').length;
+        const contactCount = logs.filter(e => actCategory(e) === 'contact').length;
         const attendanceCount = logs.filter(e => actCategory(e) === 'attendance').length;
-        const emailCount      = logs.filter(e => actCategory(e) === 'email').length;
-        const calendarCount   = logs.filter(e => actCategory(e) === 'calendar').length;
+        const emailCount = logs.filter(e => actCategory(e) === 'email').length;
+        const calendarCount = logs.filter(e => actCategory(e) === 'calendar').length;
         document.getElementById('actStat1').textContent = logs.length;
         document.getElementById('actStat2').textContent = loginCount;
         document.getElementById('actStat3').textContent = contactCount;
@@ -8181,6 +8196,75 @@
         } catch (_) {
           showToast('✅ All batches cleared!', 'success');
         }
+      }
+      async function clearAllReferences() {
+        const ok = await showConfirm({
+          icon: '🗑️', danger: true,
+          title: 'Clear all Reference notes?',
+          bodyHTML: `<ul>
+      <li>Clear <strong>Reference</strong> column for all contacts</li>
+      <li style="color:#C0392B">⚠️ This cannot be undone</li>
+    </ul>`
+        });
+        if (!ok) return;
+        showToast('⏳ Clearing all reference notes…');
+        try {
+          await fetch(SCRIPT_URL, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'clearReferenceColumn' })
+          });
+        } catch (_) { }
+        allContacts.forEach(c => { c.Reference = ''; });
+        await new Promise(res => setTimeout(res, 3000));
+        showToast('✅ All reference notes cleared!', 'success');
+      }
+
+      async function clearAllStatuses() {
+        const ok = await showConfirm({
+          icon: '🗑️', danger: true,
+          title: 'Clear all Status values?',
+          bodyHTML: `<ul>
+      <li>Clear <strong>Status</strong> column for all contacts</li>
+      <li style="color:#C0392B">⚠️ This cannot be undone</li>
+    </ul>`
+        });
+        if (!ok) return;
+        showToast('⏳ Clearing all statuses…');
+        try {
+          await fetch(SCRIPT_URL, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'clearStatusColumn' })
+          });
+        } catch (_) { }
+        allContacts.forEach(c => { c.Status = ''; });
+        await new Promise(res => setTimeout(res, 3000));
+        showToast('✅ All statuses cleared!', 'success');
+      }
+
+      async function clearAllAssignments() {
+        const ok = await showConfirm({
+          icon: '🗑️', danger: true,
+          title: 'Clear all Assignments?',
+          bodyHTML: `<ul>
+      <li>Clear <strong>Assigned_To</strong> column for all contacts</li>
+      <li style="color:#C0392B">⚠️ Volunteers will lose access to their contacts</li>
+      <li style="color:#C0392B">⚠️ This cannot be undone</li>
+    </ul>`
+        });
+        if (!ok) return;
+        showToast('⏳ Clearing all assignments…');
+        try {
+          await fetch(SCRIPT_URL, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'clearAssignedToColumn' })
+          });
+        } catch (_) { }
+        allContacts.forEach(c => { c.Assigned_To = ''; });
+        await new Promise(res => setTimeout(res, 3000));
+        showToast('✅ All assignments cleared!', 'success');
       }
 
       // ── Volunteer stats panel ─────────────────────────────────────────
