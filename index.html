@@ -6058,6 +6058,12 @@
           renderAreaBreakdown(adminData); renderMandalBreakdown(adminData); renderActivityFeed(adminData);
           loadEmailSettings(); // always sync toggle states from sheet on load/refresh
         } catch (e) { showToast('Failed to load dashboard', 'error'); }
+
+        // Auto-refresh every 60 seconds while on admin tab
+        if (window._adminRefreshTimer) clearInterval(window._adminRefreshTimer);
+        window._adminRefreshTimer = setInterval(() => {
+          if (currentTab === 'admin') loadAdminData();
+        }, 60000);
       }
 
       function renderAdminOverview(data) {
