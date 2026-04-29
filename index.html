@@ -2862,14 +2862,14 @@
         </button>
 
         <!-- ⚠️ Wrong Number -->
-        <button class="chip-btn" data-val="Wrong Number" data-sel="sel-gray" onclick="selectChip(this)">
-          <span class="chip-emoji">⚠️</span> Wrong No.
-        </button>
+        <!-- <button class="chip-btn" data-val="Wrong Number" data-sel="sel-gray" onclick="selectChip(this)">
+          <span class="chip-emoji">⚠️</span> Wrong Number
+        </button> -->
 
-        <!-- 🙌 Already Volunteer -->
+        <!-- 🙌 Already Volunteer
         <button class="chip-btn" data-val="Already Volunteer" data-sel="sel-green" onclick="selectChip(this)">
-          <span class="chip-emoji">🙌</span> Already Vol.
-        </button>
+          <span class="chip-emoji">🙌</span> Already Volunteer
+        </button> -->
 
         <!-- ── HIDDEN / EXTRA BUTTONS (uncomment to enable) ──────────
       <button class="chip-btn" data-val="Donated"           data-sel="sel-purple"
@@ -6772,7 +6772,7 @@
         const d = await evRes.json();
         const dc = await cRes.json();
         allAdminSabhas = (d.events || []).sort((a, b) => b.date.localeCompare(a.date)); // newest first
-        if (dc.allContacts) allContacts = dc.allContacts;
+        if (dc.contacts) allContacts = dc.contacts;
         sabhaPage = 0;
         renderAdminSabhaList();
       } catch (e) {
@@ -6841,7 +6841,7 @@
       const start = sabhaPage * sabhaPageSize;
       const pageItems = filtered.slice(start, start + sabhaPageSize);
 
-      titleEl.textContent = (sabhaFilterFrom || sabhaFilterTill) ? 'Filtered Sabhas' : 'Recent Sabhas';
+      titleEl.textContent = (sabhaFilterFrom || sabhaFilterTill) ? 'Filtered Sabhas' : 'Past & Upcoming Sabhas';
       pageInfo.textContent = `Page ${sabhaPage + 1} of ${totalPages} · ${filtered.length} total`;
 
       // Status badge styles
@@ -6874,7 +6874,7 @@
         <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">
           <span class="sabha-event-col" style="font-size:0.62rem">${esc(ev.columnName)}</span>
           <button onclick="downloadSabhaCSV('${esc(ev.columnName)}','${esc(ev.title)}')" style="background:var(--area-bg);border:none;border-radius:8px;padding:4px 9px;font-size:0.68rem;font-weight:700;color:var(--area-fg);cursor:pointer;white-space:nowrap">📥 CSV</button>
-          <button onclick="downloadSabhaPDF('${esc(ev.columnName)}','${esc(ev.title)}','${esc(ev.date)}')" style="background:var(--purple-bg);border:none;border-radius:8px;padding:4px 9px;font-size:0.68rem;font-weight:700;color:var(--purple-fg);cursor:pointer;white-space:nowrap">🖨️ PDF</button>
+          <button onclick="downloadSabhaPDF('${esc(ev.columnName)}','${esc(ev.title)}','${esc(ev.date)}','${esc(ev.time)}','${esc(ev.duration)}','${esc(ev.speaker)}')" style="background:var(--purple-bg);border:none;border-radius:8px;padding:4px 9px;font-size:0.68rem;font-weight:700;color:var(--purple-fg);cursor:pointer;white-space:nowrap">🖨️ PDF</button>
           <div style="display:flex;gap:4px;margin-top:2px">
             <button onclick="openEditSabhaModal(${JSON.stringify(ev).replace(/"/g, '&quot;')})" style="background:#FFF3CD;border:none;border-radius:8px;padding:4px 9px;font-size:0.68rem;font-weight:700;color:#856404;cursor:pointer;white-space:nowrap">✏️ Edit</button>
             <button onclick="doDeleteSabha('${esc(ev.columnName)}','${esc(ev.title)}')" style="background:#FDECEA;border:none;border-radius:8px;padding:4px 9px;font-size:0.68rem;font-weight:700;color:var(--red);cursor:pointer;white-space:nowrap">🗑 Delete</button>
@@ -6950,17 +6950,44 @@
     }
 
     // ── Download Sabha PDF (Present members only) ────────────────────
-    function downloadSabhaPDF(colName, title, date) {
-      if (!allContacts || !allContacts.length) { showToast('Load attendance data first', 'warn'); return; }
-      const present = allContacts.filter(c => String(c[colName] || '').trim() === 'Present');
-      const absent = allContacts.filter(c => String(c[colName] || '').trim() !== 'Present');
-      const total = allContacts.length;
-      if (!present.length) { showToast('No present members for this Sabha', 'warn'); return; }
-      const attendRate = total > 0 ? Math.round((present.length / total) * 100) : 0;
-      const progPct = Math.max(attendRate, 2);
-      const now = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    function downloadSabhaPDF(colName, title, date, time, duration, speaker) {
+  if (!allContacts || !allContacts.length) { showToast('Load attendance data first', 'warn'); return; }
+  const present = allContacts.filter(c => String(c[colName] || '').trim() === 'Present');
+  const absent = allContacts.filter(c => String(c[colName] || '').trim() !== 'Present');
+  const total = allContacts.length;
+  if (!present.length) { showToast('No present members for this Sabha', 'warn'); return; }
+  const attendRate = total > 0 ? Math.round((present.length / total) * 100) : 0;
+  const progPct = Math.max(attendRate, 2);
+  const now = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-      // ── Area breakdown ──
+  // Format Nice Date (e.g. Saturday, 25 April 2026)
+  let displayDate = date;
+  if (date && date !== 'undefined' && date !== 'null') {
+    try {
+      const d = new Date(date);
+      displayDate = d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    } catch(e) {}
+  }
+
+  // Calculate Time Range using duration
+  let timeRange = '';
+  if (time && time !== 'undefined' && time !== 'null') {
+    try {
+      let cleanTime = time.replace(/[^\d:]/g, ''); // Extract just numbers and colon
+      let [h, m] = cleanTime.split(':').map(Number);
+      if (time.toLowerCase().includes('pm') && h < 12) h += 12;
+      if (time.toLowerCase().includes('am') && h === 12) h = 0;
+      
+      const dStart = new Date(); dStart.setHours(h, m || 0, 0, 0);
+      const dEnd = new Date(dStart.getTime() + (parseInt(duration) || 120) * 60000);
+      
+      const tStart = dStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      const tEnd = dEnd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      timeRange = `${tStart} – ${tEnd} (${duration || 120} min)`;
+    } catch(e) { timeRange = time; }
+  }
+
+  // ── Area breakdown ──
       const areaMap = {};
       present.forEach(c => { const a = c.Area || 'Other'; areaMap[a] = (areaMap[a] || 0) + 1; });
       const areaRows = Object.entries(areaMap).sort((a, b) => b[1] - a[1])
@@ -7063,7 +7090,9 @@
       <div class="card card-left">
         <div class="section-lbl">Sabha Details</div>
         <div class="details-title">${esc(title)}</div>
-        ${date ? `<div class="details-row"><span class="dk">Date</span><span class="dv">${esc(date)}</span></div>` : ''}
+        ${displayDate ? `<div class="details-row"><span class="dk">Date</span><span class="dv">${esc(displayDate)}</span></div>` : ''}
+        ${timeRange ? `<div class="details-row"><span class="dk">Time</span><span class="dv">${esc(timeRange)}</span></div>` : ''}
+        ${speaker && speaker !== 'undefined' && speaker !== 'null' ? `<div class="details-row"><span class="dk">Speaker</span><span class="dv">${esc(speaker)}</span></div>` : ''}
       </div>
 
       <!-- ATTENDANCE SUMMARY -->
