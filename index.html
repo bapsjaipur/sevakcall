@@ -4373,6 +4373,7 @@
 
       <!-- ── MOD: Overview Tab ── -->
       <div id="modTabOverview" class="flex flex-col gap-4 fade-in" style="display:none">
+        <div id="modSabhaOverviewCard" class="sabha-overview-card" style="display:none"></div>
         <div class="summary-grid" id="modSummaryGrid">
           <div class="summary-card">
             <div class="skeleton h-8 w-12 rounded mb-1"></div>
@@ -6478,6 +6479,133 @@
       if (bEl) bEl.style.width = pct + '%';
       const now = new Date();
       const card = document.getElementById('adminSabhaOverviewCard');
+      if (card) {
+        const updEl = card.querySelector('.sabha-ov-updated');
+        if (updEl) updEl.innerHTML = `<span class="blink">●</span> Live · Updated ${now.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+      }
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════
+    // MODERATOR OVERVIEW — Sabha Stats Card (mirrors admin)
+    // ══════════════════════════════════════════════════════════════════
+    async function renderModSabhaOverview() {
+      const card = document.getElementById('modSabhaOverviewCard');
+      if (!card) return;
+
+      // Fetch events if not yet cached
+      if (!allAdminSabhas.length) {
+        try {
+          const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`));
+          const d = await r.json();
+          allAdminSabhas = (d.events || []).sort((a, b) => b.date.localeCompare(a.date));
+        } catch (_) { }
+      }
+      if (!allAdminSabhas.length) { card.style.display = 'none'; return; }
+
+      if (!allContacts.length) {
+        try {
+          const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+          const d = await r.json();
+          if (d.contacts) allContacts = d.contacts;
+        } catch (_) { }
+      }
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      let target = allAdminSabhas.find(ev => getSabhaStatus(ev) === 'live');
+      if (!target) target = allAdminSabhas.find(ev => ev.date === todayStr);
+      if (!target) target = [...allAdminSabhas].reverse().find(ev => ev.date >= todayStr);
+      if (!target) { card.style.display = 'none'; return; }
+
+      _renderModSabhaOverviewCard(card, target);
+    }
+
+    function _renderModSabhaOverviewCard(card, ev) {
+      if (!ev || !card) return;
+      const status = getSabhaStatus(ev);
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const isLive = status === 'live';
+      const isToday = ev.date === todayStr;
+
+      const totalMembers = allContacts.length;
+      const present = ev.columnName
+        ? allContacts.filter(c => String(c[ev.columnName] || '').trim() === 'Present').length
+        : 0;
+      const absent = totalMembers - present;
+      const pct = totalMembers ? Math.round((present / totalMembers) * 100) : 0;
+
+      let badgeClass = 'upcoming', badgeLabel = '📅 Upcoming';
+      if (isLive) { badgeClass = 'live'; badgeLabel = '🔴 Live Now'; }
+      else if (isToday) { badgeClass = 'today'; badgeLabel = '📆 Today'; }
+
+      const dateObj = new Date(ev.date + 'T00:00:00');
+      const dateStr = dateObj.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      const timeStr = ev.time
+        ? new Date(`${ev.date}T${ev.time}`).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })
+        : null;
+
+      const now = new Date();
+      const updatedTime = now.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+      card.style.display = '';
+      card.innerHTML = `
+        <div class="sabha-ov-header">
+          <div class="sabha-ov-title">
+            ${isLive ? `<span class="sabha-ov-live-dot"></span>` : '🙏'}
+            Sabhas
+          </div>
+          <span class="sabha-ov-badge ${badgeClass}">${badgeLabel}</span>
+        </div>
+        <div class="sabha-ov-topic">${esc(ev.title)}</div>
+        <div class="sabha-ov-meta">
+          <span>📅 ${dateStr}</span>
+          ${timeStr ? `<span>⏰ ${timeStr}${ev.duration ? ' · ' + ev.duration + ' min' : ''}</span>` : ''}
+          ${ev.speaker ? `<span>🎤 ${esc(ev.speaker)}</span>` : ''}
+        </div>
+        <div class="sabha-ov-stats">
+          <div class="sabha-ov-stat">
+            <div class="sabha-ov-stat-val" style="color:var(--green)" id="modSabhaOvPresent">${present}</div>
+            <div class="sabha-ov-stat-lbl">Present</div>
+          </div>
+          <div class="sabha-ov-stat">
+            <div class="sabha-ov-stat-val" style="color:var(--red)" id="modSabhaOvAbsent">${absent}</div>
+            <div class="sabha-ov-stat-lbl">Absent</div>
+          </div>
+          <div class="sabha-ov-stat">
+            <div class="sabha-ov-stat-val" style="color:var(--saffron)" id="modSabhaOvPct">${pct}%</div>
+            <div class="sabha-ov-stat-lbl">Attendance</div>
+          </div>
+        </div>
+        <div class="sabha-ov-bar-wrap">
+          <div class="sabha-ov-bar" id="modSabhaOvBar" style="width:${pct}%"></div>
+        </div>
+        <div class="sabha-ov-updated">
+          ${isLive ? `<span class="blink">●</span> Live · ` : ''}Updated ${updatedTime}
+        </div>`;
+
+      window._modSabhaOverviewEv = ev;
+    }
+
+    // ── Live-update Moderator Sabha overview stats (called from sabhaAttendance sync) ──
+    function refreshModSabhaOverviewCounts() {
+      const ev = window._modSabhaOverviewEv;
+      if (!ev || !allContacts.length) return;
+      const present = ev.columnName
+        ? allContacts.filter(c => String(c[ev.columnName] || '').trim() === 'Present').length
+        : 0;
+      const total = allContacts.length;
+      const absent = total - present;
+      const pct = total ? Math.round((present / total) * 100) : 0;
+      const pEl = document.getElementById('modSabhaOvPresent');
+      const aEl = document.getElementById('modSabhaOvAbsent');
+      const tEl = document.getElementById('modSabhaOvPct');
+      const bEl = document.getElementById('modSabhaOvBar');
+      if (pEl) { pEl.textContent = present; pEl.style.transform = 'scale(1.18)'; setTimeout(() => { pEl.style.transform = ''; }, 350); }
+      if (aEl) aEl.textContent = absent;
+      if (tEl) tEl.textContent = pct + '%';
+      if (bEl) bEl.style.width = pct + '%';
+      const now = new Date();
+      const card = document.getElementById('modSabhaOverviewCard');
       if (card) {
         const updEl = card.querySelector('.sabha-ov-updated');
         if (updEl) updEl.innerHTML = `<span class="blink">●</span> Live · Updated ${now.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
@@ -9272,6 +9400,8 @@
 
         // Render Overview directly
         modRenderOverview(modData);
+        // Render Sabha overview card on overview tab (real-time)
+        renderModSabhaOverview();
         // Render Volunteers directly
         modRenderVolunteers(modData);
 
@@ -9933,16 +10063,13 @@
       btnEl.disabled = true;
       btnEl.innerHTML = '<span class="spinner dark-spin" style="width:14px;height:14px;border-color:rgba(0,0,0,0.15);border-top-color:#156D3E"></span>';
       try {
-        const res = await fetch(SCRIPT_URL, {
-          method: 'POST',
+        // Use no-cors (fire-and-forget) — same as volunteer; GAS POST doesn't return CORS headers
+        await fetch(SCRIPT_URL, {
+          method: 'POST', mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'markAttendance', contactId, columnName: modSelectedSabhaCol, volName: currentUser.name })
         });
-        const data = await res.json();
-        if (!data.success) {
-          showToast('❌ Failed: ' + (data.error || 'Unknown error'), 'error');
-          btnEl.disabled = false; btnEl.textContent = 'Mark Present'; return;
-        }
+        // Update local state optimistically (no-cors returns opaque response)
         const c = allContacts.find(x => String(x.ID) === String(contactId));
         if (c) c[modSelectedSabhaCol] = 'Present';
         const card = btnEl.closest('.attn-contact-card');
@@ -9965,22 +10092,17 @@
       if (!modSelectedSabhaCol) return;
       btnEl.disabled = true;
       try {
-        const res = await fetch(SCRIPT_URL, {
-          method: 'POST',
+        await fetch(SCRIPT_URL, {
+          method: 'POST', mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'markAttendance', contactId, columnName: modSelectedSabhaCol, volName: currentUser.name, markAs: 'Absent' })
         });
-        const data = await res.json();
-        if (!data.success) {
-          showToast('❌ Failed: ' + (data.error || 'Unknown error'), 'error');
-          btnEl.disabled = false; return;
-        }
+        // no-cors: optimistic update (opaque response, assume success)
         const c = allContacts.find(x => String(x.ID) === String(contactId));
         if (c) c[modSelectedSabhaCol] = '';
         const card = btnEl.closest('.attn-contact-card');
         if (card) {
           card.classList.remove('present');
-          // Replace the present badge + undo button with Mark Present button
           const badgeWrap = btnEl.closest('div[style*="display:flex"]') || btnEl.parentElement;
           if (badgeWrap) badgeWrap.outerHTML = `<button class="btn-green-sm" onclick="modDoMarkAttendance('${contactId}',this)">Mark Present</button>`;
         }
@@ -11147,6 +11269,8 @@
             .then(d => {
               if (d.contacts) {
                 allContacts = d.contacts;
+                // Live-update Sabha overview card on moderator overview tab
+                if (typeof refreshModSabhaOverviewCounts === 'function') refreshModSabhaOverviewCounts();
                 // If Sabha tab is already showing a selected Sabha, update counts live
                 if (modSelectedSabhaCol) {
                   const presentList = allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present');
