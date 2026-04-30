@@ -9246,6 +9246,7 @@
     let modSelectedSabhaCol = '';
     let modPresentCountLocal = 0;
     let modAttnSearchTimeout = null;
+    let modTimeCheckInterval = null;
     let modAcPage = 0;
     let modAcSearchQuery = '';
     const MOD_AC_PAGE_SIZE = 50;
@@ -9829,10 +9830,13 @@
           modUpdateAttnCounter();
           modRenderPresentList(presentList);
           modCheckAttendanceWindow();
+          if (modTimeCheckInterval) clearInterval(modTimeCheckInterval);
+          modTimeCheckInterval = setInterval(modCheckAttendanceWindow, 30000);
         } else {
           document.getElementById('modAttnSearchWrap').style.display = 'none';
           document.getElementById('modAttnAddBtn').style.display = 'none';
           document.getElementById('modAttnCounter').style.display = 'none';
+          if (modTimeCheckInterval) { clearInterval(modTimeCheckInterval); modTimeCheckInterval = null; }
         }
       } catch (e) {
         document.getElementById('modUpcomingSabhaCard').innerHTML = `<div class="sabha-no-upcoming"><div class="sabha-no-upcoming-icon">⚠️</div><div class="sabha-no-upcoming-title">Could not load Sabha</div></div>`;
@@ -11137,13 +11141,13 @@
             }, 8000); // full refresh after 8s to avoid hammering GAS
           }
         } else if (role === 'moderator') {
-          // Refresh allContacts then update Sabha present list instantly
+          // ── Immediate: refresh allContacts + update Sabha present list ──
           gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
             .then(r => r.json())
             .then(d => {
               if (d.contacts) {
                 allContacts = d.contacts;
-                // Update Sabha present count live if a Sabha is selected
+                // If Sabha tab is already showing a selected Sabha, update counts live
                 if (modSelectedSabhaCol) {
                   const presentList = allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present');
                   modPresentCountLocal = presentList.length;
@@ -11153,7 +11157,9 @@
               }
             })
             .catch(() => {});
-          // Full reload debounced — avoid hammering GAS
+          // ── Real-time: reload Sabha tab instantly (mirrors volunteer behaviour) ──
+          if (typeof loadModEventsForSabha === 'function') loadModEventsForSabha();
+          // ── Full moderator data reload debounced (avoid hammering GAS) ──
           if (!window._modSabhaRefreshTimer) {
             window._modSabhaRefreshTimer = setTimeout(() => {
               window._modSabhaRefreshTimer = null;
