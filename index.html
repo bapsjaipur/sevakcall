@@ -5209,7 +5209,9 @@
     // ══════════════════════════════════════════════════════════════════
     // VOLUNTEER — LOAD CONTACTS
     // ══════════════════════════════════════════════════════════════════
-    async function loadVolunteerContacts(showLoader = false) {
+    // expectAssign=true → retry if empty (sheet may not be written yet)
+    // expectAssign=false/undefined → accept empty immediately (unassign is valid)
+    async function loadVolunteerContacts(showLoader = false, expectAssign = false) {
       if (!currentUser || !currentUser.email) return;
       const cardEl = document.getElementById('contactCard');
       if (cardEl && showLoader) {
@@ -5218,53 +5220,70 @@
         cardEl.style.transition = 'opacity 0.2s';
       }
       const restore = () => { if (cardEl) { cardEl.style.opacity = ''; cardEl.style.pointerEvents = ''; } };
-      try {
-        const res  = await gasFetch(noCache(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`));
-        const data = await res.json();
-        if (!data || !Array.isArray(data.contacts)) {
-          restore(); showToast('❌ Bad response from server', 'error'); return;
-        }
-        const prevCount = window._lastVolContactCount || 0;
-        contacts = data.contacts;                      // accept empty — unassign is valid
-        window._lastVolContactCount = contacts.length;
-        window.messageTemplate = data.template || null;
-        if (data.sabhaEvents && data.sabhaEvents.length) eventsCache = data.sabhaEvents;
 
-        if (!amAreaOptions.length || !amMandalOptions.length) {
-          try {
-            const [aR, mR] = await Promise.all([
-              gasFetch(noCache(`${SCRIPT_URL}?action=getAreas`)),
-              gasFetch(noCache(`${SCRIPT_URL}?action=getMandals`))
-            ]);
-            const aD = await aR.json(), mD = await mR.json();
-            if (Array.isArray(aD.areas))    { amAreaOptions   = aD.areas;    window.amAreaOptions   = amAreaOptions; }
-            if (Array.isArray(mD.mandals))  { amMandalOptions = mD.mandals;  window.amMandalOptions = amMandalOptions; }
-          } catch (_) {}
-        }
+      // When expectAssign=true, retry up to 5x with 3s gaps (sheet needs time to write)
+      const maxAttempts = expectAssign ? 5 : 1;
+      let data = null;
 
-        const firstPending = contacts.findIndex(c => !(c.Status || '').trim());
-        const idealIdx     = firstPending >= 0 ? firstPending : 0;
-        if (showLoader || currentIdx >= contacts.length) currentIdx = idealIdx;
-
-        updateMyStats();
-        refreshFollowupCounts();
-        renderContact();
-        restore();
-
-        if (showLoader) {
-          const newCount = contacts.length;
-          if (newCount === 0) {
-            showToast('📋 No contacts assigned — waiting for admin', 'warn');
-          } else if (prevCount > 0 && newCount !== prevCount) {
-            const diff = newCount - prevCount;
-            showToast(diff > 0 ? `📋 ${diff} new contact${diff > 1 ? 's' : ''} added!` : `📋 List updated (${newCount} contact${newCount !== 1 ? 's' : ''})`, 'success');
-          } else {
-            showToast('✅ Contact list refreshed!', 'success');
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 3000));
+        try {
+          const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`));
+          const raw = await res.json();
+          console.log(`[Contacts] attempt ${attempt+1}, got ${Array.isArray(raw.contacts) ? raw.contacts.length : 'ERR'} contacts`);
+          if (!raw || !Array.isArray(raw.contacts)) continue;
+          // If we're expecting contacts and got none, retry (GAS not written yet)
+          if (expectAssign && raw.contacts.length === 0 && attempt < maxAttempts - 1) {
+            console.log(`[Contacts] empty but expecting assign — retrying…`);
+            continue;
           }
+          data = raw;
+          break;
+        } catch (e) {
+          console.warn(`[Contacts] attempt ${attempt+1} error:`, e.message);
+          if (attempt === maxAttempts - 1) { restore(); showToast('❌ Failed to load contacts', 'error'); return; }
         }
-      } catch (err) {
-        restore(); showToast('❌ Failed to load contacts — check connection', 'error');
-        console.error('[loadVolunteerContacts]', err);
+      }
+
+      if (!data) { restore(); showToast('❌ Could not load contacts', 'error'); return; }
+
+      const prevCount = window._lastVolContactCount || 0;
+      contacts = data.contacts;
+      window._lastVolContactCount = contacts.length;
+      window.messageTemplate = data.template || null;
+      if (data.sabhaEvents && data.sabhaEvents.length) eventsCache = data.sabhaEvents;
+
+      if (!amAreaOptions.length || !amMandalOptions.length) {
+        try {
+          const [aR, mR] = await Promise.all([
+            gasFetch(noCache(`${SCRIPT_URL}?action=getAreas`)),
+            gasFetch(noCache(`${SCRIPT_URL}?action=getMandals`))
+          ]);
+          const aD = await aR.json(), mD = await mR.json();
+          if (Array.isArray(aD.areas))   { amAreaOptions   = aD.areas;   window.amAreaOptions   = amAreaOptions; }
+          if (Array.isArray(mD.mandals)) { amMandalOptions = mD.mandals; window.amMandalOptions = amMandalOptions; }
+        } catch (_) {}
+      }
+
+      const firstPending = contacts.findIndex(c => !(c.Status || '').trim());
+      const idealIdx = firstPending >= 0 ? firstPending : 0;
+      if (showLoader || currentIdx >= contacts.length) currentIdx = idealIdx;
+
+      updateMyStats();
+      refreshFollowupCounts();
+      renderContact();
+      restore();
+
+      if (showLoader) {
+        const newCount = contacts.length;
+        if (newCount === 0) {
+          showToast('📋 No contacts assigned yet', 'warn');
+        } else if (prevCount > 0 && newCount !== prevCount) {
+          const diff = newCount - prevCount;
+          showToast(diff > 0 ? `📋 ${diff} new contact${diff > 1 ? 's' : ''} added!` : `📋 List updated (${newCount} contact${newCount !== 1 ? 's' : ''})`, 'success');
+        } else {
+          showToast('✅ Contact list refreshed!', 'success');
+        }
       }
     }
 
@@ -10990,7 +11009,7 @@
             document.body.appendChild(banner);
           }
           (async () => {
-            if (typeof loadVolunteerContacts === 'function') await loadVolunteerContacts(true);
+            if (typeof loadVolunteerContacts === 'function') await loadVolunteerContacts(true, true);
             if (typeof switchTab === 'function') switchTab('calling');
             const b = document.getElementById('assignUpdateBanner');
             if (b) b.remove();
