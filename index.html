@@ -8464,32 +8464,47 @@
     }
 
     // ── Unassign batch ────────────────────────────────────────────────
-    showToast(`⏳ Unassigning Batch #${batch.batchNumber}…`);
-    try {
-      const unassignRes = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'unassignBatch', batchNumber: batch.batchNumber })
+    async function unassignBatch(idx) {
+      const batch = batches[idx];
+      if (!batch) { showToast('Batch not found', 'error'); return; }
+      if (!batch.assignedTo) { showToast('Batch is not assigned', 'warn'); return; }
+      if (!batch.batchNumber) { showToast('Batch has no sheet number', 'error'); return; }
+      const prevVol = batch.assignedTo;
+      const ok = await showConfirm({
+        icon: '🔓',
+        danger: true,
+        title: `Unassign Batch #${batch.batchNumber}?`,
+        bodyHTML: `<span>Currently assigned to <strong>${prevVol}</strong></span><ul><li>Clear Assigned_To in the Batches sheet</li><li>Clear Assigned_To for ${batch.contacts.length} contacts in Contacts sheet</li></ul><span style="margin-top:8px;display:block">You can then reassign to another volunteer.</span>`
       });
-      const unassignData = await unassignRes.json();
-      if (!unassignData.success) {
-        showToast('❌ Unassign failed: ' + (unassignData.error || 'Unknown error'), 'error');
-        return;
+      if (!ok) return;
+
+      showToast(`⏳ Unassigning Batch #${batch.batchNumber}…`);
+      try {
+        const unassignRes = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'unassignBatch', batchNumber: batch.batchNumber })
+        });
+        const unassignData = await unassignRes.json();
+        if (!unassignData.success) {
+          showToast('❌ Unassign failed: ' + (unassignData.error || 'Unknown error'), 'error');
+          return;
+        }
+
+        // ✅ Only update UI after GAS confirms success
+        batch.assignedTo = '';
+        batch.assignedAt = null;
+        batch.contacts.forEach(c => { c.Assigned_To = ''; });
+        renderBatchList();
+        renderBatchVolStats();
+        updateBatchSummary();
+
+        if (typeof firebaseSync === 'function') firebaseSync('assignUpdate');
+        showToast(`✅ Batch #${batch.batchNumber} unassigned!`, 'success');
+
+      } catch (err) {
+        showToast('Unassign failed — check connection', 'error');
       }
-
-      // Optimistic local update — only after GAS confirms success
-      batch.assignedTo = '';
-      batch.assignedAt = null;
-      batch.contacts.forEach(c => { c.Assigned_To = ''; });
-      renderBatchList();
-      renderBatchVolStats();
-      updateBatchSummary();
-
-      if (typeof firebaseSync === 'function') firebaseSync('assignUpdate');
-      showToast(`✅ Batch #${batch.batchNumber} unassigned!`, 'success');
-
-    } catch (err) {
-      showToast('Unassign failed — check connection', 'error');
     }
 
     // ── Clear all batches ─────────────────────────────────────────────
