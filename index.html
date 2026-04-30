@@ -5159,7 +5159,6 @@
       const svg = document.getElementById('volRefreshSvg');
       if (svg) { svg.classList.add('spin-once'); setTimeout(() => svg.classList.remove('spin-once'), 650); }
       // Reset cached count so loadVolunteerContacts always shows the correct toast
-      window._lastVolContactCount = 0;
       showToast('Refreshing contacts…');
       await loadVolunteerContacts(true);
       await loadEventsForVolunteer();
@@ -5205,79 +5204,87 @@
     // VOLUNTEER — LOAD CONTACTS
     // ══════════════════════════════════════════════════════════════════
     async function loadVolunteerContacts(showLoader = false) {
-      try {
-        const card = document.getElementById('contactCard');
-        if (card && showLoader) {
-          card.style.opacity = '0.45';
-          card.style.pointerEvents = 'none';
-          card.style.transition = 'opacity 0.2s';
-        }
-        const res = await fetch(noCache(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`));
-        const data = await res.json();
-        const prevCount = window._lastVolContactCount || 0;
-        const fetched = data.contacts;
-        // Guard: never wipe a valid contact list with an empty/failed response
-        if (Array.isArray(fetched) && fetched.length > 0) {
-          contacts = fetched;
-        } else if (Array.isArray(fetched) && fetched.length === 0 && (window._lastVolContactCount || 0) > 0) {
-          // Server returned empty but we had contacts — likely a transient fetch failure
-          const card = document.getElementById('contactCard');
-          if (card) { card.style.opacity = ''; card.style.pointerEvents = ''; }
-          showToast('⚠️ Server returned empty list — keeping current contacts. Try again.', 'warn');
-          return;
-        } else {
-          contacts = fetched || [];
-        }
-        window._lastVolContactCount = contacts.length;
-        window.messageTemplate = data.template || null;
-        if (data.sabhaEvents && data.sabhaEvents.length) {
-          eventsCache = data.sabhaEvents;
-        }
-        if (!amAreaOptions.length || !amMandalOptions.length) {
-          try {
-            const [areasRes, mandalsRes] = await Promise.all([
-              fetch(noCache(`${SCRIPT_URL}?action=getAreas`)),
-              fetch(noCache(`${SCRIPT_URL}?action=getMandals`))
-            ]);
-            const areasData = await areasRes.json();
-            const mandalsData = await mandalsRes.json();
-            if (Array.isArray(areasData.areas)) { amAreaOptions = areasData.areas; window.amAreaOptions = amAreaOptions; }
-            if (Array.isArray(mandalsData.mandals)) { amMandalOptions = mandalsData.mandals; window.amMandalOptions = amMandalOptions; }
-          } catch (_) { }
-        }
-        // ── CRITICAL FIX: always clamp currentIdx to valid range after a fresh load ──
-        // Without this, a stale index (e.g. 3) on a shorter new list (e.g. 2 contacts)
-        // would skip straight to renderDone() instead of showing the first contact.
-        const firstPending = contacts.findIndex(c => !(c.Status || '').trim());
-        const idealIdx = firstPending >= 0 ? firstPending : 0;
-        // Override currentIdx if it's out-of-range OR this is a forced refresh (assign/unassign)
-        if (showLoader || currentIdx >= contacts.length) {
-          currentIdx = idealIdx;
-        }
-        updateMyStats();
-        refreshFollowupCounts();
-        renderContact();
-        if (card && showLoader) {
-          card.style.opacity = '';
-          card.style.pointerEvents = '';
-        }
-        if (showLoader) {
-          const newCount = contacts.length;
-          if (prevCount > 0 && newCount !== prevCount) {
-            const diff = newCount - prevCount;
-            const msg = diff > 0
-              ? `📋 ${diff} new contact${diff > 1 ? 's' : ''} added!`
-              : `📋 List updated (${newCount} contact${newCount !== 1 ? 's' : ''})`;
-            showToast(msg, 'success');
-          } else {
-            showToast('✅ Contact list refreshed!', 'success');
+      if (!currentUser || !currentUser.email) return;
+      const cardEl = document.getElementById('contactCard');
+      if (cardEl && showLoader) {
+        cardEl.style.opacity = '0.45';
+        cardEl.style.pointerEvents = 'none';
+        cardEl.style.transition = 'opacity 0.2s';
+      }
+
+      // ── Retry loop: GAS sheet writes take 3–8s to propagate ───────────
+      // We try up to 4 times with increasing delays before giving up.
+      const RETRIES = 4;
+      const DELAYS  = [0, 3000, 5000, 7000]; // ms before each attempt
+      let fetched = null;
+
+      for (let attempt = 0; attempt < RETRIES; attempt++) {
+        if (DELAYS[attempt] > 0) await new Promise(r => setTimeout(r, DELAYS[attempt]));
+        try {
+          const res  = await fetch(noCache(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`));
+          const data = await res.json();
+          if (Array.isArray(data.contacts)) {
+            // Accept even an empty array ONLY on the last attempt — keeps old list otherwise
+            if (data.contacts.length > 0 || attempt === RETRIES - 1) {
+              fetched = data;
+              break;
+            }
+            console.log(`[Contacts] attempt ${attempt + 1}: got 0 contacts, retrying…`);
+          }
+        } catch (e) {
+          console.warn(`[Contacts] attempt ${attempt + 1} failed:`, e.message);
+          if (attempt === RETRIES - 1) {
+            if (cardEl) { cardEl.style.opacity = ''; cardEl.style.pointerEvents = ''; }
+            showToast('❌ Could not load contacts — check connection', 'error');
+            return;
           }
         }
-      } catch (err) {
-        const card = document.getElementById('contactCard');
-        if (card) { card.style.opacity = ''; card.style.pointerEvents = ''; }
-        showToast('Failed to load contacts', 'error');
-        console.error(err);
+      }
+
+      if (!fetched) {
+        if (cardEl) { cardEl.style.opacity = ''; cardEl.style.pointerEvents = ''; }
+        showToast('⚠️ Server returned empty list — try refreshing again', 'warn');
+        return;
+      }
+
+      const prevCount = window._lastVolContactCount || 0;
+      contacts = fetched.contacts;
+      window._lastVolContactCount = contacts.length;
+      window.messageTemplate = fetched.template || null;
+      if (fetched.sabhaEvents && fetched.sabhaEvents.length) eventsCache = fetched.sabhaEvents;
+
+      if (!amAreaOptions.length || !amMandalOptions.length) {
+        try {
+          const [areasRes, mandalsRes] = await Promise.all([
+            fetch(noCache(`${SCRIPT_URL}?action=getAreas`)),
+            fetch(noCache(`${SCRIPT_URL}?action=getMandals`))
+          ]);
+          const areasData  = await areasRes.json();
+          const mandalsData = await mandalsRes.json();
+          if (Array.isArray(areasData.areas))     { amAreaOptions   = areasData.areas;     window.amAreaOptions   = amAreaOptions; }
+          if (Array.isArray(mandalsData.mandals)) { amMandalOptions = mandalsData.mandals; window.amMandalOptions = amMandalOptions; }
+        } catch (_) { }
+      }
+
+      // Always snap to first uncalled contact on a forced refresh
+      const firstPending = contacts.findIndex(c => !(c.Status || '').trim());
+      const idealIdx     = firstPending >= 0 ? firstPending : 0;
+      if (showLoader || currentIdx >= contacts.length) currentIdx = idealIdx;
+
+      updateMyStats();
+      refreshFollowupCounts();
+      renderContact();
+
+      if (cardEl) { cardEl.style.opacity = ''; cardEl.style.pointerEvents = ''; }
+
+      if (showLoader) {
+        const newCount = contacts.length;
+        if (prevCount > 0 && newCount !== prevCount) {
+          const diff = newCount - prevCount;
+          showToast(diff > 0 ? `📋 ${diff} new contact${diff > 1 ? 's' : ''} added!` : `📋 List updated (${newCount} contact${newCount !== 1 ? 's' : ''})`, 'success');
+        } else {
+          showToast('✅ Contact list refreshed!', 'success');
+        }
       }
     }
 
@@ -10986,11 +10993,12 @@
 
         // ── VOLUNTEER: refresh contact list ───────────────────────────
         if (role === 'volunteer') {
-          // ── CRITICAL FIX: reset index & count so the new list renders from scratch ──
+          // Reset index so fresh list always starts from contact #1
           currentIdx = 0;
-          window._lastVolContactCount = 0;
+          // NOTE: do NOT reset _lastVolContactCount here — the retry loop inside
+          // loadVolunteerContacts uses it to detect an empty response and retry.
 
-          // Show a fixed banner at top while fetching
+          // Show banner — it stays until loadVolunteerContacts fully resolves
           let banner = document.getElementById('assignUpdateBanner');
           if (!banner) {
             if (!document.getElementById('assignUpdateBannerStyle')) {
@@ -11005,16 +11013,13 @@
             banner.innerHTML = '<span style="animation:_spin 1s linear infinite;display:inline-block">🔄</span> Updating your contact list…';
             document.body.appendChild(banner);
           }
-          // Small delay so the sheet write has time to propagate
-          setTimeout(async () => {
-            if (typeof loadVolunteerContacts === 'function') {
-              await loadVolunteerContacts(true);
-            }
-            // ── Auto-switch to Calling tab so volunteer sees the new list ──
+          // loadVolunteerContacts now retries internally up to 4× with backoff — no extra delay needed
+          (async () => {
+            if (typeof loadVolunteerContacts === 'function') await loadVolunteerContacts(true);
             if (typeof switchTab === 'function') switchTab('calling');
             const b = document.getElementById('assignUpdateBanner');
             if (b) b.remove();
-          }, 800);
+          })();
 
         // ── ADMIN: silently refresh Assigning tab if it's open ────────
         } else if (role === 'admin') {
@@ -11096,7 +11101,7 @@
         } else if (role === 'moderator') {
           if (typeof loadModeratorData === 'function') loadModeratorData();
         } else if (role === 'volunteer') {
-          if (typeof loadVolunteerContacts === 'function') { window._lastVolContactCount = 0; loadVolunteerContacts(true); }
+          if (typeof loadVolunteerContacts === 'function') { loadVolunteerContacts(true); }
         }
       });
 
@@ -11144,7 +11149,7 @@
         console.log('[Doorbell] 🔔 New ping received.');
         if (typeof showToast === 'function') showToast('🔔 Doorbell ping received!', 'info');
         setTimeout(() => {
-          if (typeof loadVolunteerContacts === 'function') { window._lastVolContactCount = 0; loadVolunteerContacts(true); }
+          if (typeof loadVolunteerContacts === 'function') { loadVolunteerContacts(true); }
           if (typeof refreshAdminStats === 'function') refreshAdminStats();
         }, 600);
       }, (error) => console.error('[Doorbell] Firebase listener error:', error.message));
