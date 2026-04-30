@@ -6083,10 +6083,10 @@
       } catch (e) { showToast('Failed to load dashboard', 'error'); }
 
       // Auto-refresh every 60 seconds while on admin tab
-      if (window._adminRefreshTimer) clearInterval(window._adminRefreshTimer);
-      window._adminRefreshTimer = setInterval(() => {
-        if (currentTab === 'admin') loadAdminData();
-      }, 60000);
+      // if (window._adminRefreshTimer) clearInterval(window._adminRefreshTimer);
+      // window._adminRefreshTimer = setInterval(() => {
+      //   if (window.currentTab === 'admin') loadAdminData();
+      // }, 300000);
     }
 
     function renderAdminOverview(data) {
