@@ -961,6 +961,131 @@
       letter-spacing: 0.08em;
     }
 
+    /* ── Sabha Overview Card ── */
+    .sabha-overview-card {
+      background: var(--card);
+      border-radius: 18px;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.07);
+      overflow: hidden;
+      position: relative;
+    }
+    .sabha-ov-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px 10px;
+      border-bottom: 1.5px solid var(--accent-line);
+    }
+    .sabha-ov-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .sabha-ov-live-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #E74C3C;
+      box-shadow: 0 0 0 3px rgba(231,76,60,0.18);
+      animation: sabha-pulse 1.4s infinite;
+      display: inline-block;
+    }
+    @keyframes sabha-pulse {
+      0%, 100% { box-shadow: 0 0 0 3px rgba(231,76,60,0.18); }
+      50% { box-shadow: 0 0 0 6px rgba(231,76,60,0.08); }
+    }
+    .sabha-ov-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 99px;
+      letter-spacing: 0.05em;
+    }
+    .sabha-ov-badge.live   { background:#FDECEA; color:#C0392B; border:1px solid #E74C3C; }
+    .sabha-ov-badge.upcoming { background:#EAF2FF; color:#1A5CB8; border:1px solid #1A5CB8; }
+    .sabha-ov-badge.today  { background:#FFF3CD; color:#856404; border:1px solid #F5A623; }
+    .sabha-ov-topic {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--ink);
+      line-height: 1.3;
+      padding: 10px 18px 4px;
+    }
+    .sabha-ov-meta {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 500;
+      padding: 0 18px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .sabha-ov-meta span { display: flex; align-items: center; gap: 4px; }
+    .sabha-ov-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      border-top: 1.5px solid var(--accent-line);
+    }
+    .sabha-ov-stat {
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      position: relative;
+    }
+    .sabha-ov-stat + .sabha-ov-stat {
+      border-left: 1.5px solid var(--accent-line);
+    }
+    .sabha-ov-stat-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.55rem;
+      font-weight: 800;
+      line-height: 1;
+      transition: color 0.35s;
+    }
+    .sabha-ov-stat-lbl {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .sabha-ov-bar-wrap {
+      height: 4px;
+      background: var(--accent-line);
+      border-radius: 0 0 18px 18px;
+      overflow: hidden;
+    }
+    .sabha-ov-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green), #27AE60);
+      border-radius: 99px;
+      transition: width 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    .sabha-ov-empty {
+      padding: 18px;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .sabha-ov-updated {
+      font-size: 0.62rem;
+      color: var(--muted);
+      padding: 4px 18px 10px;
+      text-align: right;
+      font-style: italic;
+    }
+    .sabha-ov-updated .blink { animation: sabha-blink 1s steps(1) infinite; }
+    @keyframes sabha-blink { 50% { opacity:0; } }
+    body.dark .sabha-overview-card { box-shadow: 0 2px 14px rgba(0,0,0,0.22); }
+
     .vol-card {
       background: var(--card);
       border-radius: 18px;
@@ -3067,6 +3192,9 @@
             <div class="skeleton h-3 w-16 rounded"></div>
           </div>
         </div>
+
+        <!-- ── Upcoming / Live Sabha Stats Card ── -->
+        <div id="adminSabhaOverviewCard" class="sabha-overview-card" style="display:none"></div>
         <div class="contact-card" id="overviewChart">
           <div class="skeleton h-32 w-full rounded-xl"></div>
         </div>
@@ -4858,6 +4986,14 @@
     // CONFIG
     // ══════════════════════════════════════════════════════════════════
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxg5ceqM282B0I5QDvrVwLE9jdv-xxhLqX5TY6j6NhICroxRlCbv_4F1XjWIRjkzCRD/exec';
+
+    // ── Cache-busting helper — appends timestamp to every GET request ──
+    // Prevents browser from serving stale Google Apps Script responses.
+    function noCache(url) {
+      const sep = url.includes('?') ? '&' : '?';
+      return url + sep + '_t=' + Date.now();
+    }
+
     const WA_MSG = (n, m, a) => `Namaste ${n} ji 🙏\n\nWe are reaching out from *${m}* (${a}) regarding our upcoming volunteer program. We would love your support!\n\nKindly let us know a convenient time to connect. 🙂`;
 
     // ══════════════════════════════════════════════════════════════════
@@ -4951,7 +5087,7 @@
       if (!email || !pass) { err.textContent = '❌ Enter email and password.'; err.style.display = 'block'; return; }
       btn.disabled = true; txt.innerHTML = '<span class="spinner"></span> Signing in…';
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`);
+        const res = await fetch(noCache(`${SCRIPT_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`));
         const d = await res.json();
         if (d.success) {
           currentUser = d.user;
@@ -4964,6 +5100,7 @@
           else if (currentUser.role === 'moderator') { showScreen('screenModerator'); switchModTab('overview'); loadModeratorData(); }
           else {
             showScreen('screenCalling');
+            window._lastVolContactCount = 0;
             loadVolunteerContacts();
             updateCallTime();
             // Pre-load events and all contacts for Attendance tab
@@ -5018,21 +5155,22 @@
     // REFRESH HANDLERS
     // ══════════════════════════════════════════════════════════════════
     async function doVolRefresh(btnEl) {
-      // Close dropdown if triggered from there
       document.querySelectorAll('.hdr-dropdown.open').forEach(d => d.classList.remove('open'));
       const svg = document.getElementById('volRefreshSvg');
       if (svg) { svg.classList.add('spin-once'); setTimeout(() => svg.classList.remove('spin-once'), 650); }
+      // Reset cached count so loadVolunteerContacts always shows the correct toast
+      window._lastVolContactCount = 0;
       showToast('Refreshing contacts…');
-      await loadVolunteerContacts();
+      await loadVolunteerContacts(true);
       await loadEventsForVolunteer();
       await loadAllContactsForAttendance();
-      showToast('✅ Refreshed!', 'success');
     }
 
     async function doAdminRefresh(btnEl) {
-      const svg = btnEl.querySelector('svg');
+      const svg = btnEl && btnEl.querySelector ? btnEl.querySelector('svg') : null;
       if (svg) { svg.classList.add('spin-once'); setTimeout(() => svg.classList.remove('spin-once'), 650); }
       showToast('Refreshing dashboard…');
+      allAdminSabhas = []; // force sabha list reload
       await loadAdminData();
       showToast('✅ Dashboard refreshed!', 'success');
     }
@@ -5066,26 +5204,40 @@
     // ══════════════════════════════════════════════════════════════════
     // VOLUNTEER — LOAD CONTACTS
     // ══════════════════════════════════════════════════════════════════
-    async function loadVolunteerContacts() {
+    async function loadVolunteerContacts(showLoader = false) {
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`);
-        const data = await res.json();
-        contacts = data.contacts || [];
-        window.messageTemplate = data.template || null;
-
-        // v2: server now returns Sabha event meta so we don't need a
-        // separate getEvents call just for the contact-card widget.
-        // We still call loadEventsForVolunteer() for the Attendance tab.
-        if (data.sabhaEvents && data.sabhaEvents.length) {
-          eventsCache = data.sabhaEvents;  // overwrite / seed the cache
+        const card = document.getElementById('contactCard');
+        if (card && showLoader) {
+          card.style.opacity = '0.45';
+          card.style.pointerEvents = 'none';
+          card.style.transition = 'opacity 0.2s';
         }
-
-        // Fetch Areas and Mandals from sheet so Add Member dropdowns work for volunteers too
+        const res = await fetch(noCache(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`));
+        const data = await res.json();
+        const prevCount = window._lastVolContactCount || 0;
+        const fetched = data.contacts;
+        // Guard: never wipe a valid contact list with an empty/failed response
+        if (Array.isArray(fetched) && fetched.length > 0) {
+          contacts = fetched;
+        } else if (Array.isArray(fetched) && fetched.length === 0 && (window._lastVolContactCount || 0) > 0) {
+          // Server returned empty but we had contacts — likely a transient fetch failure
+          const card = document.getElementById('contactCard');
+          if (card) { card.style.opacity = ''; card.style.pointerEvents = ''; }
+          showToast('⚠️ Server returned empty list — keeping current contacts. Try again.', 'warn');
+          return;
+        } else {
+          contacts = fetched || [];
+        }
+        window._lastVolContactCount = contacts.length;
+        window.messageTemplate = data.template || null;
+        if (data.sabhaEvents && data.sabhaEvents.length) {
+          eventsCache = data.sabhaEvents;
+        }
         if (!amAreaOptions.length || !amMandalOptions.length) {
           try {
             const [areasRes, mandalsRes] = await Promise.all([
-              fetch(`${SCRIPT_URL}?action=getAreas`),
-              fetch(`${SCRIPT_URL}?action=getMandals`)
+              fetch(noCache(`${SCRIPT_URL}?action=getAreas`)),
+              fetch(noCache(`${SCRIPT_URL}?action=getMandals`))
             ]);
             const areasData = await areasRes.json();
             const mandalsData = await mandalsRes.json();
@@ -5093,16 +5245,37 @@
             if (Array.isArray(mandalsData.mandals)) { amMandalOptions = mandalsData.mandals; window.amMandalOptions = amMandalOptions; }
           } catch (_) { }
         }
-
-        // Start from the first pending (uncalled) contact so the volunteer
-        // resumes right where they left off instead of scrolling from #1.
+        // ── CRITICAL FIX: always clamp currentIdx to valid range after a fresh load ──
+        // Without this, a stale index (e.g. 3) on a shorter new list (e.g. 2 contacts)
+        // would skip straight to renderDone() instead of showing the first contact.
         const firstPending = contacts.findIndex(c => !(c.Status || '').trim());
-        currentIdx = firstPending >= 0 ? firstPending : 0;
-
+        const idealIdx = firstPending >= 0 ? firstPending : 0;
+        // Override currentIdx if it's out-of-range OR this is a forced refresh (assign/unassign)
+        if (showLoader || currentIdx >= contacts.length) {
+          currentIdx = idealIdx;
+        }
         updateMyStats();
         refreshFollowupCounts();
         renderContact();
+        if (card && showLoader) {
+          card.style.opacity = '';
+          card.style.pointerEvents = '';
+        }
+        if (showLoader) {
+          const newCount = contacts.length;
+          if (prevCount > 0 && newCount !== prevCount) {
+            const diff = newCount - prevCount;
+            const msg = diff > 0
+              ? `📋 ${diff} new contact${diff > 1 ? 's' : ''} added!`
+              : `📋 List updated (${newCount} contact${newCount !== 1 ? 's' : ''})`;
+            showToast(msg, 'success');
+          } else {
+            showToast('✅ Contact list refreshed!', 'success');
+          }
+        }
       } catch (err) {
+        const card = document.getElementById('contactCard');
+        if (card) { card.style.opacity = ''; card.style.pointerEvents = ''; }
         showToast('Failed to load contacts', 'error');
         console.error(err);
       }
@@ -5341,7 +5514,12 @@
     function renderDone() {
       const card = document.getElementById('contactCard');
       card.className = 'contact-card card-animate';
-      card.innerHTML = `<div class="flex flex-col items-center gap-3 py-8 text-center"><div class="done-icon">🎉</div><div class="syne" style="font-size:1.6rem;font-weight:800">All Done!</div><div style="color:var(--muted);font-size:0.88rem;line-height:1.6">You've gone through all <strong style="color:var(--ink)">${contacts.length}</strong> assigned contacts.<br>Great work, Sevak!</div><button onclick="loadVolunteerContacts()" class="btn btn-primary mt-2" style="max-width:200px">Refresh List</button></div>`;
+      // If contacts is empty, show "no contacts assigned" instead of "All Done with 0"
+      if (contacts.length === 0) {
+        card.innerHTML = `<div class="flex flex-col items-center gap-3 py-8 text-center"><div class="done-icon">📋</div><div class="syne" style="font-size:1.4rem;font-weight:800">No Contacts Assigned</div><div style="color:var(--muted);font-size:0.88rem;line-height:1.6">You have no contacts assigned yet.<br>Please wait for admin to assign a batch.</div><button onclick="window._lastVolContactCount=0;loadVolunteerContacts(true)" class="btn btn-primary mt-2" style="max-width:200px">Refresh List</button></div>`;
+        return;
+      }
+      card.innerHTML = `<div class="flex flex-col items-center gap-3 py-8 text-center"><div class="done-icon">🎉</div><div class="syne" style="font-size:1.6rem;font-weight:800">All Done!</div><div style="color:var(--muted);font-size:0.88rem;line-height:1.6">You've gone through all <strong style="color:var(--ink)">${contacts.length}</strong> assigned contacts.<br>Great work, Sevak!</div><button onclick="window._lastVolContactCount=0;loadVolunteerContacts(true)" class="btn btn-primary mt-2" style="max-width:200px">Refresh List</button></div>`;
       ['actionBtns', 'remarkDivider', 'statusGroup', 'referenceGroup', 'saveBtn', 'skipBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
     }
     function restoreCallingUI() { ['actionBtns', 'remarkDivider', 'statusGroup', 'referenceGroup', 'saveBtn', 'skipBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; }); }
@@ -5585,7 +5763,7 @@
     // ── Load all contacts (for global search in attendance tab) ──────
     async function loadAllContactsForAttendance() {
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=getAllContacts`);
+        const res = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
         const d = await res.json();
         allContacts = d.contacts || [];
       } catch (e) { console.warn('Could not pre-load all contacts', e); }
@@ -5708,7 +5886,7 @@
     // ── Load events — auto-select upcoming ───────────────────────────
     async function loadEventsForVolunteer() {
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=getEvents`);
+        const res = await fetch(noCache(`${SCRIPT_URL}?action=getEvents`));
         const d = await res.json();
         eventsCache = d.events || [];
 
@@ -6063,7 +6241,7 @@
     // ══════════════════════════════════════════════════════════════════
     async function loadAdminData() {
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=getAdminStats`);
+        const res = await fetch(noCache(`${SCRIPT_URL}?action=getAdminStats`));
         adminData = await res.json();
         // Sync area list strictly from the Areas sheet — no localStorage fallback
         if (Array.isArray(adminData.areas)) { amAreaOptions = adminData.areas; window.amAreaOptions = amAreaOptions; }
@@ -6108,6 +6286,141 @@
     <div class="vol-progress-wrap"><div class="vol-progress-bar" style="width:${pct}%;background:${pct >= 100 ? 'var(--green)' : pct >= 50 ? 'var(--saffron)' : '#F5A623'}"></div></div>
     <div style="font-size:0.75rem;color:var(--muted);margin-top:4px">${C} called · ${T - C} remaining</div></div>
     <div>${rows || '<div style="color:var(--muted);font-size:0.85rem">No data yet.</div>'}</div>`;
+
+      // Load Sabha overview card asynchronously (needs allContacts + events)
+      renderAdminSabhaOverview();
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // ADMIN OVERVIEW — Upcoming / Live Sabha Stats Card
+    // ══════════════════════════════════════════════════════════════════
+    async function renderAdminSabhaOverview() {
+      const card = document.getElementById('adminSabhaOverviewCard');
+      if (!card) return;
+
+      // Fetch events if not yet cached
+      if (!allAdminSabhas.length) {
+        try {
+          const r = await fetch(noCache(`${SCRIPT_URL}?action=getEvents`));
+          const d = await r.json();
+          allAdminSabhas = (d.events || []).sort((a, b) => b.date.localeCompare(a.date));
+        } catch (_) { }
+      }
+      if (!allAdminSabhas.length) { card.style.display = 'none'; return; }
+
+      // Fetch fresh contacts for present counts if needed
+      if (!allContacts.length) {
+        try {
+          const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+          const d = await r.json();
+          if (d.contacts) allContacts = d.contacts;
+        } catch (_) { }
+      }
+
+      // Find the best Sabha to show: live first, then today's, then nearest upcoming
+      const todayStr = new Date().toISOString().slice(0, 10);
+      let target = allAdminSabhas.find(ev => getSabhaStatus(ev) === 'live');
+      if (!target) target = allAdminSabhas.find(ev => ev.date === todayStr);
+      if (!target) target = [...allAdminSabhas].reverse().find(ev => ev.date >= todayStr);
+      if (!target) { card.style.display = 'none'; return; }
+
+      _renderSabhaOverviewCard(card, target);
+    }
+
+    function _renderSabhaOverviewCard(card, ev) {
+      if (!ev || !card) return;
+      const status = getSabhaStatus(ev);
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const isLive = status === 'live';
+      const isToday = ev.date === todayStr;
+
+      // Attendance counts
+      const totalMembers = allContacts.length;
+      const present = ev.columnName
+        ? allContacts.filter(c => String(c[ev.columnName] || '').trim() === 'Present').length
+        : 0;
+      const absent = totalMembers - present;
+      const pct = totalMembers ? Math.round((present / totalMembers) * 100) : 0;
+
+      // Badge
+      let badgeClass = 'upcoming', badgeLabel = '📅 Upcoming';
+      if (isLive) { badgeClass = 'live'; badgeLabel = '🔴 Live Now'; }
+      else if (isToday) { badgeClass = 'today'; badgeLabel = '📆 Today'; }
+
+      // Date display
+      const dateObj = new Date(ev.date + 'T00:00:00');
+      const dateStr = dateObj.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      const timeStr = ev.time
+        ? new Date(`${ev.date}T${ev.time}`).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })
+        : null;
+
+      const now = new Date();
+      const updatedTime = now.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+      card.style.display = '';
+      card.innerHTML = `
+        <div class="sabha-ov-header">
+          <div class="sabha-ov-title">
+            ${isLive ? `<span class="sabha-ov-live-dot"></span>` : '🙏'}
+            Sabhas
+          </div>
+          <span class="sabha-ov-badge ${badgeClass}">${badgeLabel}</span>
+        </div>
+        <div class="sabha-ov-topic">${esc(ev.title)}</div>
+        <div class="sabha-ov-meta">
+          <span>📅 ${dateStr}</span>
+          ${timeStr ? `<span>⏰ ${timeStr}${ev.duration ? ' · ' + ev.duration + ' min' : ''}</span>` : ''}
+          ${ev.speaker ? `<span>🎤 ${esc(ev.speaker)}</span>` : ''}
+        </div>
+        <div class="sabha-ov-stats">
+          <div class="sabha-ov-stat">
+            <div class="sabha-ov-stat-val" style="color:var(--green)" id="sabhaOvPresent">${present}</div>
+            <div class="sabha-ov-stat-lbl">Present</div>
+          </div>
+          <div class="sabha-ov-stat">
+            <div class="sabha-ov-stat-val" style="color:var(--red)" id="sabhaOvAbsent">${absent}</div>
+            <div class="sabha-ov-stat-lbl">Absent</div>
+          </div>
+          <div class="sabha-ov-stat">
+            <div class="sabha-ov-stat-val" style="color:var(--saffron)" id="sabhaOvPct">${pct}%</div>
+            <div class="sabha-ov-stat-lbl">Attendance</div>
+          </div>
+        </div>
+        <div class="sabha-ov-bar-wrap">
+          <div class="sabha-ov-bar" id="sabhaOvBar" style="width:${pct}%"></div>
+        </div>
+        <div class="sabha-ov-updated">
+          ${isLive ? `<span class="blink">●</span> Live · ` : ''}Updated ${updatedTime}
+        </div>`;
+
+      // Store current event for live updates
+      window._sabhaOverviewEv = ev;
+    }
+
+    // ── Live-update Sabha overview stats (called from sabhaAttendance sync) ──
+    function refreshAdminSabhaOverviewCounts() {
+      const ev = window._sabhaOverviewEv;
+      if (!ev || !allContacts.length) return;
+      const present = ev.columnName
+        ? allContacts.filter(c => String(c[ev.columnName] || '').trim() === 'Present').length
+        : 0;
+      const total = allContacts.length;
+      const absent = total - present;
+      const pct = total ? Math.round((present / total) * 100) : 0;
+      const pEl = document.getElementById('sabhaOvPresent');
+      const aEl = document.getElementById('sabhaOvAbsent');
+      const tEl = document.getElementById('sabhaOvPct');
+      const bEl = document.getElementById('sabhaOvBar');
+      if (pEl) { pEl.textContent = present; pEl.style.transform = 'scale(1.18)'; setTimeout(() => { pEl.style.transform = ''; }, 350); }
+      if (aEl) aEl.textContent = absent;
+      if (tEl) tEl.textContent = pct + '%';
+      if (bEl) bEl.style.width = pct + '%';
+      const now = new Date();
+      const card = document.getElementById('adminSabhaOverviewCard');
+      if (card) {
+        const updEl = card.querySelector('.sabha-ov-updated');
+        if (updEl) updEl.innerHTML = `<span class="blink">●</span> Live · Updated ${now.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+      }
     }
 
     function drawDonut(S, T, pct) {
@@ -6417,7 +6730,7 @@
           closeEditAreaModal();
           await new Promise(r => setTimeout(r, 2500));
           await loadAdminData();
-          const r2 = await fetch(`${SCRIPT_URL}?action=getAllContacts`);
+          const r2 = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
           const d2 = await r2.json();
           if (d2.contacts) allContacts = d2.contacts;
         } else {
@@ -6467,7 +6780,7 @@
           closeEditMandalModal();
           await new Promise(r => setTimeout(r, 2500));
           await loadAdminData();
-          const r2 = await fetch(`${SCRIPT_URL}?action=getAllContacts`);
+          const r2 = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
           const d2 = await r2.json();
           if (d2.contacts) allContacts = d2.contacts;
         } else {
@@ -6771,8 +7084,8 @@
       try {
         // Fetch events + all contacts in parallel so "X Present" shows on each card
         const [evRes, cRes] = await Promise.all([
-          fetch(`${SCRIPT_URL}?action=getEvents`),
-          fetch(`${SCRIPT_URL}?action=getAllContacts`)
+          fetch(noCache(`${SCRIPT_URL}?action=getEvents`)),
+          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
         ]);
         const d = await evRes.json();
         const dc = await cRes.json();
@@ -7333,7 +7646,14 @@
     }
     async function doReassign(from, to) {
       closeReassignModal(); showToast('Reassigning…');
-      try { await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reassignContacts', from, to }) }); showToast('Reassigned! Refreshing…', 'success'); setTimeout(loadAdminData, 800); if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); }
+      try {
+        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reassignContacts', from, to }) });
+        showToast('Reassigned! Refreshing…', 'success');
+        setTimeout(loadAdminData, 800);
+        // ⚠️ Delay firebaseSync — no-cors POST is fire-and-forget; sheet takes 2–5s to write.
+        // Volunteers fetching getMyContacts before sheet is updated will get stale/old data.
+        setTimeout(() => { if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); }, 4000);
+      }
       catch (e) { showToast('Reassign failed', 'error'); }
     }
     function closeReassignModal() { document.getElementById('reassignModal').classList.remove('open'); }
@@ -7422,7 +7742,7 @@
       if (tab === 'areas') {
         // Load allContacts if not yet loaded, for mandal stats
         if (!allContacts.length) {
-          fetch(`${SCRIPT_URL}?action=getAllContacts`).then(r => r.json()).then(d => {
+          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)).then(r => r.json()).then(d => {
             if (d.contacts) { allContacts = d.contacts; renderMandalBreakdown(adminData || {}); }
           }).catch(() => { });
         } else {
@@ -7516,7 +7836,7 @@
         <div class="skeleton h-14 w-full rounded-xl"></div>`;
       document.getElementById('actPageInfo').textContent = 'Loading…';
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=getActivityLog`);
+        const res = await fetch(noCache(`${SCRIPT_URL}?action=getActivityLog`));
         const d = await res.json();
         actAllLogs = d.logs || [];
         const limitInfo = document.getElementById('actLogLimitInfo');
@@ -7680,7 +8000,7 @@
     async function loadMsgTemplate() {
       document.getElementById('msgCurrentText').textContent = 'Loading…';
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=getMessageTemplate`);
+        const res = await fetch(noCache(`${SCRIPT_URL}?action=getMessageTemplate`));
         const d = await res.json();
         const txt = d.text || '';
         const link = d.image || d.link || '';
@@ -7811,7 +8131,7 @@
       // 1. Load contacts if not already loaded
       if (!allContacts.length) {
         try {
-          const r = await fetch(`${SCRIPT_URL}?action=getAllContacts`);
+          const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
           const d = await r.json();
           if (d.contacts) allContacts = d.contacts;
         } catch (_) { }
@@ -7830,8 +8150,8 @@
       try {
         // Always reload contacts fresh so Batch_Number & Assigned_To are current
         const [cRes, bRes] = await Promise.all([
-          fetch(`${SCRIPT_URL}?action=getAllContacts`),
-          fetch(`${SCRIPT_URL}?action=getBatches`)
+          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+          fetch(noCache(`${SCRIPT_URL}?action=getBatches`))
         ]);
         const cData = await cRes.json();
         const bData = await bRes.json();
@@ -7941,7 +8261,7 @@
             contactIds: JSON.stringify(chunk.map(c => String(c.ID))),
             area: area || 'All'
           });
-          const res = await fetch(`${SCRIPT_URL}?${params}`);
+          const res = await fetch(noCache(`${SCRIPT_URL}?${params}`));
           if (!res.ok) failed++;
         } catch (_) { failed++; }
       }
@@ -7955,8 +8275,8 @@
 
       try {
         const [cRes, bRes] = await Promise.all([
-          fetch(`${SCRIPT_URL}?action=getAllContacts`),
-          fetch(`${SCRIPT_URL}?action=getBatches`)
+          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+          fetch(noCache(`${SCRIPT_URL}?action=getBatches`))
         ]);
         const cData = await cRes.json();
         const bData = await bRes.json();
@@ -8060,7 +8380,9 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'assignBatch', batchNumber: batch.batchNumber, volunteer: volName })
         });
-        if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); // 🔥 real-time sync
+        // ⚠️ Do NOT fire firebaseSync here — no-cors POST is fire-and-forget.
+        // The sheet write takes 2–5 seconds. If volunteers refresh now they get stale/empty data.
+        // We fire firebaseSync ONLY after confirming the sheet is updated (see below).
 
         // Optimistic local update immediately
         batch.assignedTo = volName;
@@ -8074,8 +8396,8 @@
         await new Promise(res => setTimeout(res, 3000));
         try {
           const [cRes, bRes] = await Promise.all([
-            fetch(`${SCRIPT_URL}?action=getAllContacts`),
-            fetch(`${SCRIPT_URL}?action=getBatches`)
+            fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+            fetch(noCache(`${SCRIPT_URL}?action=getBatches`))
           ]);
           const cData = await cRes.json();
           const bData = await bRes.json();
@@ -8099,8 +8421,12 @@
               }
             });
           }
+          // 🔥 Fire AFTER sheet confirmed — volunteers now get correct data
+          if (typeof firebaseSync === 'function') firebaseSync('assignUpdate');
           showToast(`✅ Batch #${batch.batchNumber} assigned to ${volName} — both sheets updated!`, 'success');
         } catch (_) {
+          // Sheet confirm failed but still try to notify volunteers with a longer delay
+          setTimeout(() => { if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); }, 2000);
           showToast(`✅ Batch #${batch.batchNumber} assigned to ${volName}!`, 'success');
         }
         renderBatchList();
@@ -8133,7 +8459,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'unassignBatch', batchNumber: batch.batchNumber })
         });
-        if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); // 🔥 real-time sync
+        // ⚠️ Do NOT fire firebaseSync here — sheet write takes 2–5 sec after no-cors POST.
 
         // Optimistic local update
         batch.assignedTo = '';
@@ -8147,8 +8473,8 @@
         await new Promise(res => setTimeout(res, 3000));
         try {
           const [cRes, bRes] = await Promise.all([
-            fetch(`${SCRIPT_URL}?action=getAllContacts`),
-            fetch(`${SCRIPT_URL}?action=getBatches`)
+            fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+            fetch(noCache(`${SCRIPT_URL}?action=getBatches`))
           ]);
           const cData = await cRes.json();
           const bData = await bRes.json();
@@ -8168,8 +8494,11 @@
               if (local) local.assignedTo = String(row.Assigned_To || '').trim();
             });
           }
+          // 🔥 Fire AFTER sheet confirmed — volunteers now get correct (empty) list
+          if (typeof firebaseSync === 'function') firebaseSync('assignUpdate');
           showToast(`✅ Batch #${batch.batchNumber} unassigned — both sheets cleared!`, 'success');
         } catch (_) {
+          setTimeout(() => { if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); }, 2000);
           showToast(`✅ Batch #${batch.batchNumber} unassigned — pick a new volunteer`, 'success');
         }
         renderBatchList();
@@ -8218,8 +8547,8 @@
       await new Promise(res => setTimeout(res, 4000));
       try {
         const [cRes, bRes] = await Promise.all([
-          fetch(`${SCRIPT_URL}?action=getAllContacts`),
-          fetch(`${SCRIPT_URL}?action=getBatches`)
+          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+          fetch(noCache(`${SCRIPT_URL}?action=getBatches`))
         ]);
         const cData = await cRes.json();
         const bData = await bRes.json();
@@ -8372,7 +8701,7 @@
         document.getElementById('allContactsList').innerHTML =
           '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:24px">Loading contacts…</div>';
         try {
-          const r = await fetch(`${SCRIPT_URL}?action=getAllContacts`);
+          const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
           const d = await r.json();
           if (d.contacts) allContacts = d.contacts;
         } catch (_) { }
@@ -8811,7 +9140,7 @@
 
         // Reload both adminData (stats) AND allContacts (the contacts tab list)
         await loadAdminData();
-        const r = await fetch(`${SCRIPT_URL}?action=getAllContacts`);
+        const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
         const d = await r.json();
         if (d.contacts) allContacts = d.contacts;
 
@@ -8858,7 +9187,7 @@
         // Wait for GAS to finish deleting row + rebuilding IDs, then fetch fresh data
         await new Promise(res => setTimeout(res, 4000));
         await loadAdminData();
-        const r = await fetch(`${SCRIPT_URL}?action=getAllContacts`);
+        const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
         const d = await r.json();
         if (d.contacts) allContacts = d.contacts;
         renderAllContacts();
@@ -8897,7 +9226,7 @@
         // Give GAS a moment to finish writing, then reload
         await new Promise(res => setTimeout(res, 4000));
         await loadAdminData();
-        const r = await fetch(`${SCRIPT_URL}?action=getAllContacts`);
+        const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
         const d = await r.json();
         if (d.contacts) allContacts = d.contacts;
         renderAllContacts();
@@ -8933,7 +9262,7 @@
       // switchModTab('overview');
       try {
         // Single fetch — getAdminStats already returns allContacts, areas, mandals
-        const statsRes = await fetch(`${SCRIPT_URL}?action=getAdminStats`);
+        const statsRes = await fetch(noCache(`${SCRIPT_URL}?action=getAdminStats`));
         const statsData = await statsRes.json();
 
         modData = statsData;
@@ -9237,7 +9566,7 @@
     async function modRefreshBatchTab() {
       if (!allContacts.length) {
         try {
-          const r = await fetch(`${SCRIPT_URL}?action=getAllContacts`);
+          const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
           const d = await r.json();
           if (d.contacts) allContacts = d.contacts;
         } catch (_) { }
@@ -9253,8 +9582,8 @@
     async function modLoadBatchesFromSheet() {
       try {
         const [cRes, bRes] = await Promise.all([
-          fetch(`${SCRIPT_URL}?action=getAllContacts`),
-          fetch(`${SCRIPT_URL}?action=getBatches`)
+          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+          fetch(noCache(`${SCRIPT_URL}?action=getBatches`))
         ]);
         const cData = await cRes.json();
         const bData = await bRes.json();
@@ -9321,7 +9650,7 @@
             contactIds: JSON.stringify(chunk.map(c => c.ID)),
             area: areaFilter === '__all__' ? 'All' : areaFilter
           });
-          await fetch(`${SCRIPT_URL}?${params}`);
+          await fetch(noCache(`${SCRIPT_URL}?${params}`));
         }
         await new Promise(r => setTimeout(r, 2500));
         await modRefreshBatchTab();
@@ -9439,7 +9768,7 @@
         modRenderBatchList(); modRenderBatchVolStats(); modUpdateBatchSummary();
         await new Promise(r => setTimeout(r, 3000));
         try {
-          const [cRes, bRes] = await Promise.all([fetch(`${SCRIPT_URL}?action=getAllContacts`), fetch(`${SCRIPT_URL}?action=getBatches`)]);
+          const [cRes, bRes] = await Promise.all([fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)), fetch(noCache(`${SCRIPT_URL}?action=getBatches`))]);
           const cData = await cRes.json(), bData = await bRes.json();
           if (cData.contacts) { allContacts = cData.contacts; const bm = {}; allContacts.forEach(c => { const bn = String(c.Batch_Number || '').trim(); if (bn) { if (!bm[bn]) bm[bn] = []; bm[bn].push(c); } }); modBatches.forEach(b => { if (b.batchNumber) b.contacts = bm[String(b.batchNumber)] || b.contacts; }); }
           if (bData.batches) { bData.batches.forEach(row => { const bn = String(row.Batch_Number || '').trim(); const local = modBatches.find(b => String(b.batchNumber) === bn); if (local) { local.assignedTo = String(row.Assigned_To || '').trim(); local.assignedAt = row.Assigned_At || local.assignedAt; } }); }
@@ -9480,8 +9809,8 @@
     async function loadModEventsForSabha() {
       try {
         const [evRes, cRes] = await Promise.all([
-          fetch(`${SCRIPT_URL}?action=getEvents`),
-          allContacts.length ? Promise.resolve({ json: () => ({ contacts: allContacts }) }) : fetch(`${SCRIPT_URL}?action=getAllContacts`)
+          fetch(noCache(`${SCRIPT_URL}?action=getEvents`)),
+          allContacts.length ? Promise.resolve({ json: () => ({ contacts: allContacts }) }) : fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
         ]);
         const d = await evRes.json();
         eventsCache = d.events || [];
@@ -9619,7 +9948,7 @@
     async function initModAllContactsTab() {
       if (!allContacts.length) {
         document.getElementById('modAllContactsList').innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:24px">Loading contacts…</div>';
-        try { const r = await fetch(`${SCRIPT_URL}?action=getAllContacts`); const d = await r.json(); if (d.contacts) allContacts = d.contacts; } catch (_) { }
+        try { const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)); const d = await r.json(); if (d.contacts) allContacts = d.contacts; } catch (_) { }
       }
       const areaSelect = document.getElementById('modAllContactsAreaFilter');
       const areas = [...new Set(allContacts.map(c => c.Area).filter(Boolean))].sort();
@@ -9735,7 +10064,7 @@
         document.getElementById('modAddContactOverlay').style.display = 'none';
         // Refresh contacts list
         await new Promise(r => setTimeout(r, 3000));
-        const res = await fetch(`${SCRIPT_URL}?action=getAllContacts`);
+        const res = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
         const d = await res.json();
         if (d.contacts) allContacts = d.contacts;
         if (document.getElementById('modTabContacts').style.display !== 'none') renderModAllContacts();
@@ -9796,7 +10125,7 @@
         <div class="skeleton h-14 w-full rounded-xl"></div>`;
       document.getElementById('modActPageInfo').textContent = 'Loading…';
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=getActivityLog`);
+        const res = await fetch(noCache(`${SCRIPT_URL}?action=getActivityLog`));
         const d = await res.json();
         modActAllLogs = d.logs || [];
         applyModActivityFilter();
@@ -9911,8 +10240,8 @@
     async function loadEmailSettings() {
       try {
         const [settRes, peopleRes] = await Promise.all([
-          fetch(`${SCRIPT_URL}?action=getEmailSettings`),
-          fetch(`${SCRIPT_URL}?action=getVolunteersForEmail`)
+          fetch(noCache(`${SCRIPT_URL}?action=getEmailSettings`)),
+          fetch(noCache(`${SCRIPT_URL}?action=getVolunteersForEmail`))
         ]);
         const sd = await settRes.json();
         const pd = await peopleRes.json();
@@ -9939,7 +10268,7 @@
       // FIX Issue 2: fetch events fresh if cache is empty (user may not have opened Sabhas tab yet)
       if (!eventsCache.length) {
         try {
-          const res = await fetch(`${SCRIPT_URL}?action=getEvents`);
+          const res = await fetch(noCache(`${SCRIPT_URL}?action=getEvents`));
           const d = await res.json();
           eventsCache = d.events || [];
         } catch (e) { console.error('loadEmailPanel: failed to fetch events', e); }
@@ -10066,14 +10395,14 @@
     // ── Moderator email panel ─────────────────────────────────────────
     async function loadModEmailPanel() {
       try {
-        const pd = await fetch(`${SCRIPT_URL}?action=getVolunteersForEmail`).then(r => r.json());
+        const pd = await fetch(noCache(`${SCRIPT_URL}?action=getVolunteersForEmail`)).then(r => r.json());
         emailPeopleCache = pd;
         const { volunteers = [], admins = [], moderators = [] } = pd;
 
         // FIX Issue 3: fetch events fresh if cache empty, then filter to last 1 month
         if (!eventsCache.length) {
           try {
-            const res = await fetch(`${SCRIPT_URL}?action=getEvents`);
+            const res = await fetch(noCache(`${SCRIPT_URL}?action=getEvents`));
             const d = await res.json();
             eventsCache = d.events || [];
           } catch (e) { console.error('loadModEmailPanel: failed to fetch events', e); }
@@ -10204,7 +10533,7 @@
       document.getElementById('bdCalStatus').textContent = '…';
       document.getElementById('bdLastRun').textContent = 'Last sync: checking…';
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=getBirthdaySync`);
+        const res = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdaySync`));
         const data = await res.json();
         if (data.success) {
           const count = data.synced || 0;
@@ -10261,7 +10590,7 @@
 
       try {
         // ── Step 1: Reset counters on server ─────────────────────────────
-        await fetch(`${SCRIPT_URL}?action=initBirthdaySync`);
+        await fetch(noCache(`${SCRIPT_URL}?action=initBirthdaySync`));
         await new Promise(r => setTimeout(r, 1500));
         setProgress(2, 'Initialized — triggering batch runner…');
 
@@ -10298,7 +10627,7 @@
 
           let prog = {};
           try {
-            const res = await fetch(`${SCRIPT_URL}?action=getBirthdaySyncProgress`);
+            const res = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdaySyncProgress`));
             prog = await res.json();
           } catch (_) { continue; }
 
@@ -10317,8 +10646,8 @@
         }
 
         // ── Step 4: Final read ────────────────────────────────────────────
-        const prog = await fetch(`${SCRIPT_URL}?action=getBirthdaySyncProgress`).then(r => r.json()).catch(() => ({}));
-        const s = await fetch(`${SCRIPT_URL}?action=getBirthdaySync`).then(r => r.json()).catch(() => ({}));
+        const prog = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdaySyncProgress`)).then(r => r.json()).catch(() => ({}));
+        const s = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdaySync`)).then(r => r.json()).catch(() => ({}));
 
         result.style.background = '#D4EDDA';
         result.style.color = '#155724';
@@ -10425,7 +10754,7 @@
           attempts++;
           await new Promise(r => setTimeout(r, 2000));
           try {
-            const check = await fetch(`${SCRIPT_URL}?action=getBirthdaySync`).then(r => r.json());
+            const check = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdaySync`)).then(r => r.json());
             if (check.success && (check.synced === 0 || !check.synced)) {
               // ✅ Sheet cleared — delete is done
               result.style.background = '#F0FFF4';
@@ -10478,7 +10807,7 @@
     /* ── Load birthday email status when panel opens ────────────── */
     async function loadBdEmailStatus() {
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=getBirthdayEmailStatus`);
+        const res = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdayEmailStatus`));
         const data = await res.json();
         if (!data.success) return;
         const statusEl = document.getElementById('bdEmailStatus');
@@ -10514,7 +10843,7 @@
       }
 
       try {
-        const res = await fetch(`${SCRIPT_URL}?action=sendBirthdayEmailsNow`);
+        const res = await fetch(noCache(`${SCRIPT_URL}?action=sendBirthdayEmailsNow`));
         const data = await res.json();
 
         if (result) {
@@ -10649,16 +10978,80 @@
         }
       });
 
-      // ── Channel 2: Admin assigned/reassigned contacts ──────────────
-      // → All volunteers refresh their contact list instantly
+      // ── Channel 2: Admin/Mod assigned/unassigned a batch ─────────────
+      // → Volunteers refresh their contact list; Admin & Mod refresh their Assigning tab
       _listenSync('assignUpdate', () => {
         const role = window.currentUser && window.currentUser.role;
         console.log('[Sync] assignUpdate received — role:', role);
+
+        // ── VOLUNTEER: refresh contact list ───────────────────────────
         if (role === 'volunteer') {
-          if (typeof showToast === 'function') showToast('🔄 Your contacts were updated. Syncing…', 'info');
-          setTimeout(() => {
-            if (typeof loadVolunteerContacts === 'function') loadVolunteerContacts();
-          }, 500);
+          // ── CRITICAL FIX: reset index & count so the new list renders from scratch ──
+          currentIdx = 0;
+          window._lastVolContactCount = 0;
+
+          // Show a fixed banner at top while fetching
+          let banner = document.getElementById('assignUpdateBanner');
+          if (!banner) {
+            if (!document.getElementById('assignUpdateBannerStyle')) {
+              const s = document.createElement('style');
+              s.id = 'assignUpdateBannerStyle';
+              s.textContent = '@keyframes _slideDown{from{opacity:0;top:50px}to{opacity:1;top:64px}} @keyframes _spin{to{transform:rotate(360deg)}}';
+              document.head.appendChild(s);
+            }
+            banner = document.createElement('div');
+            banner.id = 'assignUpdateBanner';
+            banner.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);background:var(--saffron);color:#fff;font-weight:600;padding:10px 20px;border-radius:24px;z-index:9999;font-size:0.85rem;box-shadow:0 4px 16px rgba(0,0,0,0.18);display:flex;align-items:center;gap:8px;max-width:90vw;animation:_slideDown 0.3s ease';
+            banner.innerHTML = '<span style="animation:_spin 1s linear infinite;display:inline-block">🔄</span> Updating your contact list…';
+            document.body.appendChild(banner);
+          }
+          // Small delay so the sheet write has time to propagate
+          setTimeout(async () => {
+            if (typeof loadVolunteerContacts === 'function') {
+              await loadVolunteerContacts(true);
+            }
+            // ── Auto-switch to Calling tab so volunteer sees the new list ──
+            if (typeof switchTab === 'function') switchTab('calling');
+            const b = document.getElementById('assignUpdateBanner');
+            if (b) b.remove();
+          }, 800);
+
+        // ── ADMIN: silently refresh Assigning tab if it's open ────────
+        } else if (role === 'admin') {
+          // Debounce: if multiple assigns fire quickly, only refresh once
+          if (window._adminAssignSyncTimer) clearTimeout(window._adminAssignSyncTimer);
+          window._adminAssignSyncTimer = setTimeout(async () => {
+            window._adminAssignSyncTimer = null;
+            try {
+              // Check if the user is on the Assigning tab
+              const assigningTabVisible = document.getElementById('tabAssigning') &&
+                document.getElementById('tabAssigning').style.display !== 'none';
+              if (typeof refreshBatchTab === 'function') {
+                await refreshBatchTab();
+                // Only show toast if on the Assigning tab — silent refresh otherwise
+                if (assigningTabVisible) {
+                  showToast('🔄 Assigning tab updated by another user', 'info');
+                }
+              }
+            } catch (e) { console.warn('[Sync] admin assignUpdate refresh failed', e); }
+          }, 1500); // 1.5s debounce — sheet needs time to propagate
+
+        // ── MODERATOR: silently refresh Assigning tab ─────────────────
+        } else if (role === 'moderator') {
+          if (window._modAssignSyncTimer) clearTimeout(window._modAssignSyncTimer);
+          window._modAssignSyncTimer = setTimeout(async () => {
+            window._modAssignSyncTimer = null;
+            try {
+              const assigningTabVisible = document.getElementById('modTabAssigning') &&
+                document.getElementById('modTabAssigning').style.display !== 'none';
+              if (typeof modRefreshBatchTab === 'function') {
+                await modRefreshBatchTab();
+                if (assigningTabVisible) {
+                  showToast('🔄 Assigning tab updated by another moderator', 'info');
+                }
+              }
+            } catch (e) { console.warn('[Sync] mod assignUpdate refresh failed', e); }
+          }, 1500);
         }
       });
 
@@ -10670,7 +11063,24 @@
         if (role === 'volunteer') {
           if (typeof loadEventsForVolunteer === 'function') loadEventsForVolunteer();
         } else if (role === 'admin') {
-          if (typeof loadAdminData === 'function') loadAdminData();
+          // Refresh allContacts in background, then update Sabha card counts instantly
+          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
+            .then(r => r.json())
+            .then(d => {
+              if (d.contacts) {
+                allContacts = d.contacts;
+                // Live-update Sabha overview counts without full reload
+                if (typeof refreshAdminSabhaOverviewCounts === 'function') refreshAdminSabhaOverviewCounts();
+              }
+            })
+            .catch(() => { });
+          // Also refresh full admin data (debounced: only if not already refreshing)
+          if (!window._adminSabhaRefreshTimer) {
+            window._adminSabhaRefreshTimer = setTimeout(() => {
+              window._adminSabhaRefreshTimer = null;
+              if (typeof loadAdminData === 'function') loadAdminData();
+            }, 8000); // full refresh after 8s to avoid hammering GAS
+          }
         } else if (role === 'moderator') {
           if (typeof loadModeratorData === 'function') loadModeratorData();
         }
@@ -10686,7 +11096,7 @@
         } else if (role === 'moderator') {
           if (typeof loadModeratorData === 'function') loadModeratorData();
         } else if (role === 'volunteer') {
-          if (typeof loadVolunteerContacts === 'function') loadVolunteerContacts();
+          if (typeof loadVolunteerContacts === 'function') { window._lastVolContactCount = 0; loadVolunteerContacts(true); }
         }
       });
 
@@ -10734,7 +11144,7 @@
         console.log('[Doorbell] 🔔 New ping received.');
         if (typeof showToast === 'function') showToast('🔔 Doorbell ping received!', 'info');
         setTimeout(() => {
-          if (typeof loadVolunteerContacts === 'function') loadVolunteerContacts();
+          if (typeof loadVolunteerContacts === 'function') { window._lastVolContactCount = 0; loadVolunteerContacts(true); }
           if (typeof refreshAdminStats === 'function') refreshAdminStats();
         }, 600);
       }, (error) => console.error('[Doorbell] Firebase listener error:', error.message));
@@ -10792,7 +11202,7 @@
 
     async function loadBdEmailStatus() {
       try {
-        const res  = await fetch(`${SCRIPT_URL}?action=getBirthdayEmailStatus`);
+        const res  = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdayEmailStatus`));
         const data = await res.json();
         if (!data.success) return;
         const statusEl  = document.getElementById('bdEmailStatus');
