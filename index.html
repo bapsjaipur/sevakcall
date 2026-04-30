@@ -5362,6 +5362,7 @@
         else { offlineQueue.push({ ...payload, ts: Date.now() }); refreshOfflineBanner(); showToast('💾 Saved offline', 'warn'); }
         contacts[currentIdx].Status = status; contacts[currentIdx].Reference = reference;
         updateMyStats(); if (navigator.onLine) showToast(`Saved: ${status}`, 'success');
+        if (typeof firebaseSync === 'function') firebaseSync('statusUpdate'); // 🔥 real-time sync
         loadNext();
       } catch (e) {
         offlineQueue.push({ ...payload, ts: Date.now() }); refreshOfflineBanner();
@@ -5890,6 +5891,7 @@
         const presentList = allContacts.filter(c => String(c[selectedSabhaCol] || '').trim() === 'Present');
         renderPresentList(presentList);
         showToast('✅ Marked Present!', 'success');
+        if (typeof firebaseSync === 'function') firebaseSync('sabhaAttendance'); // 🔥 real-time sync
       } catch (e) {
         btnEl.disabled = false; btnEl.textContent = 'Mark Present';
         showToast('Failed to mark. Try again.', 'error');
@@ -6041,6 +6043,7 @@
 
         closeAddMemberModal();
         showToast(`${name} added & marked Present! ID: ${fakeId}`, 'purple');
+        if (typeof firebaseSync === 'function') { firebaseSync('sabhaAttendance'); firebaseSync('newMember'); } // 🔥 real-time sync
 
         // Clear attendance search
         const si = document.getElementById('attnSearchInput'); if (si) si.value = '';
@@ -7332,7 +7335,7 @@
     }
     async function doReassign(from, to) {
       closeReassignModal(); showToast('Reassigning…');
-      try { await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reassignContacts', from, to }) }); showToast('Reassigned! Refreshing…', 'success'); setTimeout(loadAdminData, 800); }
+      try { await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reassignContacts', from, to }) }); showToast('Reassigned! Refreshing…', 'success'); setTimeout(loadAdminData, 800); if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); }
       catch (e) { showToast('Reassign failed', 'error'); }
     }
     function closeReassignModal() { document.getElementById('reassignModal').classList.remove('open'); }
@@ -8059,6 +8062,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'assignBatch', batchNumber: batch.batchNumber, volunteer: volName })
         });
+        if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); // 🔥 real-time sync
 
         // Optimistic local update immediately
         batch.assignedTo = volName;
@@ -8131,6 +8135,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'unassignBatch', batchNumber: batch.batchNumber })
         });
+        if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); // 🔥 real-time sync
 
         // Optimistic local update
         batch.assignedTo = '';
@@ -8455,6 +8460,7 @@
         if (typeof renderAllContacts === 'function') { acPage = 0; renderAllContacts(); }
         closeAdminAddContactModal();
         showToast(`${name} added to contact sheet! ID: ${fakeId}`, 'purple');
+        if (typeof firebaseSync === 'function') firebaseSync('newMember'); // 🔥 real-time sync
       } catch (e) {
         showToast('Failed to add contact. Try again.', 'error');
       } finally {
@@ -9588,6 +9594,7 @@
         modPresentCountLocal++; modUpdateAttnCounter();
         modRenderPresentList(allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present'));
         showToast('✅ Marked Present!', 'success');
+        if (typeof firebaseSync === 'function') firebaseSync('sabhaAttendance'); // 🔥 real-time sync
       } catch (e) { btnEl.disabled = false; btnEl.textContent = 'Mark Present'; showToast('Failed. Try again.', 'error'); }
     }
 
@@ -9722,6 +9729,7 @@
         });
         const fakeId = generatedId || 'LOCAL_' + Date.now();
         showToast(`${name} added! ID: ${fakeId}`, 'purple');
+        if (typeof firebaseSync === 'function') firebaseSync('newMember'); // 🔥 real-time sync
         document.getElementById('modAddContactOverlay').style.display = 'none';
         // Refresh contacts list
         await new Promise(r => setTimeout(r, 3000));
@@ -10561,7 +10569,6 @@
   <!-- ① Firebase SDK — loaded as ES module via CDN (v10+, free, no npm needed) -->
   <script type="module">
     // ── Firebase project config ────────────────────────────────────────
-    // Get these from: Firebase Console → Project Settings → Your Apps → SDK setup
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyCqiR-vslNZPnqZfblegyvX0akRmNKTu-c",
       authDomain: "sevakcall-doorbell-d5466.firebaseapp.com",
@@ -10572,110 +10579,163 @@
       appId: "1:826565415745:web:91acf2d8081296500887c0"
     };
 
-    // ── Firebase imports (CDN modular SDK v10) ─────────────────────────
+    // ── Firebase imports ───────────────────────────────────────────────
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
     // ── Module-level state ─────────────────────────────────────────────
-    let _db = null;   // Firebase Database instance
-    let _unsubscribe = null;   // onValue unsubscribe handle
-    let _lastSeenTs = 0;      // prevents acting on the initial/cached value
-    let _doorbellEmail = null;   // the current user's email
+    let _db = null;
+    let _unsubscribe = null;
+    let _syncUnsubs = [];        // holds all sync channel unsubscribe fns
+    let _lastSeenTs = 0;
+    let _doorbellEmail = null;
 
-    // ── Public init function (called from login success handler) ────────
-    /**
-     * initFirebaseDoorbell(email)
-     *
-     * Call this once after a successful login.
-     * It initialises Firebase (idempotent) and starts listening.
-     *
-     * @param {string} email - The logged-in volunteer's email address.
-     */
+    // ── Seen-ts guards per channel (prevents acting on cached value) ───
+    const _seenTs = {
+      statusUpdate: 0,
+      assignUpdate: 0,
+      sabhaAttendance: 0,
+      newMember: 0
+    };
+
+    // ── Helper: write a sync signal to Firebase ────────────────────────
+    // Called from volunteer/admin/mod actions to notify other sessions.
+    window.firebaseSync = function (channel) {
+      if (!_db) return;
+      try {
+        set(ref(_db, 'sync/' + channel), { at: Date.now() });
+      } catch (e) {
+        console.warn('[Sync] Could not write to channel:', channel, e.message);
+      }
+    };
+
+    // ── Helper: attach a real-time listener on a sync channel ──────────
+    function _listenSync(channel, callback) {
+      const r = ref(_db, 'sync/' + channel);
+      const unsub = onValue(r, (snap) => {
+        if (!snap.exists()) return;
+        const val = snap.val();
+        const ts = val.at || 0;
+        if (!_seenTs[channel]) { _seenTs[channel] = ts; return; } // ignore first cached value
+        if (ts <= _seenTs[channel]) return;                        // ignore old values
+        _seenTs[channel] = ts;
+        callback();
+      }, (err) => console.error('[Sync] Listener error on', channel, err.message));
+      _syncUnsubs.push(unsub);
+    }
+
+    // ── Start all sync listeners (called after login) ──────────────────
+    function _startSyncListeners() {
+      // Detach any previous listeners
+      _syncUnsubs.forEach(fn => typeof fn === 'function' && fn());
+      _syncUnsubs = [];
+      Object.keys(_seenTs).forEach(k => _seenTs[k] = 0);
+
+      const role = window.currentUser && window.currentUser.role;
+
+      // ── Channel 1: Volunteer updated a contact status ──────────────
+      // → Admin & Moderator overview refreshes instantly
+      _listenSync('statusUpdate', () => {
+        console.log('[Sync] statusUpdate received');
+        if (role === 'admin') {
+          if (typeof loadAdminData === 'function') loadAdminData();
+        } else if (role === 'moderator') {
+          if (typeof loadModeratorData === 'function') loadModeratorData();
+        }
+      });
+
+      // ── Channel 2: Admin assigned/reassigned contacts ──────────────
+      // → All volunteers refresh their contact list instantly
+      _listenSync('assignUpdate', () => {
+        console.log('[Sync] assignUpdate received');
+        if (role === 'volunteer') {
+          if (typeof showToast === 'function') showToast('🔄 Your contacts were updated. Syncing…', 'info');
+          setTimeout(() => {
+            if (typeof loadVolunteerContacts === 'function') loadVolunteerContacts();
+          }, 500);
+        }
+      });
+
+      // ── Channel 3: Someone marked Sabha attendance ─────────────────
+      // → Everyone (all roles) sees updated present count instantly
+      _listenSync('sabhaAttendance', () => {
+        console.log('[Sync] sabhaAttendance received');
+        if (role === 'volunteer') {
+          if (typeof loadEventsForVolunteer === 'function') loadEventsForVolunteer();
+        } else if (role === 'admin') {
+          if (typeof loadAdminData === 'function') loadAdminData();
+        } else if (role === 'moderator') {
+          if (typeof loadModeratorData === 'function') loadModeratorData();
+        }
+      });
+
+      // ── Channel 4: New member added ────────────────────────────────
+      // → Admin & Moderator see new contact instantly
+      _listenSync('newMember', () => {
+        console.log('[Sync] newMember received');
+        if (role === 'admin') {
+          if (typeof loadAdminData === 'function') loadAdminData();
+        } else if (role === 'moderator') {
+          if (typeof loadModeratorData === 'function') loadModeratorData();
+        } else if (role === 'volunteer') {
+          if (typeof loadVolunteerContacts === 'function') loadVolunteerContacts();
+        }
+      });
+
+      console.log('[Sync] All 4 sync channels active for role:', role);
+    }
+
+    // ── Public init function (called from login success handler) ───────
     window.initFirebaseDoorbell = function (email) {
       if (!email) return;
       _doorbellEmail = email.trim().toLowerCase();
 
-      // initializeApp is idempotent — safe to call multiple times
       if (!_db) {
         const app = initializeApp(FIREBASE_CONFIG);
         _db = getDatabase(app);
+        window._firebaseDB = _db;   // expose for inline writes
+        window._firebaseSet = set;  // expose set() for inline writes
+        window._firebaseRef = ref;  // expose ref() for inline writes
         console.log('[Doorbell] Firebase initialised.');
       }
 
-      // Detach any previous listener before attaching a new one
-      // (prevents duplicate listeners on re-login without page refresh)
       stopFirebaseDoorbell();
 
+      // ── Doorbell listener (existing) ───────────────────────────────
       const pingRef = ref(_db, 'latest_ping');
-
-      _unsubscribe = onValue(
-        pingRef,
-        (snapshot) => {
-          // ── Guard: ignore null / missing node ──────────────────────────
-          if (!snapshot.exists()) return;
-
-          const ping = snapshot.val();
-          // ping = { ts: 1234567890, target: "vol@email.com", triggeredBy: "Admin" }
-
-          // ── Guard: ignore the first "current value" emitted on connect ─
-          // onValue fires immediately with the cached value — we should NOT
-          // trigger a refresh for data that was already on screen.
-          if (!_lastSeenTs) {
-            _lastSeenTs = ping.ts || 0;
-            console.log('[Doorbell] Listener attached. Initial ts stored:', _lastSeenTs);
-            return;
-          }
-
-          // ── Guard: only react to NEW pings ─────────────────────────────
-          if ((ping.ts || 0) <= _lastSeenTs) return;
-          _lastSeenTs = ping.ts;
-
-          // ── Guard: only react if this ping targets ME or everyone ──────
-          const target = String(ping.target || '').trim().toLowerCase();
-          if (target !== 'all' && target !== _doorbellEmail) return;
-
-          console.log('[Doorbell] 🔔 New ping received. Triggering refresh.');
-
-          // ── Show toast notification ────────────────────────────────────
-          // Uses SevakCall's existing showToast() function.
-          if (typeof showToast === 'function') {
-            showToast('🔄 Your contacts were updated. Refreshing…', 'info');
-          }
-
-          // ── Trigger data refresh ───────────────────────────────────────
-          // Small delay lets the toast render before the network call starts.
-          setTimeout(() => {
-            if (typeof loadVolunteerContacts === 'function') {
-              loadVolunteerContacts();          // Volunteer's main data function
-            }
-            if (typeof refreshAdminStats === 'function') {
-              refreshAdminStats();              // Admin dashboard (if open)
-            }
-          }, 600);
-        },
-        (error) => {
-          // This fires on permission errors (rules misconfigured, etc.)
-          console.error('[Doorbell] Firebase listener error:', error.message);
-        }
-      );
+      _unsubscribe = onValue(pingRef, (snapshot) => {
+        if (!snapshot.exists()) return;
+        const ping = snapshot.val();
+        if (!_lastSeenTs) { _lastSeenTs = ping.ts || 0; return; }
+        if ((ping.ts || 0) <= _lastSeenTs) return;
+        _lastSeenTs = ping.ts;
+        const target = String(ping.target || '').trim().toLowerCase();
+        if (target !== 'all' && target !== _doorbellEmail) return;
+        console.log('[Doorbell] 🔔 New ping received.');
+        if (typeof showToast === 'function') showToast('🔔 Doorbell ping received!', 'info');
+        setTimeout(() => {
+          if (typeof loadVolunteerContacts === 'function') loadVolunteerContacts();
+          if (typeof refreshAdminStats === 'function') refreshAdminStats();
+        }, 600);
+      }, (error) => console.error('[Doorbell] Firebase listener error:', error.message));
 
       console.log('[Doorbell] Listening on latest_ping for:', _doorbellEmail);
+
+      // ── Start all real-time sync channels ──────────────────────────
+      _startSyncListeners();
     };
 
     // ── Cleanup: call on logout ─────────────────────────────────────────
-    /**
-     * stopFirebaseDoorbell()
-     *
-     * Detaches the Firebase listener. Call this on logout so we don't
-     * receive pings meant for the previous user if the browser tab is reused.
-     */
     window.stopFirebaseDoorbell = function () {
       if (typeof _unsubscribe === 'function') {
-        _unsubscribe();       // Firebase SDK returns the unsubscribe fn from onValue
+        _unsubscribe();
         _unsubscribe = null;
         _lastSeenTs = 0;
         console.log('[Doorbell] Listener detached.');
       }
+      _syncUnsubs.forEach(fn => typeof fn === 'function' && fn());
+      _syncUnsubs = [];
+      console.log('[Sync] All sync listeners detached.');
     };
 
   </script>
