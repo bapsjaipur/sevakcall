@@ -6841,7 +6841,7 @@
       const start = sabhaPage * sabhaPageSize;
       const pageItems = filtered.slice(start, start + sabhaPageSize);
 
-      titleEl.textContent = (sabhaFilterFrom || sabhaFilterTill) ? 'Filtered Sabhas' : 'Past & Upcoming Sabhas';
+      titleEl.textContent = (sabhaFilterFrom || sabhaFilterTill) ? 'Filtered Sabhas' : 'Upcoming & Past Sabhas';
       pageInfo.textContent = `Page ${sabhaPage + 1} of ${totalPages} · ${filtered.length} total`;
 
       // Status badge styles
