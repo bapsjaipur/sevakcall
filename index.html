@@ -6132,7 +6132,7 @@
         const presentList = allContacts.filter(c => String(c[selectedSabhaCol] || '').trim() === 'Present');
         renderPresentList(presentList);
         showToast('✅ Marked Present!', 'success');
-        window._localSabhaWrite = Date.now(); // guard against stale fetch overwrite
+        window._localSabhaWrite = Date.now();
         if (typeof firebaseSync === 'function') firebaseSync('sabhaAttendance'); // 🔥 real-time sync
       } catch (e) {
         btnEl.disabled = false; btnEl.textContent = 'Mark Present';
@@ -6493,8 +6493,6 @@
     async function renderModSabhaOverview() {
       const card = document.getElementById('modSabhaOverviewCard');
       if (!card) return;
-
-      // Fetch events if not yet cached
       if (!allAdminSabhas.length) {
         try {
           const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`));
@@ -6503,7 +6501,6 @@
         } catch (_) { }
       }
       if (!allAdminSabhas.length) { card.style.display = 'none'; return; }
-
       if (!allContacts.length) {
         try {
           const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
@@ -6511,13 +6508,11 @@
           if (d.contacts) allContacts = d.contacts;
         } catch (_) { }
       }
-
       const todayStr = new Date().toISOString().slice(0, 10);
       let target = allAdminSabhas.find(ev => getSabhaStatus(ev) === 'live');
       if (!target) target = allAdminSabhas.find(ev => ev.date === todayStr);
       if (!target) target = [...allAdminSabhas].reverse().find(ev => ev.date >= todayStr);
       if (!target) { card.style.display = 'none'; return; }
-
       _renderModSabhaOverviewCard(card, target);
     }
 
@@ -6527,34 +6522,22 @@
       const todayStr = new Date().toISOString().slice(0, 10);
       const isLive = status === 'live';
       const isToday = ev.date === todayStr;
-
       const totalMembers = allContacts.length;
-      const present = ev.columnName
-        ? allContacts.filter(c => String(c[ev.columnName] || '').trim() === 'Present').length
-        : 0;
+      const present = ev.columnName ? allContacts.filter(c => String(c[ev.columnName] || '').trim() === 'Present').length : 0;
       const absent = totalMembers - present;
       const pct = totalMembers ? Math.round((present / totalMembers) * 100) : 0;
-
       let badgeClass = 'upcoming', badgeLabel = '📅 Upcoming';
       if (isLive) { badgeClass = 'live'; badgeLabel = '🔴 Live Now'; }
       else if (isToday) { badgeClass = 'today'; badgeLabel = '📆 Today'; }
-
       const dateObj = new Date(ev.date + 'T00:00:00');
       const dateStr = dateObj.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-      const timeStr = ev.time
-        ? new Date(`${ev.date}T${ev.time}`).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })
-        : null;
-
+      const timeStr = ev.time ? new Date(`${ev.date}T${ev.time}`).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }) : null;
       const now = new Date();
       const updatedTime = now.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
-
       card.style.display = '';
       card.innerHTML = `
         <div class="sabha-ov-header">
-          <div class="sabha-ov-title">
-            ${isLive ? `<span class="sabha-ov-live-dot"></span>` : '🙏'}
-            Sabhas
-          </div>
+          <div class="sabha-ov-title">${isLive ? `<span class="sabha-ov-live-dot"></span>` : '🙏'} Sabhas</div>
           <span class="sabha-ov-badge ${badgeClass}">${badgeLabel}</span>
         </div>
         <div class="sabha-ov-topic">${esc(ev.title)}</div>
@@ -6564,52 +6547,33 @@
           ${ev.speaker ? `<span>🎤 ${esc(ev.speaker)}</span>` : ''}
         </div>
         <div class="sabha-ov-stats">
-          <div class="sabha-ov-stat">
-            <div class="sabha-ov-stat-val" style="color:var(--green)" id="modSabhaOvPresent">${present}</div>
-            <div class="sabha-ov-stat-lbl">Present</div>
-          </div>
-          <div class="sabha-ov-stat">
-            <div class="sabha-ov-stat-val" style="color:var(--red)" id="modSabhaOvAbsent">${absent}</div>
-            <div class="sabha-ov-stat-lbl">Absent</div>
-          </div>
-          <div class="sabha-ov-stat">
-            <div class="sabha-ov-stat-val" style="color:var(--saffron)" id="modSabhaOvPct">${pct}%</div>
-            <div class="sabha-ov-stat-lbl">Attendance</div>
-          </div>
+          <div class="sabha-ov-stat"><div class="sabha-ov-stat-val" style="color:var(--green)" id="modSabhaOvPresent">${present}</div><div class="sabha-ov-stat-lbl">Present</div></div>
+          <div class="sabha-ov-stat"><div class="sabha-ov-stat-val" style="color:var(--red)" id="modSabhaOvAbsent">${absent}</div><div class="sabha-ov-stat-lbl">Absent</div></div>
+          <div class="sabha-ov-stat"><div class="sabha-ov-stat-val" style="color:var(--saffron)" id="modSabhaOvPct">${pct}%</div><div class="sabha-ov-stat-lbl">Attendance</div></div>
         </div>
-        <div class="sabha-ov-bar-wrap">
-          <div class="sabha-ov-bar" id="modSabhaOvBar" style="width:${pct}%"></div>
-        </div>
-        <div class="sabha-ov-updated">
-          ${isLive ? `<span class="blink">●</span> Live · ` : ''}Updated ${updatedTime}
-        </div>`;
-
+        <div class="sabha-ov-bar-wrap"><div class="sabha-ov-bar" id="modSabhaOvBar" style="width:${pct}%"></div></div>
+        <div class="sabha-ov-updated">${isLive ? `<span class="blink">●</span> Live · ` : ''}Updated ${updatedTime}</div>`;
       window._modSabhaOverviewEv = ev;
     }
 
-    // ── Live-update Moderator Sabha overview stats (called from sabhaAttendance sync) ──
     function refreshModSabhaOverviewCounts() {
       const ev = window._modSabhaOverviewEv;
       if (!ev || !allContacts.length) return;
-      const present = ev.columnName
-        ? allContacts.filter(c => String(c[ev.columnName] || '').trim() === 'Present').length
-        : 0;
+      const present = ev.columnName ? allContacts.filter(c => String(c[ev.columnName] || '').trim() === 'Present').length : 0;
       const total = allContacts.length;
-      const absent = total - present;
       const pct = total ? Math.round((present / total) * 100) : 0;
       const pEl = document.getElementById('modSabhaOvPresent');
       const aEl = document.getElementById('modSabhaOvAbsent');
       const tEl = document.getElementById('modSabhaOvPct');
       const bEl = document.getElementById('modSabhaOvBar');
       if (pEl) { pEl.textContent = present; pEl.style.transform = 'scale(1.18)'; setTimeout(() => { pEl.style.transform = ''; }, 350); }
-      if (aEl) aEl.textContent = absent;
+      if (aEl) aEl.textContent = total - present;
       if (tEl) tEl.textContent = pct + '%';
       if (bEl) bEl.style.width = pct + '%';
-      const now = new Date();
       const card = document.getElementById('modSabhaOverviewCard');
       if (card) {
         const updEl = card.querySelector('.sabha-ov-updated');
-        if (updEl) updEl.innerHTML = `<span class="blink">●</span> Live · Updated ${now.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+        if (updEl) updEl.innerHTML = `<span class="blink">●</span> Live · Updated ${new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
       }
     }
 
@@ -10064,13 +10028,13 @@
       btnEl.disabled = true;
       btnEl.innerHTML = '<span class="spinner dark-spin" style="width:14px;height:14px;border-color:rgba(0,0,0,0.15);border-top-color:#156D3E"></span>';
       try {
-        // Use no-cors (fire-and-forget) — same as volunteer; GAS POST doesn't return CORS headers
+        // no-cors: same as volunteer — GAS POST doesn't return CORS headers
         await fetch(SCRIPT_URL, {
           method: 'POST', mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'markAttendance', contactId, columnName: modSelectedSabhaCol, volName: currentUser.name })
         });
-        // Update local state optimistically (no-cors returns opaque response)
+        // Optimistic local update (no-cors returns opaque response)
         const c = allContacts.find(x => String(x.ID) === String(contactId));
         if (c) c[modSelectedSabhaCol] = 'Present';
         const card = btnEl.closest('.attn-contact-card');
@@ -10082,7 +10046,7 @@
         modUpdateAttnCounter();
         modRenderPresentList(allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present'));
         showToast('✅ Marked Present!', 'success');
-        window._localSabhaWrite = Date.now(); // guard against stale fetch overwrite
+        window._localSabhaWrite = Date.now();
         if (typeof firebaseSync === 'function') firebaseSync('sabhaAttendance'); // 🔥 real-time sync
       } catch (e) {
         btnEl.disabled = false; btnEl.textContent = 'Mark Present';
@@ -10094,17 +10058,19 @@
       if (!modSelectedSabhaCol) return;
       btnEl.disabled = true;
       try {
+        // no-cors: same as volunteer
         await fetch(SCRIPT_URL, {
           method: 'POST', mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'markAttendance', contactId, columnName: modSelectedSabhaCol, volName: currentUser.name, markAs: 'Absent' })
         });
-        // no-cors: optimistic update (opaque response, assume success)
+        // Optimistic local update
         const c = allContacts.find(x => String(x.ID) === String(contactId));
         if (c) c[modSelectedSabhaCol] = '';
         const card = btnEl.closest('.attn-contact-card');
         if (card) {
           card.classList.remove('present');
+          // Replace the present badge + undo button with Mark Present button
           const badgeWrap = btnEl.closest('div[style*="display:flex"]') || btnEl.parentElement;
           if (badgeWrap) badgeWrap.outerHTML = `<button class="btn-green-sm" onclick="modDoMarkAttendance('${contactId}',this)">Mark Present</button>`;
         }
@@ -10112,7 +10078,7 @@
         modUpdateAttnCounter();
         modRenderPresentList(allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present'));
         showToast('↩️ Marked Absent', 'info');
-        window._localSabhaWrite = Date.now(); // guard against stale fetch overwrite
+        window._localSabhaWrite = Date.now();
         if (typeof firebaseSync === 'function') firebaseSync('sabhaAttendance'); // 🔥 real-time sync
       } catch (e) {
         btnEl.disabled = false;
@@ -11162,10 +11128,11 @@
       _listenSync('statusUpdate', () => {
         const role = window.currentUser && window.currentUser.role;
         console.log('[Sync] statusUpdate received — role:', role);
-        // Guard: skip full reload if a sabhaAttendance sync fired recently (within 20s)
-        // to avoid overwriting optimistic attendance counts before sheet settles
-        const sabhaRecent = window._lastSabhaAttendanceSync && (Date.now() - window._lastSabhaAttendanceSync < 20000);
-        if (sabhaRecent) { console.log('[Sync] statusUpdate skipped — sabhaAttendance in progress'); return; }
+        // Guard: skip full reload if sabhaAttendance fired recently (sheet still writing)
+        if (window._lastSabhaAttendanceSync && (Date.now() - window._lastSabhaAttendanceSync < 20000)) {
+          console.log('[Sync] statusUpdate skipped — sabhaAttendance in progress');
+          return;
+        }
         if (role === 'admin') {
           if (typeof loadAdminData === 'function') loadAdminData();
         } else if (role === 'moderator') {
@@ -11249,21 +11216,21 @@
         const role = window.currentUser && window.currentUser.role;
         console.log('[Sync] sabhaAttendance received — role:', role);
 
-        // Mark that a Sabha attendance sync just fired — used to guard full reloads
+        // Track last sync time — used to block premature full reloads
         window._lastSabhaAttendanceSync = Date.now();
 
         if (role === 'volunteer') {
-          // Volunteer: delay fetch so GAS no-cors POST has time to write (~3-5s)
+          // Delay: GAS no-cors POST takes 3-8s to write; fetch after it settles
           setTimeout(() => {
             if (typeof loadEventsForVolunteer === 'function') loadEventsForVolunteer();
           }, 6000);
 
         } else if (role === 'admin') {
-          // Delay getAllContacts fetch — sheet needs ~5s to write after no-cors POST
+          // Delay getAllContacts — wait for sheet to commit
           if (window._adminSabhaContactsTimer) clearTimeout(window._adminSabhaContactsTimer);
           window._adminSabhaContactsTimer = setTimeout(() => {
             window._adminSabhaContactsTimer = null;
-            // Skip if this device just wrote (sheet may still be committing)
+            // Skip if this device just marked attendance (optimistic state is correct)
             if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 12000)) return;
             gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
               .then(r => r.json())
@@ -11274,22 +11241,20 @@
                 }
               })
               .catch(() => {});
-          }, 6000); // wait 6s for sheet to commit
-          // Full reload debounced at 18s (well after sheet write settles)
+          }, 6000);
+          // Full reload at 18s — well after sheet write settles
           if (window._adminSabhaRefreshTimer) clearTimeout(window._adminSabhaRefreshTimer);
           window._adminSabhaRefreshTimer = setTimeout(() => {
             window._adminSabhaRefreshTimer = null;
-            // Skip if this device just wrote within 18s — optimistic state is correct
             if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 18000)) return;
             if (typeof loadAdminData === 'function') loadAdminData();
           }, 18000);
 
         } else if (role === 'moderator') {
-          // Delay getAllContacts fetch — sheet needs ~5s to write after no-cors POST
+          // Delay getAllContacts — wait for sheet to commit
           if (window._modSabhaContactsTimer) clearTimeout(window._modSabhaContactsTimer);
           window._modSabhaContactsTimer = setTimeout(() => {
             window._modSabhaContactsTimer = null;
-            // Skip if this device just wrote (sheet may still be committing)
             if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 12000)) return;
             gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
               .then(r => r.json())
@@ -11306,8 +11271,8 @@
                 }
               })
               .catch(() => {});
-          }, 6000); // wait 6s for sheet to commit
-          // Full reload debounced at 18s
+          }, 6000);
+          // Full reload at 18s
           if (window._modSabhaRefreshTimer) clearTimeout(window._modSabhaRefreshTimer);
           window._modSabhaRefreshTimer = setTimeout(() => {
             window._modSabhaRefreshTimer = null;
