@@ -8436,11 +8436,10 @@
 
       showToast(`⏳ Assigning Batch #${batch.batchNumber} to ${volName}…`);
       try {
-        const assignRes = await fetch(SCRIPT_URL, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'assignBatch', batchNumber: batch.batchNumber, volunteer: volName })
-        });
+        const assignRes = await fetch(
+          `${SCRIPT_URL}?action=assignBatch&batchNumber=${encodeURIComponent(batch.batchNumber)}&volunteer=${encodeURIComponent(volName)}`,
+          { method: 'GET' }
+        );
         const assignData = await assignRes.json();
         if (!assignData.success) {
           showToast('❌ Assignment failed: ' + (assignData.error || 'Unknown error'), 'error');
@@ -8480,11 +8479,10 @@
 
       showToast(`⏳ Unassigning Batch #${batch.batchNumber}…`);
       try {
-        const unassignRes = await fetch(SCRIPT_URL, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'unassignBatch', batchNumber: batch.batchNumber })
-        });
+        const unassignRes = await fetch(
+          `${SCRIPT_URL}?action=unassignBatch&batchNumber=${encodeURIComponent(batch.batchNumber)}`,
+          { method: 'GET' }
+        );
         const unassignData = await unassignRes.json();
         if (!unassignData.success) {
           showToast('❌ Unassign failed: ' + (unassignData.error || 'Unknown error'), 'error');
