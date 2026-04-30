@@ -7183,6 +7183,7 @@
 
         if (d.success) {
           showToast(`Sabha "${title}" created! Column: ${d.columnName}`, 'success');
+          if (typeof firebaseSync === 'function') firebaseSync('sabhaCreated'); // 🔥 notify volunteers instantly
           document.getElementById('sabhaTitle').value = '';
           document.getElementById('sabhaDate').value = '';
           document.getElementById('sabhaTime').value = '';
@@ -10592,7 +10593,8 @@
       statusUpdate: 0,
       assignUpdate: 0,
       sabhaAttendance: 0,
-      newMember: 0
+      newMember: 0,
+      sabhaCreated: 0
     };
 
     // ── Helper: write a sync signal to Firebase ────────────────────────
@@ -10684,7 +10686,19 @@
         }
       });
 
-      console.log('[Sync] All 4 sync channels active ✅');
+      // ── Channel 5: Admin created a new Sabha ──────────────────────
+      // → Volunteers & Moderators see new Sabha instantly
+      _listenSync('sabhaCreated', () => {
+        const role = window.currentUser && window.currentUser.role;
+        console.log('[Sync] sabhaCreated received — role:', role);
+        if (role === 'volunteer') {
+          if (typeof loadEventsForVolunteer === 'function') loadEventsForVolunteer();
+        } else if (role === 'moderator') {
+          if (typeof loadModeratorData === 'function') loadModeratorData();
+        }
+      });
+
+      console.log('[Sync] All 5 sync channels active ✅');
     }
 
     // ── Public init function (called from login success handler) ───────
