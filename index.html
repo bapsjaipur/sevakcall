@@ -8230,6 +8230,7 @@
         updateBatchSummary();
         previewBatches();
         showToast('✅ All batches cleared — Batches sheet & Contacts sheet both updated!', 'success');
+        if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); // 🔥
       } catch (_) {
         showToast('✅ All batches cleared!', 'success');
       }
@@ -8278,6 +8279,7 @@
       allContacts.forEach(c => { c.Status = ''; });
       await new Promise(res => setTimeout(res, 3000));
       showToast('✅ All statuses cleared!', 'success');
+      if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); // 🔥 volunteers reload
     }
 
     async function clearAllAssignments() {
@@ -8302,6 +8304,7 @@
       allContacts.forEach(c => { c.Assigned_To = ''; });
       await new Promise(res => setTimeout(res, 3000));
       showToast('✅ All assignments cleared!', 'success');
+      if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); // 🔥
     }
 
     // ── Volunteer stats panel ─────────────────────────────────────────
@@ -9323,6 +9326,7 @@
         await new Promise(r => setTimeout(r, 2500));
         await modRefreshBatchTab();
         showToast('✅ Batches generated!', 'success');
+        if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); // 🔥 volunteers reload contacts
       } catch (e) { showToast('Batch generation failed', 'error'); }
       if (btn) btn.textContent = '⚡ Generate Batches';
     }
