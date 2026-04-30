@@ -4995,13 +4995,9 @@
     }
     // All GAS GET requests must bypass browser AND CDN cache
     function gasFetch(url) {
-      return fetch(url, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
-      });
+      // NOTE: do NOT add custom headers — GAS rejects preflight (CORS).
+      // cache:'no-store' alone tells the browser not to cache without triggering preflight.
+      return fetch(url, { cache: 'no-store' });
     }
 
     const WA_MSG = (n, m, a) => `Namaste ${n} ji 🙏\n\nWe are reaching out from *${m}* (${a}) regarding our upcoming volunteer program. We would love your support!\n\nKindly let us know a convenient time to connect. 🙂`;
