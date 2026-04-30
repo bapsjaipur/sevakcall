@@ -4870,7 +4870,6 @@
     let adminData = null;
     let offlineQueue = [];
     let isDark = false;
-    // let currentModTab = 'overview';
 
     // Attendance state
     let allContacts = [];   // ALL contacts (for global search)
@@ -4957,6 +4956,9 @@
         if (d.success) {
           currentUser = d.user;
           setHeaderIdentity(currentUser);
+          if (typeof initFirebaseDoorbell === 'function') {
+            initFirebaseDoorbell(currentUser.email);
+          }
           if (currentUser.role === 'admin') { showScreen('screenAdmin'); loadAdminData(); }
           else if (currentUser.role === 'moderator') { showScreen('screenModerator'); switchModTab('overview'); loadModeratorData(); }
           else {
@@ -4980,6 +4982,9 @@
     }
 
     function doLogout() {
+      if (typeof stopFirebaseDoorbell === 'function') {
+        stopFirebaseDoorbell();
+      }
       currentUser = null; contacts = []; currentIdx = 0; offlineQueue = [];
       allContacts = []; eventsCache = []; selectedSabhaCol = '';
       modData = null; modBatches = []; modActAllLogs = []; modActFiltered = [];
@@ -6841,7 +6846,7 @@
       const start = sabhaPage * sabhaPageSize;
       const pageItems = filtered.slice(start, start + sabhaPageSize);
 
-      titleEl.textContent = (sabhaFilterFrom || sabhaFilterTill) ? 'Filtered Sabhas' : 'Upcoming & Past Sabhas';
+      titleEl.textContent = (sabhaFilterFrom || sabhaFilterTill) ? 'Filtered Sabhas' : 'Past & Upcoming Sabhas';
       pageInfo.textContent = `Page ${sabhaPage + 1} of ${totalPages} · ${filtered.length} total`;
 
       // Status badge styles
@@ -6951,43 +6956,43 @@
 
     // ── Download Sabha PDF (Present members only) ────────────────────
     function downloadSabhaPDF(colName, title, date, time, duration, speaker) {
-  if (!allContacts || !allContacts.length) { showToast('Load attendance data first', 'warn'); return; }
-  const present = allContacts.filter(c => String(c[colName] || '').trim() === 'Present');
-  const absent = allContacts.filter(c => String(c[colName] || '').trim() !== 'Present');
-  const total = allContacts.length;
-  if (!present.length) { showToast('No present members for this Sabha', 'warn'); return; }
-  const attendRate = total > 0 ? Math.round((present.length / total) * 100) : 0;
-  const progPct = Math.max(attendRate, 2);
-  const now = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      if (!allContacts || !allContacts.length) { showToast('Load attendance data first', 'warn'); return; }
+      const present = allContacts.filter(c => String(c[colName] || '').trim() === 'Present');
+      const absent = allContacts.filter(c => String(c[colName] || '').trim() !== 'Present');
+      const total = allContacts.length;
+      if (!present.length) { showToast('No present members for this Sabha', 'warn'); return; }
+      const attendRate = total > 0 ? Math.round((present.length / total) * 100) : 0;
+      const progPct = Math.max(attendRate, 2);
+      const now = new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-  // Format Nice Date (e.g. Saturday, 25 April 2026)
-  let displayDate = date;
-  if (date && date !== 'undefined' && date !== 'null') {
-    try {
-      const d = new Date(date);
-      displayDate = d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    } catch(e) {}
-  }
+      // Format Nice Date (e.g. Saturday, 25 April 2026)
+      let displayDate = date;
+      if (date && date !== 'undefined' && date !== 'null') {
+        try {
+          const d = new Date(date);
+          displayDate = d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        } catch (e) { }
+      }
 
-  // Calculate Time Range using duration
-  let timeRange = '';
-  if (time && time !== 'undefined' && time !== 'null') {
-    try {
-      let cleanTime = time.replace(/[^\d:]/g, ''); // Extract just numbers and colon
-      let [h, m] = cleanTime.split(':').map(Number);
-      if (time.toLowerCase().includes('pm') && h < 12) h += 12;
-      if (time.toLowerCase().includes('am') && h === 12) h = 0;
-      
-      const dStart = new Date(); dStart.setHours(h, m || 0, 0, 0);
-      const dEnd = new Date(dStart.getTime() + (parseInt(duration) || 120) * 60000);
-      
-      const tStart = dStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-      const tEnd = dEnd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-      timeRange = `${tStart} – ${tEnd} (${duration || 120} min)`;
-    } catch(e) { timeRange = time; }
-  }
+      // Calculate Time Range using duration
+      let timeRange = '';
+      if (time && time !== 'undefined' && time !== 'null') {
+        try {
+          let cleanTime = time.replace(/[^\d:]/g, ''); // Extract just numbers and colon
+          let [h, m] = cleanTime.split(':').map(Number);
+          if (time.toLowerCase().includes('pm') && h < 12) h += 12;
+          if (time.toLowerCase().includes('am') && h === 12) h = 0;
 
-  // ── Area breakdown ──
+          const dStart = new Date(); dStart.setHours(h, m || 0, 0, 0);
+          const dEnd = new Date(dStart.getTime() + (parseInt(duration) || 120) * 60000);
+
+          const tStart = dStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          const tEnd = dEnd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          timeRange = `${tStart} – ${tEnd} (${duration || 120} min)`;
+        } catch (e) { timeRange = time; }
+      }
+
+      // ── Area breakdown ──
       const areaMap = {};
       present.forEach(c => { const a = c.Area || 'Other'; areaMap[a] = (areaMap[a] || 0) + 1; });
       const areaRows = Object.entries(areaMap).sort((a, b) => b[1] - a[1])
@@ -10458,49 +10463,7 @@
 
     // ══════════════════════════════════════════════════════════════════
     // BIRTHDAY EMAIL AUTOMATION
-    // ══════════════════════════════════════════════════════════════════
-
-    // Load email status on page load (called within loadBirthdaySync)
-    async function loadBdEmailStatus() {
-      try {
-        const res = await fetch(`${SCRIPT_URL}?action=getBirthdayEmailStatus`);
-        const data = await res.json();
-        if (data.success) {
-          document.getElementById('bdEmailStatus').textContent = data.enabled ? '✅ Active' : '⚪ Not set up';
-          document.getElementById('bdEmailStatus').style.color = data.enabled ? 'var(--green)' : 'var(--muted)';
-          document.getElementById('bdEmailLastRun').textContent = data.lastRun || 'Never';
-          // Pre-fill saved template if present
-          if (data.subject) document.getElementById('bdEmailSubject').value = data.subject;
-          if (data.body) document.getElementById('bdEmailBody').value = data.body;
-          if (data.senderName) document.getElementById('bdEmailSenderName').value = data.senderName;
-          if (data.sendTo) document.getElementById('bdEmailSendTo').value = data.sendTo;
-        }
-      } catch (e) {
-        document.getElementById('bdEmailStatus').textContent = '⚠️ Could not load';
-        document.getElementById('bdEmailStatus').style.color = 'var(--red)';
-      }
-    }
-
-    /* ── Load birthday email status when panel opens ──────────────── */
-    async function loadBdEmailStatus() {
-      try {
-        const res = await fetch(`${SCRIPT_URL}?action=getBirthdayEmailStatus`);
-        const data = await res.json();
-        if (!data.success) return;
-
-        const statusEl = document.getElementById('bdEmailStatus');
-        const lastRunEl = document.getElementById('bdEmailLastRun');
-        const nameEl = document.getElementById('bdEmailSenderName');
-
-        if (statusEl) {
-          statusEl.textContent = data.enabled ? '✅ Enabled' : '⚠️ Not set up';
-          statusEl.style.color = data.enabled ? 'var(--green)' : 'var(--yellow, #E6A817)';
-        }
-        if (lastRunEl) lastRunEl.textContent = data.lastRun || 'Never';
-        if (nameEl && data.senderName) nameEl.value = data.senderName;
-      } catch (_) { }
-    }
-
+    // ═════════════════════════════════════════════════════════════════
     /* ── Save settings (sender name only) ───────────────────────── */
     /* ── Load birthday email status when panel opens ────────────── */
     async function loadBdEmailStatus() {
@@ -10576,6 +10539,193 @@
     }
 
   </script>
+  <!--
+  ═══════════════════════════════════════════════════════════════════
+  SevakCall — Firebase Real-Time Doorbell  (add to index.html)
+  Version : 1.0
+
+  HOW IT WORKS:
+  1. On login, initFirebaseDoorbell(userEmail) is called.
+  2. Firebase SDK listens to `latest_ping` node in real-time.
+  3. When a ping arrives that targets this user (or 'ALL'),
+     we show a toast and call loadVolunteerContacts() to refresh.
+
+  WHAT TO DO:
+  A) Replace the 3 Firebase config values below with your project's.
+  B) Paste the <script type="module"> block just before </body>.
+  C) Call initFirebaseDoorbell(currentUser.email) right after login.
+  D) Remove the two duplicate loadBdEmailStatus() definitions (bug fix).
+  ═══════════════════════════════════════════════════════════════════
+-->
+
+  <!-- ① Firebase SDK — loaded as ES module via CDN (v10+, free, no npm needed) -->
+  <script type="module">
+    // ── Firebase project config ────────────────────────────────────────
+    // Get these from: Firebase Console → Project Settings → Your Apps → SDK setup
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyCqiR-vslNZPnqZfblegyvX0akRmNKTu-c",
+      authDomain: "sevakcall-doorbell-d5466.firebaseapp.com",
+      databaseURL: "https://sevakcall-doorbell-d5466-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "sevakcall-doorbell-d5466",
+      storageBucket: "sevakcall-doorbell-d5466.firebasestorage.app",
+      messagingSenderId: "826565415745",
+      appId: "1:826565415745:web:91acf2d8081296500887c0"
+    };
+
+    // ── Firebase imports (CDN modular SDK v10) ─────────────────────────
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    // ── Module-level state ─────────────────────────────────────────────
+    let _db = null;   // Firebase Database instance
+    let _unsubscribe = null;   // onValue unsubscribe handle
+    let _lastSeenTs = 0;      // prevents acting on the initial/cached value
+    let _doorbellEmail = null;   // the current user's email
+
+    // ── Public init function (called from login success handler) ────────
+    /**
+     * initFirebaseDoorbell(email)
+     *
+     * Call this once after a successful login.
+     * It initialises Firebase (idempotent) and starts listening.
+     *
+     * @param {string} email - The logged-in volunteer's email address.
+     */
+    window.initFirebaseDoorbell = function (email) {
+      if (!email) return;
+      _doorbellEmail = email.trim().toLowerCase();
+
+      // initializeApp is idempotent — safe to call multiple times
+      if (!_db) {
+        const app = initializeApp(FIREBASE_CONFIG);
+        _db = getDatabase(app);
+        console.log('[Doorbell] Firebase initialised.');
+      }
+
+      // Detach any previous listener before attaching a new one
+      // (prevents duplicate listeners on re-login without page refresh)
+      stopFirebaseDoorbell();
+
+      const pingRef = ref(_db, 'latest_ping');
+
+      _unsubscribe = onValue(
+        pingRef,
+        (snapshot) => {
+          // ── Guard: ignore null / missing node ──────────────────────────
+          if (!snapshot.exists()) return;
+
+          const ping = snapshot.val();
+          // ping = { ts: 1234567890, target: "vol@email.com", triggeredBy: "Admin" }
+
+          // ── Guard: ignore the first "current value" emitted on connect ─
+          // onValue fires immediately with the cached value — we should NOT
+          // trigger a refresh for data that was already on screen.
+          if (!_lastSeenTs) {
+            _lastSeenTs = ping.ts || 0;
+            console.log('[Doorbell] Listener attached. Initial ts stored:', _lastSeenTs);
+            return;
+          }
+
+          // ── Guard: only react to NEW pings ─────────────────────────────
+          if ((ping.ts || 0) <= _lastSeenTs) return;
+          _lastSeenTs = ping.ts;
+
+          // ── Guard: only react if this ping targets ME or everyone ──────
+          const target = String(ping.target || '').trim().toLowerCase();
+          if (target !== 'all' && target !== _doorbellEmail) return;
+
+          console.log('[Doorbell] 🔔 New ping received. Triggering refresh.');
+
+          // ── Show toast notification ────────────────────────────────────
+          // Uses SevakCall's existing showToast() function.
+          if (typeof showToast === 'function') {
+            showToast('🔄 Your contacts were updated. Refreshing…', 'info');
+          }
+
+          // ── Trigger data refresh ───────────────────────────────────────
+          // Small delay lets the toast render before the network call starts.
+          setTimeout(() => {
+            if (typeof loadVolunteerContacts === 'function') {
+              loadVolunteerContacts();          // Volunteer's main data function
+            }
+            if (typeof refreshAdminStats === 'function') {
+              refreshAdminStats();              // Admin dashboard (if open)
+            }
+          }, 600);
+        },
+        (error) => {
+          // This fires on permission errors (rules misconfigured, etc.)
+          console.error('[Doorbell] Firebase listener error:', error.message);
+        }
+      );
+
+      console.log('[Doorbell] Listening on latest_ping for:', _doorbellEmail);
+    };
+
+    // ── Cleanup: call on logout ─────────────────────────────────────────
+    /**
+     * stopFirebaseDoorbell()
+     *
+     * Detaches the Firebase listener. Call this on logout so we don't
+     * receive pings meant for the previous user if the browser tab is reused.
+     */
+    window.stopFirebaseDoorbell = function () {
+      if (typeof _unsubscribe === 'function') {
+        _unsubscribe();       // Firebase SDK returns the unsubscribe fn from onValue
+        _unsubscribe = null;
+        _lastSeenTs = 0;
+        console.log('[Doorbell] Listener detached.');
+      }
+    };
+
+  </script>
+
+  <!--
+  ═══════════════════════════════════════════════════════════════════
+  ② WHERE TO CALL initFirebaseDoorbell() IN YOUR EXISTING CODE
+  ───────────────────────────────────────────────────────────────────
+  Find your login success handler (where you set currentUser and
+  show the volunteer/admin screen). Add ONE line:
+
+    // After login succeeds and currentUser is set:
+    if (typeof initFirebaseDoorbell === 'function') {
+      initFirebaseDoorbell(currentUser.email);
+    }
+
+  Find your logout handler. Add ONE line:
+
+    // On logout:
+    if (typeof stopFirebaseDoorbell === 'function') {
+      stopFirebaseDoorbell();
+    }
+  ═══════════════════════════════════════════════════════════════════
+
+  ③ BUG FIX — Remove duplicate loadBdEmailStatus() functions
+  ───────────────────────────────────────────────────────────────────
+  In index.html you have 3 definitions of loadBdEmailStatus().
+  Keep ONLY the LAST one (lines ~10505-10518) and delete the first
+  two (lines ~10463-10501). The first two have dead code anyway
+  (they populate fields that the third definition doesn't, because
+  the first two are silently overridden at runtime).
+
+  The CORRECT single definition to keep:
+
+    async function loadBdEmailStatus() {
+      try {
+        const res  = await fetch(`${SCRIPT_URL}?action=getBirthdayEmailStatus`);
+        const data = await res.json();
+        if (!data.success) return;
+        const statusEl  = document.getElementById('bdEmailStatus');
+        const lastRunEl = document.getElementById('bdEmailLastRun');
+        if (statusEl) {
+          statusEl.textContent = data.enabled ? '✅ Enabled' : '⚠️ Not set up';
+          statusEl.style.color = data.enabled ? 'var(--green)' : 'var(--yellow, #E6A817)';
+        }
+        if (lastRunEl) lastRunEl.textContent = data.lastRun || 'Never';
+      } catch (_) { }
+    }
+  ═══════════════════════════════════════════════════════════════════
+-->
 </body>
 
 </html>
