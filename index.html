@@ -8437,7 +8437,7 @@
       showToast(`⏳ Assigning Batch #${batch.batchNumber} to ${volName}…`);
       try {
         const assignRes = await fetch(SCRIPT_URL, {
-          method: 'POST',
+          method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'assignBatch', batchNumber: batch.batchNumber, volunteer: volName })
         });
@@ -8481,7 +8481,7 @@
       showToast(`⏳ Unassigning Batch #${batch.batchNumber}…`);
       try {
         const unassignRes = await fetch(SCRIPT_URL, {
-          method: 'POST',
+          method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'unassignBatch', batchNumber: batch.batchNumber })
         });
