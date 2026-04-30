@@ -6132,6 +6132,7 @@
         const presentList = allContacts.filter(c => String(c[selectedSabhaCol] || '').trim() === 'Present');
         renderPresentList(presentList);
         showToast('✅ Marked Present!', 'success');
+        window._localSabhaWrite = Date.now(); // guard against stale fetch overwrite
         if (typeof firebaseSync === 'function') firebaseSync('sabhaAttendance'); // 🔥 real-time sync
       } catch (e) {
         btnEl.disabled = false; btnEl.textContent = 'Mark Present';
@@ -10081,6 +10082,7 @@
         modUpdateAttnCounter();
         modRenderPresentList(allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present'));
         showToast('✅ Marked Present!', 'success');
+        window._localSabhaWrite = Date.now(); // guard against stale fetch overwrite
         if (typeof firebaseSync === 'function') firebaseSync('sabhaAttendance'); // 🔥 real-time sync
       } catch (e) {
         btnEl.disabled = false; btnEl.textContent = 'Mark Present';
@@ -10110,6 +10112,7 @@
         modUpdateAttnCounter();
         modRenderPresentList(allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present'));
         showToast('↩️ Marked Absent', 'info');
+        window._localSabhaWrite = Date.now(); // guard against stale fetch overwrite
         if (typeof firebaseSync === 'function') firebaseSync('sabhaAttendance'); // 🔥 real-time sync
       } catch (e) {
         btnEl.disabled = false;
@@ -11159,6 +11162,10 @@
       _listenSync('statusUpdate', () => {
         const role = window.currentUser && window.currentUser.role;
         console.log('[Sync] statusUpdate received — role:', role);
+        // Guard: skip full reload if a sabhaAttendance sync fired recently (within 20s)
+        // to avoid overwriting optimistic attendance counts before sheet settles
+        const sabhaRecent = window._lastSabhaAttendanceSync && (Date.now() - window._lastSabhaAttendanceSync < 20000);
+        if (sabhaRecent) { console.log('[Sync] statusUpdate skipped — sabhaAttendance in progress'); return; }
         if (role === 'admin') {
           if (typeof loadAdminData === 'function') loadAdminData();
         } else if (role === 'moderator') {
@@ -11241,55 +11248,72 @@
       _listenSync('sabhaAttendance', () => {
         const role = window.currentUser && window.currentUser.role;
         console.log('[Sync] sabhaAttendance received — role:', role);
+
+        // Mark that a Sabha attendance sync just fired — used to guard full reloads
+        window._lastSabhaAttendanceSync = Date.now();
+
         if (role === 'volunteer') {
-          if (typeof loadEventsForVolunteer === 'function') loadEventsForVolunteer();
+          // Volunteer: delay fetch so GAS no-cors POST has time to write (~3-5s)
+          setTimeout(() => {
+            if (typeof loadEventsForVolunteer === 'function') loadEventsForVolunteer();
+          }, 6000);
+
         } else if (role === 'admin') {
-          // Refresh allContacts in background, then update Sabha card counts instantly
-          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
-            .then(r => r.json())
-            .then(d => {
-              if (d.contacts) {
-                allContacts = d.contacts;
-                // Live-update Sabha overview counts without full reload
-                if (typeof refreshAdminSabhaOverviewCounts === 'function') refreshAdminSabhaOverviewCounts();
-              }
-            })
-            .catch(() => { });
-          // Also refresh full admin data (debounced: only if not already refreshing)
-          if (!window._adminSabhaRefreshTimer) {
-            window._adminSabhaRefreshTimer = setTimeout(() => {
-              window._adminSabhaRefreshTimer = null;
-              if (typeof loadAdminData === 'function') loadAdminData();
-            }, 8000); // full refresh after 8s to avoid hammering GAS
-          }
-        } else if (role === 'moderator') {
-          // ── Immediate: refresh allContacts + update Sabha present list ──
-          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
-            .then(r => r.json())
-            .then(d => {
-              if (d.contacts) {
-                allContacts = d.contacts;
-                // Live-update Sabha overview card on moderator overview tab
-                if (typeof refreshModSabhaOverviewCounts === 'function') refreshModSabhaOverviewCounts();
-                // If Sabha tab is already showing a selected Sabha, update counts live
-                if (modSelectedSabhaCol) {
-                  const presentList = allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present');
-                  modPresentCountLocal = presentList.length;
-                  if (typeof modUpdateAttnCounter === 'function') modUpdateAttnCounter();
-                  if (typeof modRenderPresentList === 'function') modRenderPresentList(presentList);
+          // Delay getAllContacts fetch — sheet needs ~5s to write after no-cors POST
+          if (window._adminSabhaContactsTimer) clearTimeout(window._adminSabhaContactsTimer);
+          window._adminSabhaContactsTimer = setTimeout(() => {
+            window._adminSabhaContactsTimer = null;
+            // Skip if this device just wrote (sheet may still be committing)
+            if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 12000)) return;
+            gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
+              .then(r => r.json())
+              .then(d => {
+                if (d.contacts) {
+                  allContacts = d.contacts;
+                  if (typeof refreshAdminSabhaOverviewCounts === 'function') refreshAdminSabhaOverviewCounts();
                 }
-              }
-            })
-            .catch(() => {});
-          // ── Real-time: reload Sabha tab instantly (mirrors volunteer behaviour) ──
-          if (typeof loadModEventsForSabha === 'function') loadModEventsForSabha();
-          // ── Full moderator data reload debounced (avoid hammering GAS) ──
-          if (!window._modSabhaRefreshTimer) {
-            window._modSabhaRefreshTimer = setTimeout(() => {
-              window._modSabhaRefreshTimer = null;
-              if (typeof loadModeratorData === 'function') loadModeratorData();
-            }, 8000);
-          }
+              })
+              .catch(() => {});
+          }, 6000); // wait 6s for sheet to commit
+          // Full reload debounced at 18s (well after sheet write settles)
+          if (window._adminSabhaRefreshTimer) clearTimeout(window._adminSabhaRefreshTimer);
+          window._adminSabhaRefreshTimer = setTimeout(() => {
+            window._adminSabhaRefreshTimer = null;
+            // Skip if this device just wrote within 18s — optimistic state is correct
+            if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 18000)) return;
+            if (typeof loadAdminData === 'function') loadAdminData();
+          }, 18000);
+
+        } else if (role === 'moderator') {
+          // Delay getAllContacts fetch — sheet needs ~5s to write after no-cors POST
+          if (window._modSabhaContactsTimer) clearTimeout(window._modSabhaContactsTimer);
+          window._modSabhaContactsTimer = setTimeout(() => {
+            window._modSabhaContactsTimer = null;
+            // Skip if this device just wrote (sheet may still be committing)
+            if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 12000)) return;
+            gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
+              .then(r => r.json())
+              .then(d => {
+                if (d.contacts) {
+                  allContacts = d.contacts;
+                  if (typeof refreshModSabhaOverviewCounts === 'function') refreshModSabhaOverviewCounts();
+                  if (modSelectedSabhaCol) {
+                    const presentList = allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present');
+                    modPresentCountLocal = presentList.length;
+                    if (typeof modUpdateAttnCounter === 'function') modUpdateAttnCounter();
+                    if (typeof modRenderPresentList === 'function') modRenderPresentList(presentList);
+                  }
+                }
+              })
+              .catch(() => {});
+          }, 6000); // wait 6s for sheet to commit
+          // Full reload debounced at 18s
+          if (window._modSabhaRefreshTimer) clearTimeout(window._modSabhaRefreshTimer);
+          window._modSabhaRefreshTimer = setTimeout(() => {
+            window._modSabhaRefreshTimer = null;
+            if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 18000)) return;
+            if (typeof loadModeratorData === 'function') loadModeratorData();
+          }, 18000);
         }
       });
 
