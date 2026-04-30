@@ -4281,18 +4281,7 @@
       </div>
     </div>
 
-    <!-- ── Reusable centered confirm dialog ───────────────────────────── -->
-    <div id="confirmDialog" class="confirm-overlay" onclick="if(event.target===this)_confirmReject()">
-      <div class="confirm-dialog">
-        <div id="confirmIcon" class="confirm-icon warn">⚠️</div>
-        <div id="confirmTitle" class="confirm-title"></div>
-        <div id="confirmBody" class="confirm-body"></div>
-        <div class="confirm-actions">
-          <button class="confirm-btn-cancel" onclick="_confirmReject()">Cancel</button>
-          <button id="confirmOkBtn" class="confirm-btn-ok" onclick="_confirmResolve()">OK</button>
-        </div>
-      </div>
-    </div>
+
 
     <!-- ── Contact Detail Overlay ───────────────────────────────────────── -->
     <div id="contactDetailOverlay" class="confirm-overlay" onclick="if(event.target===this)closeContactDetail()"
@@ -5948,9 +5937,15 @@
     // ── Load events — auto-select upcoming ───────────────────────────
     async function loadEventsForVolunteer() {
       try {
-        const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`));
-        const d = await res.json();
+        // Always fetch both events and fresh contacts together — Sabha counts depend on sheet data
+        const [evRes, cRes] = await Promise.all([
+          gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`)),
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
+        ]);
+        const d = await evRes.json();
         eventsCache = d.events || [];
+        const dc = await cRes.json();
+        if (dc.contacts) allContacts = dc.contacts;
 
         // Populate hidden select (for JS compat)
         const sel = document.getElementById('attnEventSelect');
@@ -6361,24 +6356,22 @@
       const card = document.getElementById('adminSabhaOverviewCard');
       if (!card) return;
 
-      // Fetch events if not yet cached
-      if (!allAdminSabhas.length) {
-        try {
-          const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`));
-          const d = await r.json();
+      // Always fetch both events and fresh contacts in parallel — Sabha counts must be accurate
+      try {
+        const fetches = [
+          allAdminSabhas.length ? Promise.resolve(null) : gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`)),
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
+        ];
+        const [evRes, cRes] = await Promise.all(fetches);
+        if (evRes) {
+          const d = await evRes.json();
           allAdminSabhas = (d.events || []).sort((a, b) => b.date.localeCompare(a.date));
-        } catch (_) { }
-      }
-      if (!allAdminSabhas.length) { card.style.display = 'none'; return; }
+        }
+        const dc = await cRes.json();
+        if (dc.contacts) allContacts = dc.contacts;
+      } catch (_) { }
 
-      // Fetch fresh contacts for present counts if needed
-      if (!allContacts.length) {
-        try {
-          const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
-          const d = await r.json();
-          if (d.contacts) allContacts = d.contacts;
-        } catch (_) { }
-      }
+      if (!allAdminSabhas.length) { card.style.display = 'none'; return; }
 
       // Find the best Sabha to show: live first, then today's, then nearest upcoming
       const todayStr = new Date().toISOString().slice(0, 10);
@@ -6493,21 +6486,23 @@
     async function renderModSabhaOverview() {
       const card = document.getElementById('modSabhaOverviewCard');
       if (!card) return;
-      if (!allAdminSabhas.length) {
-        try {
-          const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`));
-          const d = await r.json();
+
+      // Always fetch both events and fresh contacts in parallel — Sabha counts must be accurate
+      try {
+        const fetches = [
+          allAdminSabhas.length ? Promise.resolve(null) : gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`)),
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
+        ];
+        const [evRes, cRes] = await Promise.all(fetches);
+        if (evRes) {
+          const d = await evRes.json();
           allAdminSabhas = (d.events || []).sort((a, b) => b.date.localeCompare(a.date));
-        } catch (_) { }
-      }
+        }
+        const dc = await cRes.json();
+        if (dc.contacts) allContacts = dc.contacts;
+      } catch (_) { }
+
       if (!allAdminSabhas.length) { card.style.display = 'none'; return; }
-      if (!allContacts.length) {
-        try {
-          const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
-          const d = await r.json();
-          if (d.contacts) allContacts = d.contacts;
-        } catch (_) { }
-      }
       const todayStr = new Date().toISOString().slice(0, 10);
       let target = allAdminSabhas.find(ev => getSabhaStatus(ev) === 'live');
       if (!target) target = allAdminSabhas.find(ev => ev.date === todayStr);
@@ -7805,8 +7800,13 @@
         showToast('Reassigned! Refreshing…', 'success');
         setTimeout(loadAdminData, 800);
         // ⚠️ Delay firebaseSync — no-cors POST is fire-and-forget; sheet takes 2–5s to write.
-        // Volunteers fetching getMyContacts before sheet is updated will get stale/old data.
-        setTimeout(() => { if (typeof firebaseSync === 'function') firebaseSync('assignUpdate'); }, 4000);
+        // FIX: notify both the old volunteer (from) and new volunteer (to), not everyone
+        setTimeout(() => {
+          if (typeof firebaseSync === 'function') {
+            firebaseSync('assignUpdate', to);
+            firebaseSync('assignUpdate', from);
+          }
+        }, 4000);
       }
       catch (e) { showToast('Reassign failed', 'error'); }
     }
@@ -8539,7 +8539,8 @@
           return;
         }
         // GAS confirmed write + cache cleared — safe to notify volunteers now
-        if (typeof firebaseSync === 'function') firebaseSync('assignUpdate');
+        // FIX: Only notify the newly-assigned volunteer, not everyone
+        if (typeof firebaseSync === 'function') firebaseSync('assignUpdate', volName);
         showToast(`✅ Batch #${batch.batchNumber} assigned to ${volName}!`, 'success');
 
         // Optimistic local update immediately
@@ -8572,17 +8573,18 @@
 
       showToast(`⏳ Unassigning Batch #${batch.batchNumber}…`);
       try {
-        const unassignRes = await fetch(
+        // FIX: Use GET (awaitable) — unassignBatch is now in doGet so we can await the result
+        const unRes = await fetch(
           `${SCRIPT_URL}?action=unassignBatch&batchNumber=${encodeURIComponent(batch.batchNumber)}`,
           { method: 'GET' }
         );
-        const unassignData = await unassignRes.json();
-        if (!unassignData.success) {
-          showToast('❌ Unassign failed: ' + (unassignData.error || 'Unknown error'), 'error');
+        const unData = await unRes.json();
+        if (!unData.success) {
+          showToast('❌ Unassign failed: ' + (unData.error || 'Unknown error'), 'error');
           return;
         }
 
-        // ✅ Only update UI after GAS confirms success
+        // Optimistic UI update immediately
         batch.assignedTo = '';
         batch.assignedAt = null;
         batch.contacts.forEach(c => { c.Assigned_To = ''; });
@@ -8590,8 +8592,35 @@
         renderBatchVolStats();
         updateBatchSummary();
 
-        if (typeof firebaseSync === 'function') firebaseSync('assignUpdate');
-        showToast(`✅ Batch #${batch.batchNumber} unassigned!`, 'success');
+        // Wait for GAS cache to propagate, then confirm from sheet
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const [cRes, bRes] = await Promise.all([
+            gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+            gasFetch(noCache(`${SCRIPT_URL}?action=getBatches`))
+          ]);
+          const cData = await cRes.json(), bData = await bRes.json();
+          if (cData.contacts) {
+            allContacts = cData.contacts;
+            const bm = {};
+            allContacts.forEach(c => { const bn = String(c.Batch_Number || '').trim(); if (bn) { if (!bm[bn]) bm[bn] = []; bm[bn].push(c); } });
+            batches.forEach(b => { if (b.batchNumber) b.contacts = bm[String(b.batchNumber)] || b.contacts; });
+          }
+          if (bData.batches) {
+            bData.batches.forEach(row => {
+              const bn = String(row.Batch_Number || '').trim();
+              const local = batches.find(b => String(b.batchNumber) === bn);
+              if (local) { local.assignedTo = String(row.Assigned_To || '').trim(); local.assignedAt = row.Assigned_At || local.assignedAt; }
+            });
+          }
+          showToast(`✅ Batch #${batch.batchNumber} unassigned!`, 'success');
+        } catch (_) { showToast(`✅ Unassigned!`, 'success'); }
+
+        renderBatchList();
+        renderBatchVolStats();
+        updateBatchSummary();
+        // FIX: Only notify the previously-assigned volunteer, not everyone
+        if (typeof firebaseSync === 'function') firebaseSync('assignUpdate', prevVol);
 
       } catch (err) {
         showToast('Unassign failed — check connection', 'error');
@@ -9849,16 +9878,20 @@
       if (!volName) { showToast('Please select a volunteer', 'warn'); return; }
       if (!batch.batchNumber) { showToast('Batch has no sheet number', 'error'); return; }
       if (batch.assignedTo === volName) { showToast(`Already assigned to ${volName}`, 'warn'); return; }
+      const prevVol = batch.assignedTo; // track previous volunteer for targeted unassign ping
       showToast(`⏳ Assigning Batch #${batch.batchNumber} to ${volName}…`);
       try {
-        await fetch(SCRIPT_URL, {
-          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'assignBatch', batchNumber: batch.batchNumber, volunteer: volName })
-        });
+        // FIX: Use GET (awaitable) so we can confirm success
+        const assignRes = await fetch(
+          `${SCRIPT_URL}?action=assignBatch&batchNumber=${encodeURIComponent(batch.batchNumber)}&volunteer=${encodeURIComponent(volName)}`,
+          { method: 'GET' }
+        );
+        const assignData = await assignRes.json();
+        if (!assignData.success) { showToast('❌ Assignment failed: ' + (assignData.error || 'Unknown'), 'error'); return; }
         batch.assignedTo = volName; batch.assignedAt = new Date().toISOString();
         batch.contacts.forEach(c => { c.Assigned_To = volName; c.Batch_Number = batch.batchNumber; });
         modRenderBatchList(); modRenderBatchVolStats(); modUpdateBatchSummary();
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, 2000));
         try {
           const [cRes, bRes] = await Promise.all([gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)), gasFetch(noCache(`${SCRIPT_URL}?action=getBatches`))]);
           const cData = await cRes.json(), bData = await bRes.json();
@@ -9867,22 +9900,45 @@
           showToast(`✅ Batch #${batch.batchNumber} assigned to ${volName}!`, 'success');
         } catch (_) { showToast(`✅ Assigned!`, 'success'); }
         modRenderBatchList(); modRenderBatchVolStats(); modUpdateBatchSummary();
+        // FIX: Only notify the newly-assigned volunteer (and previously-assigned one if reassigning)
+        if (typeof firebaseSync === 'function') {
+          firebaseSync('assignUpdate', volName);
+          if (prevVol && prevVol !== volName) firebaseSync('assignUpdate', prevVol);
+        }
       } catch (err) { showToast('Assignment failed', 'error'); }
     }
 
     async function modUnassignBatch(idx) {
       const batch = modBatches[idx];
-      if (!batch || !batch.assignedTo || !batch.batchNumber) return;
+      // FIX: Use String() check so batchNumber=0 doesn't silently return
+      if (!batch || !batch.assignedTo || batch.batchNumber == null || batch.batchNumber === '') return;
+      const prevVol = batch.assignedTo;
       const ok = await showConfirm({ icon: '🔓', danger: true, title: `Unassign Batch #${batch.batchNumber}?`, bodyHTML: `<span>Currently assigned to <strong>${batch.assignedTo}</strong></span>` });
       if (!ok) return;
-      showToast(`⏳ Unassigning…`);
+      showToast(`⏳ Unassigning Batch #${batch.batchNumber}…`);
       try {
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'unassignBatch', batchNumber: batch.batchNumber }) });
+        // FIX: Use GET (awaitable) — unassignBatch is now in doGet
+        const unRes = await fetch(
+          `${SCRIPT_URL}?action=unassignBatch&batchNumber=${encodeURIComponent(batch.batchNumber)}`,
+          { method: 'GET' }
+        );
+        const unData = await unRes.json();
+        if (!unData.success) { showToast('❌ Unassign failed: ' + (unData.error || 'Unknown'), 'error'); return; }
+        // Optimistic update
         batch.assignedTo = ''; batch.assignedAt = null; batch.contacts.forEach(c => { c.Assigned_To = ''; });
         modRenderBatchList(); modRenderBatchVolStats(); modUpdateBatchSummary();
-        await new Promise(r => setTimeout(r, 3000));
-        await modRefreshBatchTab();
-        showToast(`✅ Batch #${batch.batchNumber} unassigned!`, 'success');
+        // Wait for GAS to commit, then confirm from sheet (same pattern as modAssignBatch)
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const [cRes, bRes] = await Promise.all([gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)), gasFetch(noCache(`${SCRIPT_URL}?action=getBatches`))]);
+          const cData = await cRes.json(), bData = await bRes.json();
+          if (cData.contacts) { allContacts = cData.contacts; const bm = {}; allContacts.forEach(c => { const bn = String(c.Batch_Number || '').trim(); if (bn) { if (!bm[bn]) bm[bn] = []; bm[bn].push(c); } }); modBatches.forEach(b => { if (b.batchNumber) b.contacts = bm[String(b.batchNumber)] || b.contacts; }); }
+          if (bData.batches) { bData.batches.forEach(row => { const bn = String(row.Batch_Number || '').trim(); const local = modBatches.find(b => String(b.batchNumber) === bn); if (local) { local.assignedTo = String(row.Assigned_To || '').trim(); local.assignedAt = row.Assigned_At || local.assignedAt; } }); }
+          showToast(`✅ Batch #${batch.batchNumber} unassigned!`, 'success');
+        } catch (_) { showToast(`✅ Unassigned!`, 'success'); }
+        modRenderBatchList(); modRenderBatchVolStats(); modUpdateBatchSummary();
+        // FIX: Only notify the previously-assigned volunteer, not everyone
+        if (typeof firebaseSync === 'function') firebaseSync('assignUpdate', prevVol);
       } catch (_) { showToast('Unassign failed', 'error'); }
     }
 
@@ -9900,13 +9956,15 @@
     // ══════════════════════════════════════════════════════════════════
     async function loadModEventsForSabha() {
       try {
+        // Always fetch fresh contacts from sheet — never rely on stale cache for Sabha counts
         const [evRes, cRes] = await Promise.all([
           gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`)),
-          allContacts.length ? Promise.resolve({ json: () => ({ contacts: allContacts }) }) : gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
         ]);
         const d = await evRes.json();
         eventsCache = d.events || [];
-        if (!allContacts.length) { const dc = await cRes.json(); if (dc.contacts) allContacts = dc.contacts; }
+        const dc = await cRes.json();
+        if (dc.contacts) allContacts = dc.contacts;
 
         const sel = document.getElementById('modAttnEventSelect');
         sel.innerHTML = '<option value="">— Select Sabha —</option>';
@@ -11089,10 +11147,12 @@
 
     // ── Helper: write a sync signal to Firebase ────────────────────────
     // Called from volunteer/admin/mod actions to notify other sessions.
-    window.firebaseSync = function (channel) {
+    // targetVolName: if provided, only that volunteer will reload their contacts.
+    //                Pass no argument (or undefined) for broadcast to all roles.
+    window.firebaseSync = function (channel, targetVolName) {
       if (!_db) return;
       try {
-        set(ref(_db, 'sync/' + channel), { at: Date.now() });
+        set(ref(_db, 'sync/' + channel), { at: Date.now(), target: targetVolName || 'ALL' });
       } catch (e) {
         console.warn('[Sync] Could not write to channel:', channel, e.message);
       }
@@ -11141,35 +11201,53 @@
       });
 
       // ── Channel 2: Admin/Mod assigned/unassigned a batch ─────────────
-      // → Volunteers refresh their contact list; Admin & Mod refresh their Assigning tab
+      // → Only the targeted volunteer refreshes their contact list
+      // → Admin & Mod refresh their Assigning tab (always, for their own UI sync)
       _listenSync('assignUpdate', () => {
         const role = window.currentUser && window.currentUser.role;
         console.log('[Sync] assignUpdate received — role:', role);
 
-        // ── VOLUNTEER: refresh contact list immediately ──────────────
+        // ── VOLUNTEER: only reload if this ping targets me ───────────
         if (role === 'volunteer') {
-          currentIdx = 0;
-          // Show banner while loading
-          if (!document.getElementById('assignUpdateBannerStyle')) {
-            const s = document.createElement('style');
-            s.id = 'assignUpdateBannerStyle';
-            s.textContent = '@keyframes _slideDown{from{opacity:0;top:50px}to{opacity:1;top:64px}} @keyframes _spin{to{transform:rotate(360deg)}}';
-            document.head.appendChild(s);
-          }
-          let banner = document.getElementById('assignUpdateBanner');
-          if (!banner) {
-            banner = document.createElement('div');
-            banner.id = 'assignUpdateBanner';
-            banner.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);background:var(--saffron);color:#fff;font-weight:600;padding:10px 20px;border-radius:24px;z-index:9999;font-size:0.85rem;box-shadow:0 4px 16px rgba(0,0,0,0.18);display:flex;align-items:center;gap:8px;max-width:90vw;animation:_slideDown 0.3s ease';
-            banner.innerHTML = '<span style="animation:_spin 1s linear infinite;display:inline-block">🔄</span> Updating your contact list…';
-            document.body.appendChild(banner);
-          }
-          (async () => {
-            if (typeof loadVolunteerContacts === 'function') await loadVolunteerContacts(true, true);
-            if (typeof switchTab === 'function') switchTab('calling');
-            const b = document.getElementById('assignUpdateBanner');
-            if (b) b.remove();
-          })();
+          // Read target from latest Firebase value
+          const myName = window.currentUser && window.currentUser.name;
+          // We read the channel ref directly to get the target field
+          const r2 = ref(_db, 'sync/assignUpdate');
+          import("https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js").then(({ get }) => {
+            get(r2).then(snap => {
+              const val = snap.val() || {};
+              const target = val.target || 'ALL';
+              // Only reload if target is ALL or matches my name
+              if (target !== 'ALL' && target.toLowerCase() !== (myName || '').toLowerCase()) {
+                console.log('[Sync] assignUpdate skipped — not targeted at me:', target);
+                return;
+              }
+              currentIdx = 0;
+              // Show banner while loading
+              if (!document.getElementById('assignUpdateBannerStyle')) {
+                const s = document.createElement('style');
+                s.id = 'assignUpdateBannerStyle';
+                s.textContent = '@keyframes _slideDown{from{opacity:0;top:50px}to{opacity:1;top:64px}} @keyframes _spin{to{transform:rotate(360deg)}}';
+                document.head.appendChild(s);
+              }
+              let banner = document.getElementById('assignUpdateBanner');
+              if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'assignUpdateBanner';
+                banner.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);background:var(--saffron);color:#fff;font-weight:600;padding:10px 20px;border-radius:24px;z-index:9999;font-size:0.85rem;box-shadow:0 4px 16px rgba(0,0,0,0.18);display:flex;align-items:center;gap:8px;max-width:90vw;animation:_slideDown 0.3s ease';
+                banner.innerHTML = '<span style="animation:_spin 1s linear infinite;display:inline-block">🔄</span> Updating your contact list…';
+                document.body.appendChild(banner);
+              }
+              (async () => {
+                if (typeof loadVolunteerContacts === 'function') await loadVolunteerContacts(true, true);
+                if (typeof switchTab === 'function') switchTab('calling');
+                const b = document.getElementById('assignUpdateBanner');
+                if (b) b.remove();
+              })();
+            }).catch(() => {
+              // Fallback: if get fails, do nothing (avoids unneeded reloads)
+            });
+          });
 
           // ── ADMIN: silently refresh Assigning tab if it's open ────────
         } else if (role === 'admin') {
@@ -11210,76 +11288,57 @@
         }
       });
 
-      // ── Channel 3: Someone marked Sabha attendance ─────────────────
-      // → Everyone (all roles) sees updated present count instantly
+      // ── Channel 3: Sabha attendance marked ────────────────────────
+      // Auto-sync rule: fetch fresh contacts after 10s, then ONLY patch
+      // the number elements already in the DOM. Never call loadEventsForVolunteer /
+      // loadModEventsForSabha / loadAdminData — those wipe the Sabha card causing flash.
       _listenSync('sabhaAttendance', () => {
         const role = window.currentUser && window.currentUser.role;
-        console.log('[Sync] sabhaAttendance received — role:', role);
-
-        // Track last sync time — used to block premature full reloads
         window._lastSabhaAttendanceSync = Date.now();
 
-        if (role === 'volunteer') {
-          // Delay: GAS no-cors POST takes 3-8s to write; fetch after it settles
-          setTimeout(() => {
-            if (typeof loadEventsForVolunteer === 'function') loadEventsForVolunteer();
-          }, 6000);
+        // Writer's own device: skip — local optimistic state is already correct
+        if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 25000)) return;
 
-        } else if (role === 'admin') {
-          // Delay getAllContacts — wait for sheet to commit
-          if (window._adminSabhaContactsTimer) clearTimeout(window._adminSabhaContactsTimer);
-          window._adminSabhaContactsTimer = setTimeout(() => {
-            window._adminSabhaContactsTimer = null;
-            // Skip if this device just marked attendance (optimistic state is correct)
-            if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 12000)) return;
-            gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
-              .then(r => r.json())
-              .then(d => {
-                if (d.contacts) {
-                  allContacts = d.contacts;
-                  if (typeof refreshAdminSabhaOverviewCounts === 'function') refreshAdminSabhaOverviewCounts();
-                }
-              })
-              .catch(() => {});
-          }, 6000);
-          // Full reload at 18s — well after sheet write settles
-          if (window._adminSabhaRefreshTimer) clearTimeout(window._adminSabhaRefreshTimer);
-          window._adminSabhaRefreshTimer = setTimeout(() => {
-            window._adminSabhaRefreshTimer = null;
-            if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 18000)) return;
-            if (typeof loadAdminData === 'function') loadAdminData();
-          }, 18000);
+        // Debounce: multiple rapid marks → one fetch after last ping settles
+        if (window._sabhaAutoSyncTimer) clearTimeout(window._sabhaAutoSyncTimer);
+        window._sabhaAutoSyncTimer = setTimeout(() => {
+          window._sabhaAutoSyncTimer = null;
+          // Re-check writer guard inside timer (another mark may have fired)
+          if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 25000)) return;
 
-        } else if (role === 'moderator') {
-          // Delay getAllContacts — wait for sheet to commit
-          if (window._modSabhaContactsTimer) clearTimeout(window._modSabhaContactsTimer);
-          window._modSabhaContactsTimer = setTimeout(() => {
-            window._modSabhaContactsTimer = null;
-            if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 12000)) return;
-            gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
-              .then(r => r.json())
-              .then(d => {
-                if (d.contacts) {
-                  allContacts = d.contacts;
-                  if (typeof refreshModSabhaOverviewCounts === 'function') refreshModSabhaOverviewCounts();
-                  if (modSelectedSabhaCol) {
-                    const presentList = allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present');
-                    modPresentCountLocal = presentList.length;
-                    if (typeof modUpdateAttnCounter === 'function') modUpdateAttnCounter();
-                    if (typeof modRenderPresentList === 'function') modRenderPresentList(presentList);
-                  }
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
+            .then(r => r.json())
+            .then(d => {
+              if (!d.contacts || !d.contacts.length) return; // empty → keep current display
+              allContacts = d.contacts;
+
+              if (role === 'admin') {
+                // Patch Overview card numbers in-place (no re-render)
+                if (typeof refreshAdminSabhaOverviewCounts === 'function') refreshAdminSabhaOverviewCounts();
+
+              } else if (role === 'moderator') {
+                // Patch Overview card numbers in-place
+                if (typeof refreshModSabhaOverviewCounts === 'function') refreshModSabhaOverviewCounts();
+                // Patch Sabha tab present counter + list (modSelectedSabhaCol already set)
+                if (typeof modSelectedSabhaCol !== 'undefined' && modSelectedSabhaCol) {
+                  const pl = allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present');
+                  modPresentCountLocal = pl.length;
+                  if (typeof modUpdateAttnCounter === 'function') modUpdateAttnCounter();
+                  if (typeof modRenderPresentList === 'function') modRenderPresentList(pl);
                 }
-              })
-              .catch(() => {});
-          }, 6000);
-          // Full reload at 18s
-          if (window._modSabhaRefreshTimer) clearTimeout(window._modSabhaRefreshTimer);
-          window._modSabhaRefreshTimer = setTimeout(() => {
-            window._modSabhaRefreshTimer = null;
-            if (window._localSabhaWrite && (Date.now() - window._localSabhaWrite < 18000)) return;
-            if (typeof loadModeratorData === 'function') loadModeratorData();
-          }, 18000);
-        }
+
+              } else if (role === 'volunteer') {
+                // Patch Sabha tab present counter + list (selectedSabhaCol already set)
+                if (typeof selectedSabhaCol !== 'undefined' && selectedSabhaCol) {
+                  const pl = allContacts.filter(c => String(c[selectedSabhaCol] || '').trim() === 'Present');
+                  presentCountLocal = pl.length;
+                  if (typeof updateAttnCounter === 'function') updateAttnCounter();
+                  if (typeof renderPresentList === 'function') renderPresentList(pl);
+                }
+              }
+            })
+            .catch(() => {}); // silent — stale display better than zero
+        }, 10000);
       });
 
       // ── Channel 4: New member added ────────────────────────────────
@@ -11412,6 +11471,19 @@
     }
   ═══════════════════════════════════════════════════════════════════
 -->
+
+  <!-- ── Reusable centered confirm dialog — outside all screens so it works for every role ── -->
+  <div id="confirmDialog" class="confirm-overlay" onclick="if(event.target===this)_confirmReject()">
+    <div class="confirm-dialog">
+      <div id="confirmIcon" class="confirm-icon warn">⚠️</div>
+      <div id="confirmTitle" class="confirm-title"></div>
+      <div id="confirmBody" class="confirm-body"></div>
+      <div class="confirm-actions">
+        <button class="confirm-btn-cancel" onclick="_confirmReject()">Cancel</button>
+        <button id="confirmOkBtn" class="confirm-btn-ok" onclick="_confirmResolve()">OK</button>
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>
