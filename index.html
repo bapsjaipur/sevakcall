@@ -9906,23 +9906,89 @@
         if (!hits.length) { container.innerHTML = `<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:16px;">No results for "${esc(q)}"</div>`; return; }
         container.innerHTML = hits.map(c => {
           const isPresent = String(c[modSelectedSabhaCol] || '').trim() === 'Present';
-          return `<div class="attn-contact-card${isPresent ? ' present' : ''}"><div style="flex:1;min-width:0"><div class="attn-name">${esc(c.Name)}</div><div class="attn-meta">${esc(c.Phone)}${c.Mandal ? ' · ' + esc(c.Mandal) : ''}${c.Area ? ' · ' + esc(c.Area) : ''}</div></div>${isPresent ? `<div class="attn-present-badge">✅ Present</div>` : `<button class="btn-green-sm" onclick="modDoMarkAttendance('${esc(c.ID)}',this)">Mark Present</button>`}</div>`;
+          const cid = esc(c.ID);
+          return `<div class="attn-contact-card${isPresent ? ' present' : ''}">
+            <div style="flex:1;min-width:0">
+              <div class="attn-name">${esc(c.Name)}</div>
+              <div class="attn-meta">${esc(c.Phone)}${c.Mandal ? ' · ' + esc(c.Mandal) : ''}${c.Area ? ' · ' + esc(c.Area) : ''}</div>
+            </div>
+            ${isPresent
+              ? `<div style="display:flex;align-items:center;gap:6px">
+                   <div class="attn-present-badge">✅ Present</div>
+                   <button style="font-size:0.72rem;padding:5px 10px;border-radius:8px;border:1.5px solid #C0392B;color:#C0392B;background:none;cursor:pointer;font-weight:600" onclick="modDoMarkAbsent('${cid}',this)">Undo</button>
+                 </div>`
+              : `<button class="btn-green-sm" onclick="modDoMarkAttendance('${cid}',this)">Mark Present</button>`
+            }
+          </div>`;
         }).join('');
       }, 300);
     }
 
     async function modDoMarkAttendance(contactId, btnEl) {
       if (!modSelectedSabhaCol) { showToast('Select a Sabha first', 'warn'); return; }
-      btnEl.disabled = true; btnEl.innerHTML = '<span class="spinner dark-spin" style="width:14px;height:14px;border-color:rgba(0,0,0,0.15);border-top-color:#156D3E"></span>';
+      btnEl.disabled = true;
+      btnEl.innerHTML = '<span class="spinner dark-spin" style="width:14px;height:14px;border-color:rgba(0,0,0,0.15);border-top-color:#156D3E"></span>';
       try {
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'markAttendance', contactId, columnName: modSelectedSabhaCol, volName: currentUser.name }) });
-        const c = allContacts.find(x => String(x.ID) === String(contactId)); if (c) c[modSelectedSabhaCol] = 'Present';
-        const card = btnEl.closest('.attn-contact-card'); if (card) { card.classList.add('present'); btnEl.outerHTML = '<div class="attn-present-badge">✅ Present</div>'; }
-        modPresentCountLocal++; modUpdateAttnCounter();
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'markAttendance', contactId, columnName: modSelectedSabhaCol, volName: currentUser.name })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast('❌ Failed: ' + (data.error || 'Unknown error'), 'error');
+          btnEl.disabled = false; btnEl.textContent = 'Mark Present'; return;
+        }
+        const c = allContacts.find(x => String(x.ID) === String(contactId));
+        if (c) c[modSelectedSabhaCol] = 'Present';
+        const card = btnEl.closest('.attn-contact-card');
+        if (card) {
+          card.classList.add('present');
+          btnEl.outerHTML = `<div style="display:flex;align-items:center;gap:6px"><div class="attn-present-badge">✅ Present</div><button style="font-size:0.72rem;padding:5px 10px;border-radius:8px;border:1.5px solid #C0392B;color:#C0392B;background:none;cursor:pointer;font-weight:600" onclick="modDoMarkAbsent('${contactId}',this)">Undo</button></div>`;
+        }
+        modPresentCountLocal++;
+        modUpdateAttnCounter();
         modRenderPresentList(allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present'));
         showToast('✅ Marked Present!', 'success');
         if (typeof firebaseSync === 'function') firebaseSync('sabhaAttendance'); // 🔥 real-time sync
-      } catch (e) { btnEl.disabled = false; btnEl.textContent = 'Mark Present'; showToast('Failed. Try again.', 'error'); }
+      } catch (e) {
+        btnEl.disabled = false; btnEl.textContent = 'Mark Present';
+        showToast('Failed. Try again.', 'error');
+      }
+    }
+
+    async function modDoMarkAbsent(contactId, btnEl) {
+      if (!modSelectedSabhaCol) return;
+      btnEl.disabled = true;
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'markAttendance', contactId, columnName: modSelectedSabhaCol, volName: currentUser.name, markAs: 'Absent' })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast('❌ Failed: ' + (data.error || 'Unknown error'), 'error');
+          btnEl.disabled = false; return;
+        }
+        const c = allContacts.find(x => String(x.ID) === String(contactId));
+        if (c) c[modSelectedSabhaCol] = '';
+        const card = btnEl.closest('.attn-contact-card');
+        if (card) {
+          card.classList.remove('present');
+          // Replace the present badge + undo button with Mark Present button
+          const badgeWrap = btnEl.closest('div[style*="display:flex"]') || btnEl.parentElement;
+          if (badgeWrap) badgeWrap.outerHTML = `<button class="btn-green-sm" onclick="modDoMarkAttendance('${contactId}',this)">Mark Present</button>`;
+        }
+        modPresentCountLocal = Math.max(0, modPresentCountLocal - 1);
+        modUpdateAttnCounter();
+        modRenderPresentList(allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present'));
+        showToast('↩️ Marked Absent', 'info');
+        if (typeof firebaseSync === 'function') firebaseSync('sabhaAttendance'); // 🔥 real-time sync
+      } catch (e) {
+        btnEl.disabled = false;
+        showToast('Failed. Try again.', 'error');
+      }
     }
 
     function openModAddMemberModal() {
@@ -11071,7 +11137,29 @@
             }, 8000); // full refresh after 8s to avoid hammering GAS
           }
         } else if (role === 'moderator') {
-          if (typeof loadModeratorData === 'function') loadModeratorData();
+          // Refresh allContacts then update Sabha present list instantly
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
+            .then(r => r.json())
+            .then(d => {
+              if (d.contacts) {
+                allContacts = d.contacts;
+                // Update Sabha present count live if a Sabha is selected
+                if (modSelectedSabhaCol) {
+                  const presentList = allContacts.filter(c => String(c[modSelectedSabhaCol] || '').trim() === 'Present');
+                  modPresentCountLocal = presentList.length;
+                  if (typeof modUpdateAttnCounter === 'function') modUpdateAttnCounter();
+                  if (typeof modRenderPresentList === 'function') modRenderPresentList(presentList);
+                }
+              }
+            })
+            .catch(() => {});
+          // Full reload debounced — avoid hammering GAS
+          if (!window._modSabhaRefreshTimer) {
+            window._modSabhaRefreshTimer = setTimeout(() => {
+              window._modSabhaRefreshTimer = null;
+              if (typeof loadModeratorData === 'function') loadModeratorData();
+            }, 8000);
+          }
         }
       });
 
