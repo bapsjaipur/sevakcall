@@ -6083,10 +6083,10 @@
       } catch (e) { showToast('Failed to load dashboard', 'error'); }
 
       // Auto-refresh every 60 seconds while on admin tab
-      // if (window._adminRefreshTimer) clearInterval(window._adminRefreshTimer);
-      // window._adminRefreshTimer = setInterval(() => {
-      //   if (window.currentTab === 'admin') loadAdminData();
-      // }, 300000);
+      if (window._adminRefreshTimer) clearInterval(window._adminRefreshTimer);
+      window._adminRefreshTimer = setInterval(() => {
+        if (currentTab === 'admin') loadAdminData();
+      }, 60000);
     }
 
     function renderAdminOverview(data) {
@@ -10631,12 +10631,14 @@
       _syncUnsubs = [];
       Object.keys(_seenTs).forEach(k => _seenTs[k] = 0);
 
-      const role = window.currentUser && window.currentUser.role;
+      // NOTE: role is read fresh inside each callback — NOT captured at init time
+      // This fixes the "role: undefined" bug where listeners fire before login completes
 
       // ── Channel 1: Volunteer updated a contact status ──────────────
       // → Admin & Moderator overview refreshes instantly
       _listenSync('statusUpdate', () => {
-        console.log('[Sync] statusUpdate received');
+        const role = window.currentUser && window.currentUser.role;
+        console.log('[Sync] statusUpdate received — role:', role);
         if (role === 'admin') {
           if (typeof loadAdminData === 'function') loadAdminData();
         } else if (role === 'moderator') {
@@ -10647,7 +10649,8 @@
       // ── Channel 2: Admin assigned/reassigned contacts ──────────────
       // → All volunteers refresh their contact list instantly
       _listenSync('assignUpdate', () => {
-        console.log('[Sync] assignUpdate received');
+        const role = window.currentUser && window.currentUser.role;
+        console.log('[Sync] assignUpdate received — role:', role);
         if (role === 'volunteer') {
           if (typeof showToast === 'function') showToast('🔄 Your contacts were updated. Syncing…', 'info');
           setTimeout(() => {
@@ -10659,7 +10662,8 @@
       // ── Channel 3: Someone marked Sabha attendance ─────────────────
       // → Everyone (all roles) sees updated present count instantly
       _listenSync('sabhaAttendance', () => {
-        console.log('[Sync] sabhaAttendance received');
+        const role = window.currentUser && window.currentUser.role;
+        console.log('[Sync] sabhaAttendance received — role:', role);
         if (role === 'volunteer') {
           if (typeof loadEventsForVolunteer === 'function') loadEventsForVolunteer();
         } else if (role === 'admin') {
@@ -10672,7 +10676,8 @@
       // ── Channel 4: New member added ────────────────────────────────
       // → Admin & Moderator see new contact instantly
       _listenSync('newMember', () => {
-        console.log('[Sync] newMember received');
+        const role = window.currentUser && window.currentUser.role;
+        console.log('[Sync] newMember received — role:', role);
         if (role === 'admin') {
           if (typeof loadAdminData === 'function') loadAdminData();
         } else if (role === 'moderator') {
@@ -10682,7 +10687,7 @@
         }
       });
 
-      console.log('[Sync] All 4 sync channels active for role:', role);
+      console.log('[Sync] All 4 sync channels active ✅');
     }
 
     // ── Public init function (called from login success handler) ───────
