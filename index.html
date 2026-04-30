@@ -4955,6 +4955,7 @@
         const d = await res.json();
         if (d.success) {
           currentUser = d.user;
+          window.currentUser = currentUser; // 🔥 expose globally for Firebase sync
           setHeaderIdentity(currentUser);
           if (typeof initFirebaseDoorbell === 'function') {
             initFirebaseDoorbell(currentUser.email);
@@ -4985,7 +4986,7 @@
       if (typeof stopFirebaseDoorbell === 'function') {
         stopFirebaseDoorbell();
       }
-      currentUser = null; contacts = []; currentIdx = 0; offlineQueue = [];
+      currentUser = null; window.currentUser = null; contacts = []; currentIdx = 0; offlineQueue = [];
       allContacts = []; eventsCache = []; selectedSabhaCol = '';
       modData = null; modBatches = []; modActAllLogs = []; modActFiltered = [];
       modPresentCountLocal = 0; modSelectedSabhaCol = '';
@@ -6082,11 +6083,7 @@
         loadEmailSettings(); // always sync toggle states from sheet on load/refresh
       } catch (e) { showToast('Failed to load dashboard', 'error'); }
 
-      // Auto-refresh every 60 seconds while on admin tab
-      if (window._adminRefreshTimer) clearInterval(window._adminRefreshTimer);
-      window._adminRefreshTimer = setInterval(() => {
-        if (currentTab === 'admin') loadAdminData();
-      }, 60000);
+      // Auto-refresh handled by Firebase real-time sync — timer removed
     }
 
     function renderAdminOverview(data) {
