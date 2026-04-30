@@ -5226,7 +5226,7 @@
       let data = null;
 
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        if (attempt > 0) await new Promise(r => setTimeout(r, 3000));
+        if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
         try {
           const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`));
           const raw = await res.json();
@@ -8381,14 +8381,19 @@
 
       showToast(`⏳ Assigning Batch #${batch.batchNumber} to ${volName}…`);
       try {
-        await fetch(SCRIPT_URL, {
-          method: 'POST', mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'assignBatch', batchNumber: batch.batchNumber, volunteer: volName })
-        });
-        // ⚠️ Do NOT fire firebaseSync here — no-cors POST is fire-and-forget.
-        // The sheet write takes 2–5 seconds. If volunteers refresh now they get stale/empty data.
-        // We fire firebaseSync ONLY after confirming the sheet is updated (see below).
+        const assignRes = await fetch(SCRIPT_URL, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ action: 'assignBatch', batchNumber: batch.batchNumber, volunteer: volName })
+});
+const assignData = await assignRes.json();
+if (!assignData.success) {
+  showToast('❌ Assignment failed: ' + (assignData.error || 'Unknown error'), 'error');
+  return;
+}
+// GAS confirmed write + cache cleared — safe to notify volunteers now
+if (typeof firebaseSync === 'function') firebaseSync('assignUpdate');
+showToast(`✅ Batch #${batch.batchNumber} assigned to ${volName}!`, 'success');
 
         // Optimistic local update immediately
         batch.assignedTo = volName;
@@ -8399,7 +8404,7 @@
         updateBatchSummary();
 
         // ── Confirm sync from sheet after short delay ──────────────
-        await new Promise(res => setTimeout(res, 3000));
+        // await new Promise(res => setTimeout(res, 3000));
         try {
           const [cRes, bRes] = await Promise.all([
             gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
