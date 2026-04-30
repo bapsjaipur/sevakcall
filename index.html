@@ -4991,7 +4991,17 @@
     // Prevents browser from serving stale Google Apps Script responses.
     function noCache(url) {
       const sep = url.includes('?') ? '&' : '?';
-      return url + sep + '_t=' + Date.now();
+      return url + sep + '_t=' + Date.now() + '&_r=' + Math.random().toString(36).slice(2);
+    }
+    // All GAS GET requests must bypass browser AND CDN cache
+    function gasFetch(url) {
+      return fetch(url, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
     }
 
     const WA_MSG = (n, m, a) => `Namaste ${n} ji 🙏\n\nWe are reaching out from *${m}* (${a}) regarding our upcoming volunteer program. We would love your support!\n\nKindly let us know a convenient time to connect. 🙂`;
@@ -5087,7 +5097,7 @@
       if (!email || !pass) { err.textContent = '❌ Enter email and password.'; err.style.display = 'block'; return; }
       btn.disabled = true; txt.innerHTML = '<span class="spinner"></span> Signing in…';
       try {
-        const res = await fetch(noCache(`${SCRIPT_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`));
+        const res = await gasFetch(noCache(`${SCRIPT_URL}?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`));
         const d = await res.json();
         if (d.success) {
           currentUser = d.user;
@@ -5221,7 +5231,7 @@
       for (let attempt = 0; attempt < RETRIES; attempt++) {
         if (DELAYS[attempt] > 0) await new Promise(r => setTimeout(r, DELAYS[attempt]));
         try {
-          const res  = await fetch(noCache(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`));
+          const res  = await gasFetch(noCache(`${SCRIPT_URL}?action=getMyContacts&email=${encodeURIComponent(currentUser.email)}`));
           const data = await res.json();
           if (Array.isArray(data.contacts)) {
             // Accept even an empty array ONLY on the last attempt — keeps old list otherwise
@@ -5256,8 +5266,8 @@
       if (!amAreaOptions.length || !amMandalOptions.length) {
         try {
           const [areasRes, mandalsRes] = await Promise.all([
-            fetch(noCache(`${SCRIPT_URL}?action=getAreas`)),
-            fetch(noCache(`${SCRIPT_URL}?action=getMandals`))
+            gasFetch(noCache(`${SCRIPT_URL}?action=getAreas`)),
+            gasFetch(noCache(`${SCRIPT_URL}?action=getMandals`))
           ]);
           const areasData  = await areasRes.json();
           const mandalsData = await mandalsRes.json();
@@ -5770,7 +5780,7 @@
     // ── Load all contacts (for global search in attendance tab) ──────
     async function loadAllContactsForAttendance() {
       try {
-        const res = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+        const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
         const d = await res.json();
         allContacts = d.contacts || [];
       } catch (e) { console.warn('Could not pre-load all contacts', e); }
@@ -5893,7 +5903,7 @@
     // ── Load events — auto-select upcoming ───────────────────────────
     async function loadEventsForVolunteer() {
       try {
-        const res = await fetch(noCache(`${SCRIPT_URL}?action=getEvents`));
+        const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`));
         const d = await res.json();
         eventsCache = d.events || [];
 
@@ -6248,7 +6258,7 @@
     // ══════════════════════════════════════════════════════════════════
     async function loadAdminData() {
       try {
-        const res = await fetch(noCache(`${SCRIPT_URL}?action=getAdminStats`));
+        const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getAdminStats`));
         adminData = await res.json();
         // Sync area list strictly from the Areas sheet — no localStorage fallback
         if (Array.isArray(adminData.areas)) { amAreaOptions = adminData.areas; window.amAreaOptions = amAreaOptions; }
@@ -6308,7 +6318,7 @@
       // Fetch events if not yet cached
       if (!allAdminSabhas.length) {
         try {
-          const r = await fetch(noCache(`${SCRIPT_URL}?action=getEvents`));
+          const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`));
           const d = await r.json();
           allAdminSabhas = (d.events || []).sort((a, b) => b.date.localeCompare(a.date));
         } catch (_) { }
@@ -6318,7 +6328,7 @@
       // Fetch fresh contacts for present counts if needed
       if (!allContacts.length) {
         try {
-          const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+          const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
           const d = await r.json();
           if (d.contacts) allContacts = d.contacts;
         } catch (_) { }
@@ -6737,7 +6747,7 @@
           closeEditAreaModal();
           await new Promise(r => setTimeout(r, 2500));
           await loadAdminData();
-          const r2 = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+          const r2 = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
           const d2 = await r2.json();
           if (d2.contacts) allContacts = d2.contacts;
         } else {
@@ -6787,7 +6797,7 @@
           closeEditMandalModal();
           await new Promise(r => setTimeout(r, 2500));
           await loadAdminData();
-          const r2 = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+          const r2 = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
           const d2 = await r2.json();
           if (d2.contacts) allContacts = d2.contacts;
         } else {
@@ -7091,8 +7101,8 @@
       try {
         // Fetch events + all contacts in parallel so "X Present" shows on each card
         const [evRes, cRes] = await Promise.all([
-          fetch(noCache(`${SCRIPT_URL}?action=getEvents`)),
-          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
+          gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`)),
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
         ]);
         const d = await evRes.json();
         const dc = await cRes.json();
@@ -7749,7 +7759,7 @@
       if (tab === 'areas') {
         // Load allContacts if not yet loaded, for mandal stats
         if (!allContacts.length) {
-          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)).then(r => r.json()).then(d => {
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)).then(r => r.json()).then(d => {
             if (d.contacts) { allContacts = d.contacts; renderMandalBreakdown(adminData || {}); }
           }).catch(() => { });
         } else {
@@ -7843,7 +7853,7 @@
         <div class="skeleton h-14 w-full rounded-xl"></div>`;
       document.getElementById('actPageInfo').textContent = 'Loading…';
       try {
-        const res = await fetch(noCache(`${SCRIPT_URL}?action=getActivityLog`));
+        const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getActivityLog`));
         const d = await res.json();
         actAllLogs = d.logs || [];
         const limitInfo = document.getElementById('actLogLimitInfo');
@@ -8007,7 +8017,7 @@
     async function loadMsgTemplate() {
       document.getElementById('msgCurrentText').textContent = 'Loading…';
       try {
-        const res = await fetch(noCache(`${SCRIPT_URL}?action=getMessageTemplate`));
+        const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getMessageTemplate`));
         const d = await res.json();
         const txt = d.text || '';
         const link = d.image || d.link || '';
@@ -8138,7 +8148,7 @@
       // 1. Load contacts if not already loaded
       if (!allContacts.length) {
         try {
-          const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+          const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
           const d = await r.json();
           if (d.contacts) allContacts = d.contacts;
         } catch (_) { }
@@ -8157,8 +8167,8 @@
       try {
         // Always reload contacts fresh so Batch_Number & Assigned_To are current
         const [cRes, bRes] = await Promise.all([
-          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
-          fetch(noCache(`${SCRIPT_URL}?action=getBatches`))
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+          gasFetch(noCache(`${SCRIPT_URL}?action=getBatches`))
         ]);
         const cData = await cRes.json();
         const bData = await bRes.json();
@@ -8268,7 +8278,7 @@
             contactIds: JSON.stringify(chunk.map(c => String(c.ID))),
             area: area || 'All'
           });
-          const res = await fetch(noCache(`${SCRIPT_URL}?${params}`));
+          const res = await gasFetch(noCache(`${SCRIPT_URL}?${params}`));
           if (!res.ok) failed++;
         } catch (_) { failed++; }
       }
@@ -8282,8 +8292,8 @@
 
       try {
         const [cRes, bRes] = await Promise.all([
-          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
-          fetch(noCache(`${SCRIPT_URL}?action=getBatches`))
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+          gasFetch(noCache(`${SCRIPT_URL}?action=getBatches`))
         ]);
         const cData = await cRes.json();
         const bData = await bRes.json();
@@ -8403,8 +8413,8 @@
         await new Promise(res => setTimeout(res, 3000));
         try {
           const [cRes, bRes] = await Promise.all([
-            fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
-            fetch(noCache(`${SCRIPT_URL}?action=getBatches`))
+            gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+            gasFetch(noCache(`${SCRIPT_URL}?action=getBatches`))
           ]);
           const cData = await cRes.json();
           const bData = await bRes.json();
@@ -8480,8 +8490,8 @@
         await new Promise(res => setTimeout(res, 3000));
         try {
           const [cRes, bRes] = await Promise.all([
-            fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
-            fetch(noCache(`${SCRIPT_URL}?action=getBatches`))
+            gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+            gasFetch(noCache(`${SCRIPT_URL}?action=getBatches`))
           ]);
           const cData = await cRes.json();
           const bData = await bRes.json();
@@ -8554,8 +8564,8 @@
       await new Promise(res => setTimeout(res, 4000));
       try {
         const [cRes, bRes] = await Promise.all([
-          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
-          fetch(noCache(`${SCRIPT_URL}?action=getBatches`))
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+          gasFetch(noCache(`${SCRIPT_URL}?action=getBatches`))
         ]);
         const cData = await cRes.json();
         const bData = await bRes.json();
@@ -8708,7 +8718,7 @@
         document.getElementById('allContactsList').innerHTML =
           '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:24px">Loading contacts…</div>';
         try {
-          const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+          const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
           const d = await r.json();
           if (d.contacts) allContacts = d.contacts;
         } catch (_) { }
@@ -9147,7 +9157,7 @@
 
         // Reload both adminData (stats) AND allContacts (the contacts tab list)
         await loadAdminData();
-        const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+        const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
         const d = await r.json();
         if (d.contacts) allContacts = d.contacts;
 
@@ -9194,7 +9204,7 @@
         // Wait for GAS to finish deleting row + rebuilding IDs, then fetch fresh data
         await new Promise(res => setTimeout(res, 4000));
         await loadAdminData();
-        const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+        const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
         const d = await r.json();
         if (d.contacts) allContacts = d.contacts;
         renderAllContacts();
@@ -9233,7 +9243,7 @@
         // Give GAS a moment to finish writing, then reload
         await new Promise(res => setTimeout(res, 4000));
         await loadAdminData();
-        const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+        const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
         const d = await r.json();
         if (d.contacts) allContacts = d.contacts;
         renderAllContacts();
@@ -9269,7 +9279,7 @@
       // switchModTab('overview');
       try {
         // Single fetch — getAdminStats already returns allContacts, areas, mandals
-        const statsRes = await fetch(noCache(`${SCRIPT_URL}?action=getAdminStats`));
+        const statsRes = await gasFetch(noCache(`${SCRIPT_URL}?action=getAdminStats`));
         const statsData = await statsRes.json();
 
         modData = statsData;
@@ -9573,7 +9583,7 @@
     async function modRefreshBatchTab() {
       if (!allContacts.length) {
         try {
-          const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+          const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
           const d = await r.json();
           if (d.contacts) allContacts = d.contacts;
         } catch (_) { }
@@ -9589,8 +9599,8 @@
     async function modLoadBatchesFromSheet() {
       try {
         const [cRes, bRes] = await Promise.all([
-          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
-          fetch(noCache(`${SCRIPT_URL}?action=getBatches`))
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)),
+          gasFetch(noCache(`${SCRIPT_URL}?action=getBatches`))
         ]);
         const cData = await cRes.json();
         const bData = await bRes.json();
@@ -9657,7 +9667,7 @@
             contactIds: JSON.stringify(chunk.map(c => c.ID)),
             area: areaFilter === '__all__' ? 'All' : areaFilter
           });
-          await fetch(noCache(`${SCRIPT_URL}?${params}`));
+          await gasFetch(noCache(`${SCRIPT_URL}?${params}`));
         }
         await new Promise(r => setTimeout(r, 2500));
         await modRefreshBatchTab();
@@ -9775,7 +9785,7 @@
         modRenderBatchList(); modRenderBatchVolStats(); modUpdateBatchSummary();
         await new Promise(r => setTimeout(r, 3000));
         try {
-          const [cRes, bRes] = await Promise.all([fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)), fetch(noCache(`${SCRIPT_URL}?action=getBatches`))]);
+          const [cRes, bRes] = await Promise.all([gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)), gasFetch(noCache(`${SCRIPT_URL}?action=getBatches`))]);
           const cData = await cRes.json(), bData = await bRes.json();
           if (cData.contacts) { allContacts = cData.contacts; const bm = {}; allContacts.forEach(c => { const bn = String(c.Batch_Number || '').trim(); if (bn) { if (!bm[bn]) bm[bn] = []; bm[bn].push(c); } }); modBatches.forEach(b => { if (b.batchNumber) b.contacts = bm[String(b.batchNumber)] || b.contacts; }); }
           if (bData.batches) { bData.batches.forEach(row => { const bn = String(row.Batch_Number || '').trim(); const local = modBatches.find(b => String(b.batchNumber) === bn); if (local) { local.assignedTo = String(row.Assigned_To || '').trim(); local.assignedAt = row.Assigned_At || local.assignedAt; } }); }
@@ -9816,8 +9826,8 @@
     async function loadModEventsForSabha() {
       try {
         const [evRes, cRes] = await Promise.all([
-          fetch(noCache(`${SCRIPT_URL}?action=getEvents`)),
-          allContacts.length ? Promise.resolve({ json: () => ({ contacts: allContacts }) }) : fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
+          gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`)),
+          allContacts.length ? Promise.resolve({ json: () => ({ contacts: allContacts }) }) : gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
         ]);
         const d = await evRes.json();
         eventsCache = d.events || [];
@@ -9955,7 +9965,7 @@
     async function initModAllContactsTab() {
       if (!allContacts.length) {
         document.getElementById('modAllContactsList').innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:24px">Loading contacts…</div>';
-        try { const r = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)); const d = await r.json(); if (d.contacts) allContacts = d.contacts; } catch (_) { }
+        try { const r = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`)); const d = await r.json(); if (d.contacts) allContacts = d.contacts; } catch (_) { }
       }
       const areaSelect = document.getElementById('modAllContactsAreaFilter');
       const areas = [...new Set(allContacts.map(c => c.Area).filter(Boolean))].sort();
@@ -10071,7 +10081,7 @@
         document.getElementById('modAddContactOverlay').style.display = 'none';
         // Refresh contacts list
         await new Promise(r => setTimeout(r, 3000));
-        const res = await fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
+        const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`));
         const d = await res.json();
         if (d.contacts) allContacts = d.contacts;
         if (document.getElementById('modTabContacts').style.display !== 'none') renderModAllContacts();
@@ -10132,7 +10142,7 @@
         <div class="skeleton h-14 w-full rounded-xl"></div>`;
       document.getElementById('modActPageInfo').textContent = 'Loading…';
       try {
-        const res = await fetch(noCache(`${SCRIPT_URL}?action=getActivityLog`));
+        const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getActivityLog`));
         const d = await res.json();
         modActAllLogs = d.logs || [];
         applyModActivityFilter();
@@ -10247,8 +10257,8 @@
     async function loadEmailSettings() {
       try {
         const [settRes, peopleRes] = await Promise.all([
-          fetch(noCache(`${SCRIPT_URL}?action=getEmailSettings`)),
-          fetch(noCache(`${SCRIPT_URL}?action=getVolunteersForEmail`))
+          gasFetch(noCache(`${SCRIPT_URL}?action=getEmailSettings`)),
+          gasFetch(noCache(`${SCRIPT_URL}?action=getVolunteersForEmail`))
         ]);
         const sd = await settRes.json();
         const pd = await peopleRes.json();
@@ -10275,7 +10285,7 @@
       // FIX Issue 2: fetch events fresh if cache is empty (user may not have opened Sabhas tab yet)
       if (!eventsCache.length) {
         try {
-          const res = await fetch(noCache(`${SCRIPT_URL}?action=getEvents`));
+          const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`));
           const d = await res.json();
           eventsCache = d.events || [];
         } catch (e) { console.error('loadEmailPanel: failed to fetch events', e); }
@@ -10402,14 +10412,14 @@
     // ── Moderator email panel ─────────────────────────────────────────
     async function loadModEmailPanel() {
       try {
-        const pd = await fetch(noCache(`${SCRIPT_URL}?action=getVolunteersForEmail`)).then(r => r.json());
+        const pd = await gasFetch(noCache(`${SCRIPT_URL}?action=getVolunteersForEmail`)).then(r => r.json());
         emailPeopleCache = pd;
         const { volunteers = [], admins = [], moderators = [] } = pd;
 
         // FIX Issue 3: fetch events fresh if cache empty, then filter to last 1 month
         if (!eventsCache.length) {
           try {
-            const res = await fetch(noCache(`${SCRIPT_URL}?action=getEvents`));
+            const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getEvents`));
             const d = await res.json();
             eventsCache = d.events || [];
           } catch (e) { console.error('loadModEmailPanel: failed to fetch events', e); }
@@ -10540,7 +10550,7 @@
       document.getElementById('bdCalStatus').textContent = '…';
       document.getElementById('bdLastRun').textContent = 'Last sync: checking…';
       try {
-        const res = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdaySync`));
+        const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getBirthdaySync`));
         const data = await res.json();
         if (data.success) {
           const count = data.synced || 0;
@@ -10597,7 +10607,7 @@
 
       try {
         // ── Step 1: Reset counters on server ─────────────────────────────
-        await fetch(noCache(`${SCRIPT_URL}?action=initBirthdaySync`));
+        await gasFetch(noCache(`${SCRIPT_URL}?action=initBirthdaySync`));
         await new Promise(r => setTimeout(r, 1500));
         setProgress(2, 'Initialized — triggering batch runner…');
 
@@ -10634,7 +10644,7 @@
 
           let prog = {};
           try {
-            const res = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdaySyncProgress`));
+            const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getBirthdaySyncProgress`));
             prog = await res.json();
           } catch (_) { continue; }
 
@@ -10653,8 +10663,8 @@
         }
 
         // ── Step 4: Final read ────────────────────────────────────────────
-        const prog = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdaySyncProgress`)).then(r => r.json()).catch(() => ({}));
-        const s = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdaySync`)).then(r => r.json()).catch(() => ({}));
+        const prog = await gasFetch(noCache(`${SCRIPT_URL}?action=getBirthdaySyncProgress`)).then(r => r.json()).catch(() => ({}));
+        const s = await gasFetch(noCache(`${SCRIPT_URL}?action=getBirthdaySync`)).then(r => r.json()).catch(() => ({}));
 
         result.style.background = '#D4EDDA';
         result.style.color = '#155724';
@@ -10761,7 +10771,7 @@
           attempts++;
           await new Promise(r => setTimeout(r, 2000));
           try {
-            const check = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdaySync`)).then(r => r.json());
+            const check = await gasFetch(noCache(`${SCRIPT_URL}?action=getBirthdaySync`)).then(r => r.json());
             if (check.success && (check.synced === 0 || !check.synced)) {
               // ✅ Sheet cleared — delete is done
               result.style.background = '#F0FFF4';
@@ -10814,7 +10824,7 @@
     /* ── Load birthday email status when panel opens ────────────── */
     async function loadBdEmailStatus() {
       try {
-        const res = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdayEmailStatus`));
+        const res = await gasFetch(noCache(`${SCRIPT_URL}?action=getBirthdayEmailStatus`));
         const data = await res.json();
         if (!data.success) return;
         const statusEl = document.getElementById('bdEmailStatus');
@@ -10850,7 +10860,7 @@
       }
 
       try {
-        const res = await fetch(noCache(`${SCRIPT_URL}?action=sendBirthdayEmailsNow`));
+        const res = await gasFetch(noCache(`${SCRIPT_URL}?action=sendBirthdayEmailsNow`));
         const data = await res.json();
 
         if (result) {
@@ -11069,7 +11079,7 @@
           if (typeof loadEventsForVolunteer === 'function') loadEventsForVolunteer();
         } else if (role === 'admin') {
           // Refresh allContacts in background, then update Sabha card counts instantly
-          fetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
+          gasFetch(noCache(`${SCRIPT_URL}?action=getAllContacts`))
             .then(r => r.json())
             .then(d => {
               if (d.contacts) {
@@ -11207,7 +11217,7 @@
 
     async function loadBdEmailStatus() {
       try {
-        const res  = await fetch(noCache(`${SCRIPT_URL}?action=getBirthdayEmailStatus`));
+        const res  = await gasFetch(noCache(`${SCRIPT_URL}?action=getBirthdayEmailStatus`));
         const data = await res.json();
         if (!data.success) return;
         const statusEl  = document.getElementById('bdEmailStatus');
